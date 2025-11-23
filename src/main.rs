@@ -1,3 +1,9 @@
+mod frontend;
+
+use clap::Parser;
+use crate::frontend::cli::{Cli, handle};
+
 fn main() {
-    println!("The Ohl Overseer watches you closely.");
+    let args: Cli = Cli::parse();
+    handle(args);
 }
