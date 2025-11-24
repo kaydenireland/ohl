@@ -1,8 +1,4 @@
-mod token;
-
-use std::clone;
-
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Token {
 
     // Containers
@@ -17,16 +13,23 @@ pub enum Token {
     POINT,
     COMMA,
     SEMICOLON,
+    ARROW,
+    BIG_ARROW,
 
     // Arithmetic Operators
     ADD,
+    INCREMENT,
     SUB,
+    DECREMENT,
     MULT,
+    SQUARE,
     DIV,
     REM,
+    POWER,
+    ROOT,
 
     // Relational Operators
-    EQ,
+    EQUAL,
     NEQ, // Not Equal (!=)
     LT,
     NGT, // Not Greater Than (<=)
@@ -52,13 +55,17 @@ pub enum Token {
     IF,
     ELSE,
     FOR,
+    EACH,
     WHILE,
     LOOP,
+    CONTINUE,
+    BREAK,
     PRINT,
     RETURN,
+    MATCH,
 
     // Identifiers
-    ID { name: string },
+    ID { name: String },
 
     // Basic Types
     INT,
@@ -66,8 +73,6 @@ pub enum Token {
     CHAR,
     STRING,
     BOOLEAN,
-    TRUE,
-    FALSE,
     NULL,
     // FUNCTION,
 
@@ -75,7 +80,7 @@ pub enum Token {
     LIT_INT { value: i32 },
     LIT_FLOAT { value: f32 },
     LIT_CHAR { value: char },
-    LIT_STRING { value: string },
+    LIT_STRING { value: String },
     LIT_BOOL { value: bool },
 
     // End of Input

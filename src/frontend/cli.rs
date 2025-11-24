@@ -1,7 +1,9 @@
 use clap::{Parser, Subcommand};
 
+use crate::backend::lexer::Lexer;
+
 #[derive(Parser)]
-#[command(name = "oo")]
+#[command(name = "oo", version)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command
@@ -9,14 +11,17 @@ pub struct Cli {
 
 #[derive(Clone, Subcommand)]
 pub enum Command {
-    Print{filepath: String, #[arg(short, long)] numbered: bool}
+    Print { filepath: String, #[arg(short, long)] numbered: bool },
+    Tokenize { filepath: String }
 }
 
 pub fn handle(cli: Cli){
     match cli.command {
-        Command::Print { filepath, numbered } => print(filepath, numbered)
+        Command::Print { filepath, numbered } => print(filepath, numbered),
+        Command::Tokenize { filepath } => tokenize(filepath),
     }
 }
+
 
 pub fn print(path: String, numbered: bool){
     let contents = std::fs::read_to_string(path).unwrap();
@@ -34,4 +39,10 @@ pub fn print(path: String, numbered: bool){
     }else {
         println!("{}", contents);
     }
+}
+
+pub fn tokenize(path: String) {
+    let contents = std::fs::read_to_string(path).unwrap();
+    let mut lexer = Lexer::new(contents);
+    lexer.print_tokens();
 }

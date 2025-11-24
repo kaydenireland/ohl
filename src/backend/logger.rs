@@ -1,5 +1,3 @@
-mod logger;
-
 pub struct Logger{
     indent: usize
 }
@@ -7,8 +5,8 @@ pub struct Logger{
 impl Logger {
     const INDENT: usize = 2;
 
-    pub fn new() -> Log {
-        Log { indent: 0 }
+    pub fn new() -> Logger {
+        Logger { indent: 0 }
     }
 
     pub fn info(&self, msg: &str) {
