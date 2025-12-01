@@ -1,4 +1,4 @@
-use crate::{backend::token::Token};
+use crate::backend::token::Token;
 
 enum LexerState {
     START,
@@ -54,7 +54,7 @@ impl Lexer {
         self.buffer_string = String::new();
     }
 
-    pub fn curr(&self) -> Token {
+    pub fn current(&self) -> Token {
         self.current_token.clone()
     }
 
@@ -62,12 +62,12 @@ impl Lexer {
         println!("");
         loop {
             self.advance();
-            if let Token::EOI = self.curr() {
+            if let Token::EOI = self.current() {
                 break;
             }
-            print!("{:?}, ", self.curr());
+            print!("{:?}, ", self.current());
         }
-        print!("{:?}", self.curr());
+        print!("{:?}", self.current());
     }
 
     pub fn advance(&mut self) -> Token {
@@ -407,7 +407,7 @@ impl Lexer {
             }
         }
 
-        self.curr()
+        self.current()
     }
 
     fn match_buffer_string(&mut self) -> Token {
@@ -424,14 +424,19 @@ impl Lexer {
             "return" => Token::RETURN,
             "for" => Token::FOR,
             "each" => Token::EACH,
+            "in" => Token::IN,
             "while" => Token::WHILE,
             "loop" => Token::LOOP,
             "match" => Token::MATCH,
+            "default" => Token::DEFAULT,
             "print" => Token::PRINT,
             "not" => Token::NOT,
             "and" => Token::AND,
             "or" => Token::OR,
             "xor" => Token::XOR,
+            "class" => Token::CLASS,
+            "impl" => Token::IMPL,
+            "enum" => Token::ENUM,
             "int" => Token::INT,
             "float" => Token::FLOAT,
             "char" => Token::CHAR,

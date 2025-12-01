@@ -13,3 +13,4 @@ return if else match
 ^ ^= ^/ ^/=
 => == > >= < <=
 ! !=
+default

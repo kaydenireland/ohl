@@ -1,3 +1,7 @@
+#![allow(warnings)]
+
+use std::mem::discriminant;
+
 #[derive(Debug, Clone)]
 pub enum Token {
 
@@ -56,6 +60,7 @@ pub enum Token {
     ELSE,
     FOR,
     EACH,
+    IN,
     WHILE,
     LOOP,
     CONTINUE,
@@ -63,6 +68,11 @@ pub enum Token {
     PRINT,
     RETURN,
     MATCH,
+    DEFAULT,
+
+    CLASS,
+    IMPL,
+    ENUM,
 
     // Identifiers
     ID { name: String },
@@ -103,5 +113,30 @@ impl Token {
         matches!(self,
             Token::INT | Token::FLOAT | Token::CHAR | Token::STRING | Token::BOOLEAN
         )
+    }
+
+    pub fn is_function_type(&self) -> bool {
+        matches!(self,
+            Token::PUBLIC | Token::PRIVATE | Token::PROTECTED
+        )
+    }
+
+    pub fn is_literal(&self) -> bool {
+        matches!(self,
+            Token::LIT_INT { .. } | Token::LIT_FLOAT { .. } | Token::LIT_CHAR { .. }
+            | Token::LIT_STRING { .. } | Token::LIT_BOOL { .. } | Token::NULL
+        )
+    }
+}
+
+impl Token {
+    pub fn id() -> Token {
+        Token::ID { name: String::new() }
+    }
+}
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        discriminant(self) == discriminant(other)
     }
 }
