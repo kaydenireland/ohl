@@ -1,33 +1,43 @@
 use clap::{Parser, Subcommand};
 
 use crate::backend::lexer::Lexer;
+use crate::backend::parser::Parser as ooParser;
 
 #[derive(Parser)]
 #[command(name = "oo", version)]
 pub struct Cli {
     #[command(subcommand)]
-    pub command: Command
+    pub command: Command,
 }
 
 #[derive(Clone, Subcommand)]
 pub enum Command {
-    Print { filepath: String, #[arg(short, long)] numbered: bool },
-    Tokenize { filepath: String }
+    Print {
+        filepath: String,
+        #[arg(short, long)]
+        numbered: bool,
+    },
+    Tokenize {
+        filepath: String,
+    },
+    Parse {
+        filepath: String,
+    },
 }
 
-pub fn handle(cli: Cli){
+pub fn handle(cli: Cli) {
     match cli.command {
         Command::Print { filepath, numbered } => print(filepath, numbered),
         Command::Tokenize { filepath } => tokenize(filepath),
+        Command::Parse { filepath } => parse(filepath),
     }
 }
 
-
-pub fn print(path: String, numbered: bool){
+pub fn print(path: String, numbered: bool) {
     let contents = std::fs::read_to_string(path).unwrap();
 
     if numbered {
-    let total_lines = contents.lines().count();
+        let total_lines = contents.lines().count();
         let width = total_lines.to_string().len();
 
         let mut counter = 0;
@@ -36,7 +46,7 @@ pub fn print(path: String, numbered: bool){
             let num_str = format!("{num:>width$}", num = counter, width = width);
             println!("{} {} {line}", num_str, "|", line = line);
         }
-    }else {
+    } else {
         println!("{}", contents);
     }
 }
@@ -45,4 +55,13 @@ pub fn tokenize(path: String) {
     let contents = std::fs::read_to_string(path).unwrap();
     let mut lexer = Lexer::new(contents);
     lexer.print_tokens();
+}
+
+pub fn parse(path: String) {
+    let contents = std::fs::read_to_string(path).unwrap();
+    let lexer = Lexer::new(contents);
+    let mut parser = ooParser::new(lexer);
+    let tree = parser.analyze();
+    println!("\n\nParse Tree:\n");
+    tree.print();
 }
