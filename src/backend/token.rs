@@ -102,7 +102,8 @@ pub enum Token {
     LIT_STRING { value: String },
     LIT_BOOL { value: bool },
 
-    // End of Input
+    // End of Input, Error
+    ERROR { msg: String },
     EOI,
 
     // Metadata Nonterminals

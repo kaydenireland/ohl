@@ -1,0 +1,10 @@
+public int add(y: int){
+    let z: int = 0;
+    for (let x: int = 0; x < 5; i++) {
+        if (y < x) {
+            z = x++;
+            x += 1;
+        }
+    }
+    return z;
+}
