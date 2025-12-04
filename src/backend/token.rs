@@ -1,6 +1,9 @@
+#![allow(warnings)]
+
+use std::mem::discriminant;
+
 #[derive(Debug, Clone)]
 pub enum Token {
-
     // Containers
     PAREN_L,
     PAREN_R,
@@ -13,37 +16,46 @@ pub enum Token {
     POINT,
     COMMA,
     SEMICOLON,
-    ARROW,
-    BIG_ARROW,
+    COLON,
+    ARROW,     // ->
+    BIG_ARROW, // =>
 
     // Arithmetic Operators
-    ADD,
-    INCREMENT,
-    SUB,
-    DECREMENT,
-    MULT,
-    SQUARE,
-    DIV,
-    REM,
-    POWER,
-    ROOT,
+    ADD,       // +
+    INCREMENT, // ++
+    SUB,       // -
+    DECREMENT, // --
+    MULT,      // '*'
+    SQUARE,    // '**'
+    DIV,       // /
+    REM,       // %
+    POWER,     // ^
+    ROOT,      // ^/
+
+    ADD_ASSIGN,   // +=
+    SUB_ASSIGN,   // -=
+    MULT_ASSIGN,  // '*='
+    DIV_ASSIGN,   // /=
+    REM_ASSIGN,   // %=
+    POWER_ASSIGN, // ^=
+    ROOT_ASSIGN,  // ^/=
 
     // Relational Operators
-    EQUAL,
-    NEQ, // Not Equal (!=)
-    LT,
-    NGT, // Not Greater Than (<=)
-    GT,
-    NLT, // Not Less Than (>=)
+    EQUAL, // Equal (==)
+    NEQ,   // Not Equal (!=)
+    LT,    // Less Than (<)
+    NGT,   // Not Greater Than (<=)
+    GT,    // Greater Than (>)
+    NLT,   // Not Less Than (>=)
 
     // Logical Operators
-    NOT,
-    AND,
-    OR,
-    XOR,
+    NOT, // '!' or keyword not
+    AND, // '&&' or keyword and
+    OR,  // '||' or keyword or
+    XOR, // '^^' or keyword xor
 
     // Assignment
-    ASSIGN,
+    ASSIGN, // '='
 
     // Keywords
     IMPORT,
@@ -52,17 +64,25 @@ pub enum Token {
     PUBLIC,
     PRIVATE,
     PROTECTED,
+    LET,
     IF,
     ELSE,
     FOR,
     EACH,
+    IN,
     WHILE,
     LOOP,
     CONTINUE,
     BREAK,
+    REPEAT,
     PRINT,
     RETURN,
     MATCH,
+    DEFAULT,
+
+    CLASS,
+    IMPL,
+    ENUM,
 
     // Identifiers
     ID { name: String },
@@ -83,12 +103,14 @@ pub enum Token {
     LIT_STRING { value: String },
     LIT_BOOL { value: bool },
 
-    // End of Input
+    // End of Input, Error
+    ERROR { msg: String },
     EOI,
 
     // Metadata Nonterminals
     START,
     FUNC_DECL,
+    ASSIGN_STMT,
     PARAM_LIST,
     PARAM,
     BLOCK,
@@ -96,12 +118,44 @@ pub enum Token {
     VAR_DECL,
     RTRN_STMT,
     EXPR,
+    MATCH_ARM,
 }
 
 impl Token {
     pub fn is_type(&self) -> bool {
-        matches!(self,
+        matches!(
+            self,
             Token::INT | Token::FLOAT | Token::CHAR | Token::STRING | Token::BOOLEAN
         )
+    }
+
+    pub fn is_function_type(&self) -> bool {
+        matches!(self, Token::PUBLIC | Token::PRIVATE | Token::PROTECTED)
+    }
+
+    pub fn is_literal(&self) -> bool {
+        matches!(
+            self,
+            Token::LIT_INT { .. }
+                | Token::LIT_FLOAT { .. }
+                | Token::LIT_CHAR { .. }
+                | Token::LIT_STRING { .. }
+                | Token::LIT_BOOL { .. }
+                | Token::NULL
+        )
+    }
+}
+
+impl Token {
+    pub fn id() -> Token {
+        Token::ID {
+            name: String::new(),
+        }
+    }
+}
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        discriminant(self) == discriminant(other)
     }
 }

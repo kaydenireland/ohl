@@ -1,0 +1,27 @@
+public int stressTest(a: int, b: int, c: int, d: int) {
+    a++;
+    b--;
+
+    a = b + c * d;
+    b = (a - c) * (d + 4);
+    c = a / (b % d) + 7;
+    d = a * b - c / d;
+
+    a += b * c;
+    b -= a / d;
+    c *= (a + b - d);
+    d /= c + 1;
+    a %= b + c - d;
+
+    a = -b + c - (-d);
+    a = b - -c;
+    
+    b = !(a < c);
+    c = a > b && d < a;
+    d = a == b || c != d;
+
+    a = (a + b) * (c - d) / (a + 1);
+    b = (a * (b + (c * (d + 2))));
+
+    return a + b + c + d;
+}

@@ -1,4 +1,6 @@
-use crate::{backend::token::Token};
+use std::thread::current;
+
+use crate::backend::token::Token;
 
 enum LexerState {
     START,
@@ -21,9 +23,18 @@ enum LexerState {
     DASH,
     ASTERISK,
     SLASH,
+    PERCENT,
     CARET,
-    
+    ROOT,
+
+    PIPE,
+    AMPERSAND,
+
     EXCLAIM,
+
+    COMMENTS,
+    BLOCK_COMMENT,
+    BLOCK_COMMENT2,
 }
 
 pub struct Lexer {
@@ -33,7 +44,6 @@ pub struct Lexer {
     current_token: Token,
     buffer_string: String,
 }
-
 
 impl Lexer {
     pub fn new(input: String) -> Self {
@@ -54,7 +64,7 @@ impl Lexer {
         self.buffer_string = String::new();
     }
 
-    pub fn curr(&self) -> Token {
+    pub fn current(&self) -> Token {
         self.current_token.clone()
     }
 
@@ -62,17 +72,16 @@ impl Lexer {
         println!("");
         loop {
             self.advance();
-            if let Token::EOI = self.curr() {
+            if let Token::EOI = self.current() {
                 break;
             }
-            print!("{:?}, ", self.curr());
+            print!("{:?}, ", self.current());
         }
-        print!("{:?}", self.curr());
+        print!("{:?}", self.current());
     }
 
     pub fn advance(&mut self) -> Token {
         loop {
-            
             if self.position == self.input_string.len() {
                 match self.state {
                     LexerState::NUM_POINT => {
@@ -82,7 +91,7 @@ impl Lexer {
                         self.buffer_string = String::new();
                         self.position -= 1;
                         break;
-                    },
+                    }
                     LexerState::EQUAL => self.current_token = Token::ASSIGN,
                     LexerState::GREATER => self.current_token = Token::GT,
                     LexerState::LESS => self.current_token = Token::LT,
@@ -90,9 +99,11 @@ impl Lexer {
                     LexerState::DASH => self.current_token = Token::SUB,
                     LexerState::ASTERISK => self.current_token = Token::MULT,
                     LexerState::SLASH => self.current_token = Token::DIV,
+                    LexerState::PERCENT => self.current_token = Token::REM,
                     LexerState::CARET => self.current_token = Token::POWER,
+                    LexerState::ROOT => self.current_token = Token::ROOT,
                     LexerState::EXCLAIM => self.current_token = Token::NOT,
-                    _ => self.current_token = Token::EOI
+                    _ => self.current_token = Token::EOI,
                 }
 
                 if !self.buffer_string.is_empty() {
@@ -109,68 +120,74 @@ impl Lexer {
             self.position += 1;
 
             match self.state {
-                LexerState::START => {
-                    match current_char {
-                        'A'..='Z' | 'a'..='z' | '_' => {
-                            self.state = LexerState::CHARS;
-                            self.buffer_string.push(current_char);
-                        },
-                        '0'..='9' => {
-                            self.state = LexerState::NUMBERS;
-                            self.buffer_string.push(current_char);
-                        },
-                        '{' => {
-                            self.current_token = Token::BRACE_L;
-                            break;
-                        },
-                        '}' => {
-                            self.current_token = Token::BRACE_R;
-                            break;
-                        },
-                        '[' => {
-                            self.current_token = Token::BRACKET_L;
-                            break;
-                        },
-                        ']' => {
-                            self.current_token = Token::BRACKET_R;
-                            break;
-                        },
-                        '(' => {
-                            self.current_token = Token::PAREN_L;
-                            break;
-                        },
-                        ')' => {
-                            self.current_token = Token::PAREN_R;
-                            break;
-                        },
-                        '\'' => self.state = LexerState::READ_CHAR,
-                        '"' => self.state = LexerState::READ_STRING,
-                        '.' => self.state = LexerState::PERIOD,
-                        ',' => {
-                            self.current_token = Token::COMMA;
-                            break;
-                        },
-                        '=' => self.state = LexerState::EQUAL,
-                        '>' => self.state = LexerState::GREATER,
-                        '<' => self.state = LexerState::LESS,
-                        '+' => self.state = LexerState::PLUS,
-                        '-' => self.state = LexerState::DASH,
-                        '*' => self.state = LexerState::ASTERISK,
-                        '/' => self.state = LexerState::SLASH,
-                        '%' => {
-                            self.current_token = Token::REM;
-                            break;
-                        },
-                        '^' => self.state = LexerState::CARET,
-                        '!' => self.state = LexerState::EXCLAIM,
-                        
-                        _ => { }
+                LexerState::START => match current_char {
+                    'A'..='Z' | 'a'..='z' | '_' => {
+                        self.state = LexerState::CHARS;
+                        self.buffer_string.push(current_char);
                     }
+                    '0'..='9' => {
+                        self.state = LexerState::NUMBERS;
+                        self.buffer_string.push(current_char);
+                    }
+                    ':' => {
+                        self.current_token = Token::COLON;
+                        break;
+                    }
+                    ';' => {
+                        self.current_token = Token::SEMICOLON;
+                        break;
+                    }
+                    '{' => {
+                        self.current_token = Token::BRACE_L;
+                        break;
+                    }
+                    '}' => {
+                        self.current_token = Token::BRACE_R;
+                        break;
+                    }
+                    '[' => {
+                        self.current_token = Token::BRACKET_L;
+                        break;
+                    }
+                    ']' => {
+                        self.current_token = Token::BRACKET_R;
+                        break;
+                    }
+                    '(' => {
+                        self.current_token = Token::PAREN_L;
+                        break;
+                    }
+                    ')' => {
+                        self.current_token = Token::PAREN_R;
+                        break;
+                    }
+                    '\'' => self.state = LexerState::READ_CHAR,
+                    '"' => self.state = LexerState::READ_STRING,
+                    '.' => self.state = LexerState::PERIOD,
+                    ',' => {
+                        self.current_token = Token::COMMA;
+                        break;
+                    }
+                    '=' => self.state = LexerState::EQUAL,
+                    '>' => self.state = LexerState::GREATER,
+                    '<' => self.state = LexerState::LESS,
+                    '+' => self.state = LexerState::PLUS,
+                    '-' => self.state = LexerState::DASH,
+                    '*' => self.state = LexerState::ASTERISK,
+                    '/' => self.state = LexerState::SLASH,
+                    '%' => self.state = LexerState::PERCENT,
+                    '^' => self.state = LexerState::CARET,
+                    '!' => self.state = LexerState::EXCLAIM,
+                    '|' => self.state = LexerState::PIPE,
+                    '&' => self.state = LexerState::AMPERSAND,
+
+                    _ => {}
                 },
                 LexerState::CHARS => match current_char {
-                    'A'..'Z' | '_' | 'a'..'z' | '-' | '0'..'9' => {
+                    'A'..'Z' | '_' | 'a'..'z' | '0'..'9' => {
+                        // TODO: Explore dashes without messing up expressions
                         self.buffer_string.push(current_char);
-                    },
+                    }
 
                     _ => {
                         self.state = LexerState::START;
@@ -184,11 +201,11 @@ impl Lexer {
                 LexerState::NUMBERS => match current_char {
                     '0'..='9' => {
                         self.buffer_string.push(current_char);
-                    },
+                    }
 
                     '.' => {
                         self.state = LexerState::NUM_POINT;
-                    },
+                    }
 
                     _ => {
                         self.state = LexerState::START;
@@ -205,7 +222,7 @@ impl Lexer {
                         self.state = LexerState::DECIMALS;
                         self.buffer_string.push('.');
                         self.buffer_string.push(current_char);
-                    },
+                    }
 
                     _ => {
                         self.state = LexerState::START;
@@ -220,7 +237,7 @@ impl Lexer {
                 LexerState::DECIMALS => match current_char {
                     '0'..='9' => {
                         self.buffer_string.push(current_char);
-                    },
+                    }
 
                     _ => {
                         self.state = LexerState::START;
@@ -242,7 +259,7 @@ impl Lexer {
                             break;
                         }
                         self.buffer_string = String::new();
-                    },
+                    }
                     _ => {
                         self.buffer_string.push(current_char);
                     }
@@ -256,7 +273,7 @@ impl Lexer {
                         self.current_token = Token::LIT_STRING { value };
                         self.buffer_string = String::new();
                         break;
-                    },
+                    }
                     _ => {
                         self.buffer_string.push(current_char);
                     }
@@ -266,7 +283,7 @@ impl Lexer {
                         self.buffer_string.push('.');
                         self.buffer_string.push(current_char);
                         self.state = LexerState::DECIMALS
-                    },
+                    }
 
                     _ => {
                         self.current_token = Token::POINT;
@@ -280,26 +297,25 @@ impl Lexer {
                         self.state = LexerState::START;
                         self.current_token = Token::BIG_ARROW;
                         break;
-                    },
+                    }
                     '=' => {
                         self.state = LexerState::START;
                         self.current_token = Token::EQUAL;
                         break;
-                    },
+                    }
                     _ => {
                         self.current_token = Token::ASSIGN;
                         self.position -= 1;
                         self.state = LexerState::START;
                         break;
                     }
-                
                 },
                 LexerState::GREATER => match current_char {
                     '=' => {
                         self.state = LexerState::START;
                         self.current_token = Token::NLT;
                         break;
-                    },
+                    }
                     _ => {
                         self.current_token = Token::GT;
                         self.position -= 1;
@@ -312,7 +328,7 @@ impl Lexer {
                         self.state = LexerState::START;
                         self.current_token = Token::NGT;
                         break;
-                    },
+                    }
                     _ => {
                         self.current_token = Token::LT;
                         self.position -= 1;
@@ -324,7 +340,12 @@ impl Lexer {
                         self.state = LexerState::START;
                         self.current_token = Token::INCREMENT;
                         break;
-                    },
+                    }
+                    '=' => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::ADD_ASSIGN;
+                        break;
+                    }
                     _ => {
                         self.state = LexerState::START;
                         self.current_token = Token::ADD;
@@ -337,12 +358,17 @@ impl Lexer {
                         self.state = LexerState::START;
                         self.current_token = Token::DECREMENT;
                         break;
-                    },
+                    }
+                    '=' => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::SUB_ASSIGN;
+                        break;
+                    }
                     '>' => {
                         self.state = LexerState::START;
                         self.current_token = Token::ARROW;
                         break;
-                    },
+                    }
                     _ => {
                         self.state = LexerState::START;
                         self.current_token = Token::SUB;
@@ -355,7 +381,12 @@ impl Lexer {
                         self.state = LexerState::START;
                         self.current_token = Token::SQUARE;
                         break;
-                    },
+                    }
+                    '=' => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::MULT_ASSIGN;
+                        break;
+                    }
                     _ => {
                         self.state = LexerState::START;
                         self.current_token = Token::MULT;
@@ -364,9 +395,12 @@ impl Lexer {
                     }
                 },
                 LexerState::SLASH => match current_char {
-                    '/' => {
-                        // Comments
+                    '/' => self.state = LexerState::COMMENTS,
+                    '*' => self.state = LexerState::BLOCK_COMMENT,
+                    '=' => {
                         self.state = LexerState::START;
+                        self.current_token = Token::DIV_ASSIGN;
+                        break;
                     }
 
                     _ => {
@@ -376,15 +410,47 @@ impl Lexer {
                         break;
                     }
                 },
-                LexerState::CARET => match current_char {
-                    '/' => {
+                LexerState::PERCENT => match current_char {
+                    '=' => {
                         self.state = LexerState::START;
-                        self.current_token = Token::ROOT;
+                        self.current_token = Token::REM_ASSIGN;
                         break;
-                    },
+                    }
+                    _ => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::REM;
+                        self.position -= 1;
+                        break;
+                    }
+                },
+                LexerState::CARET => match current_char {
+                    '/' => self.state = LexerState::ROOT,
+                    '=' => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::POWER_ASSIGN;
+                        break;
+                    }
+                    '^' => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::XOR;
+                        break;
+                    }
                     _ => {
                         self.state = LexerState::START;
                         self.current_token = Token::POWER;
+                        self.position -= 1;
+                        break;
+                    }
+                },
+                LexerState::ROOT => match current_char {
+                    '=' => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::ROOT_ASSIGN;
+                        break;
+                    }
+                    _ => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::ROOT;
                         self.position -= 1;
                         break;
                     }
@@ -394,7 +460,7 @@ impl Lexer {
                         self.state = LexerState::START;
                         self.current_token = Token::NEQ;
                         break;
-                    },
+                    }
                     _ => {
                         self.state = LexerState::START;
                         self.current_token = Token::NOT;
@@ -402,12 +468,44 @@ impl Lexer {
                         break;
                     }
                 },
+                LexerState::COMMENTS => {
+                    if current_char == '\n' {
+                        self.state = LexerState::START;
+                    }
+                },
+                LexerState::BLOCK_COMMENT => {
+                    if current_char == '*' {
+                        self.state = LexerState::BLOCK_COMMENT2
+                    }
+                },
+                LexerState::BLOCK_COMMENT2 => {
+                    match current_char {
+                        '/' => self.state = LexerState::START,
+                        _ => self.state = LexerState::BLOCK_COMMENT,
+                    }
+                },
+                LexerState::PIPE => match current_char {
+                    '|' => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::OR;
+                        break;
+                    }
+                    _ => panic!("Unexpected character '|' in input!"),
+                },
+                LexerState::AMPERSAND => match current_char {
+                    '&' => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::AND;
+                        break;
+                    }
+                    _ => panic!("Unexpected character '&' in input!"),
+                },
 
                 _ => {}
             }
         }
 
-        self.curr()
+        self.current()
     }
 
     fn match_buffer_string(&mut self) -> Token {
@@ -424,23 +522,32 @@ impl Lexer {
             "return" => Token::RETURN,
             "for" => Token::FOR,
             "each" => Token::EACH,
+            "in" => Token::IN,
             "while" => Token::WHILE,
             "loop" => Token::LOOP,
+            "continue" => Token::CONTINUE,
+            "repeat" => Token::REPEAT,
+            "break" => Token::BREAK,
             "match" => Token::MATCH,
+            "default" => Token::DEFAULT,
             "print" => Token::PRINT,
             "not" => Token::NOT,
             "and" => Token::AND,
             "or" => Token::OR,
             "xor" => Token::XOR,
+            "class" => Token::CLASS,
+            "impl" => Token::IMPL,
+            "enum" => Token::ENUM,
             "int" => Token::INT,
             "float" => Token::FLOAT,
             "char" => Token::CHAR,
             "string" => Token::STRING,
             "boolean" => Token::BOOLEAN,
+            "let" => Token::LET,
             "true" | "false" => {
                 let value: bool = string == "true";
                 Token::LIT_BOOL { value }
-            },
+            }
             "null" => Token::NULL,
             _ => {
                 if string.contains('.') {
