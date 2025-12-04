@@ -483,7 +483,7 @@ impl Lexer {
                         '/' => self.state = LexerState::START,
                         _ => self.state = LexerState::BLOCK_COMMENT,
                     }
-                }
+                },
                 LexerState::PIPE => match current_char {
                     '|' => {
                         self.state = LexerState::START;

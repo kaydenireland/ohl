@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use crate::backend::lexer::Lexer;
-use crate::backend::parser::Parser as ooParser;
+use crate::backend::parser::Parser as OhlParser;
 
 #[derive(Parser)]
 #[command(name = "oo", version)]
@@ -22,6 +22,8 @@ pub enum Command {
     },
     Parse {
         filepath: String,
+        #[arg(short, long)]
+        debug: bool,
     },
 }
 
@@ -29,7 +31,7 @@ pub fn handle(cli: Cli) {
     match cli.command {
         Command::Print { filepath, numbered } => print(filepath, numbered),
         Command::Tokenize { filepath } => tokenize(filepath),
-        Command::Parse { filepath } => parse(filepath),
+        Command::Parse { filepath, debug } => parse(filepath, debug),
     }
 }
 
@@ -57,10 +59,10 @@ pub fn tokenize(path: String) {
     lexer.print_tokens();
 }
 
-pub fn parse(path: String) {
+pub fn parse(path: String, debug: bool) {
     let contents = std::fs::read_to_string(path).unwrap();
     let lexer = Lexer::new(contents);
-    let mut parser = ooParser::new(lexer);
+    let mut parser = OhlParser::new(lexer, debug);
     let tree = parser.analyze();
     println!("\n\nParse Tree:\n");
     tree.print();

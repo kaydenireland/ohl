@@ -7,12 +7,13 @@ use crate::backend::token::Token;
 pub struct Parser {
     lexer: Lexer,
     pub log: Logger,
+    debug: bool
 }
 
 impl Parser {
-    pub fn new(lexer: Lexer) -> Parser {
-        let log = Logger::new();
-        Parser { lexer, log }
+    pub fn new(lexer: Lexer, debug: bool) -> Parser {
+        let log = Logger::new(debug);
+        Parser { lexer, log, debug }
     }
 
     pub fn analyze(&mut self) -> MTree {
