@@ -74,6 +74,7 @@ pub enum Token {
     LOOP,
     CONTINUE,
     BREAK,
+    REPEAT,
     PRINT,
     RETURN,
     MATCH,
@@ -117,6 +118,7 @@ pub enum Token {
     VAR_DECL,
     RTRN_STMT,
     EXPR,
+    MATCH_ARM,
 }
 
 impl Token {

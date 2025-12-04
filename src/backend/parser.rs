@@ -6,14 +6,13 @@ use crate::backend::token::Token;
 // TODO: Match, Imports
 pub struct Parser {
     lexer: Lexer,
-    pub log: Logger,
-    debug: bool
+    pub log: Logger
 }
 
 impl Parser {
     pub fn new(lexer: Lexer, debug: bool) -> Parser {
         let log = Logger::new(debug);
-        Parser { lexer, log, debug }
+        Parser { lexer, log }
     }
 
     pub fn analyze(&mut self) -> MTree {
@@ -193,7 +192,6 @@ impl Parser {
 
         let child: MTree;
 
-        // TODO: break, continue, repeat, kword statements
         match self.current() {
             Token::FOR => child = self.parse_for(),
             Token::WHILE => child = self.parse_while(),
@@ -275,7 +273,9 @@ impl Parser {
         self.expect(Token::id());
         child._push(MTree::new(id));
         self.expect(Token::IN);
+        self.expect(Token::PAREN_L);
         child._push(self.parse_expression());
+        self.expect(Token::PAREN_R);
         child._push(self.parse_block_nest());
 
         self.log.indent_dec();
@@ -350,10 +350,39 @@ impl Parser {
         child._push(self.parse_expression());
         self.expect(Token::PAREN_R);
         self.expect(Token::BRACE_L);
-        // TODO parse match arms
+        while !self.is(Token::BRACE_R) {
+            child._push(self.parse_match_arm());
+        }
         self.expect(Token::BRACE_R);
 
         self.log.indent_dec();
+        child
+    }
+
+    pub fn parse_match_arm(&mut self) -> MTree {
+        self.log.info("parse_match_arm()");
+        self.log.indent_inc();
+        
+        let mut child = MTree::new(Token::MATCH_ARM);
+
+        child._push(self.parse_expression());
+
+        if self.is(Token::DEFAULT) {
+            let default_token = self.current();
+            self.advance();
+            child._push(MTree::new(default_token));
+        } else {
+            child._push(self.parse_expression());
+        }
+
+        self.expect(Token::BIG_ARROW);
+
+        if self.is(Token::BRACE_L) {
+            child._push(self.parse_block_nest());
+        }else {
+            child._push(self.parse_statement());
+        }
+
         child
     }
 

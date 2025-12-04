@@ -49,17 +49,18 @@ If running through cargo project itself, replace "oo" with "cargo run".
 
 The language supports:
 - Functions with parameters and return types
-- Integer, float, char, string and boolean types
+- Integer, float, char, string, and boolean types
 - Arithmetic: `+`, `-`, `*`, `/`, `%`, `^`, `^/`
 - Relational: `==`, `!=`, `<`, `>`, `<=`, `>=`
-- Assignment: `+=`, `-=`, `*=`, `/=`, `^=`, `^/=`
-- Incremental: `++`, `--`, `**`
+- Assignment: `+=`, `-=`, `*=`, `/=`, `^=`, `^/=`, `++`, `--`, `**` 
 - Logical: `&&`/`and`, `||`/`or`, `^^`/`xor`, `!`/`not`
 - Control flow: `if`-`else`, `match`, `default`, `for`, `loop`, `while`, `break`, `continue`, `repeat`, `return`
 - Variable declarations: `let x: int = 5;`
 - Assignments: `x = 10;`
+- Function Scoping: `public`, `protected`, `public`
 - Function calls: `factorial(n)`
 - Print statement: `print(result);`
+- Comments: `//`, `/* */`
 
 ## Example
 
