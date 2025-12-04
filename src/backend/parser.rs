@@ -1,4 +1,3 @@
-use crate::backend::expression::{Expression, Literal, Precedence};
 use crate::backend::lexer::Lexer;
 use crate::backend::logger::Logger;
 use crate::backend::mtree::MTree;
@@ -7,12 +6,12 @@ use crate::backend::token::Token;
 // TODO: Match, Imports
 pub struct Parser {
     lexer: Lexer,
-    log: Logger,
+    pub log: Logger
 }
 
 impl Parser {
-    pub fn new(lexer: Lexer) -> Parser {
-        let log = Logger::new();
+    pub fn new(lexer: Lexer, debug: bool) -> Parser {
+        let log = Logger::new(debug);
         Parser { lexer, log }
     }
 
@@ -193,7 +192,6 @@ impl Parser {
 
         let child: MTree;
 
-        // TODO: break, continue, kword statements
         match self.current() {
             Token::FOR => child = self.parse_for(),
             Token::WHILE => child = self.parse_while(),
@@ -275,7 +273,9 @@ impl Parser {
         self.expect(Token::id());
         child._push(MTree::new(id));
         self.expect(Token::IN);
+        self.expect(Token::PAREN_L);
         child._push(self.parse_expression());
+        self.expect(Token::PAREN_R);
         child._push(self.parse_block_nest());
 
         self.log.indent_dec();
@@ -350,10 +350,39 @@ impl Parser {
         child._push(self.parse_expression());
         self.expect(Token::PAREN_R);
         self.expect(Token::BRACE_L);
-        // TODO parse match arms
+        while !self.is(Token::BRACE_R) {
+            child._push(self.parse_match_arm());
+        }
         self.expect(Token::BRACE_R);
 
         self.log.indent_dec();
+        child
+    }
+
+    pub fn parse_match_arm(&mut self) -> MTree {
+        self.log.info("parse_match_arm()");
+        self.log.indent_inc();
+        
+        let mut child = MTree::new(Token::MATCH_ARM);
+
+        child._push(self.parse_expression());
+
+        if self.is(Token::DEFAULT) {
+            let default_token = self.current();
+            self.advance();
+            child._push(MTree::new(default_token));
+        } else {
+            child._push(self.parse_expression());
+        }
+
+        self.expect(Token::BIG_ARROW);
+
+        if self.is(Token::BRACE_L) {
+            child._push(self.parse_block_nest());
+        }else {
+            child._push(self.parse_statement());
+        }
+
         child
     }
 
@@ -368,111 +397,6 @@ impl Parser {
         self.expect(Token::RETURN);
         child._push(self.parse_expression());
         self.expect(Token::SEMICOLON);
-
-        self.log.indent_dec();
-
-        child
-    }
-}
-
-impl Parser {
-    // Expression Parsing
-
-    pub fn parse_expression(&mut self) -> MTree {
-        self.parse_expression_precedence(Precedence::NONE)
-    }
-
-    pub fn parse_expression_precedence(&mut self, minimum_precedence: Precedence) -> MTree {
-        self.log.info("parse_expression()");
-        self.log.indent_inc();
-
-        let mut lhs = self.parse_prefix();
-
-        while self.current().precedence() > minimum_precedence {
-            let operator = self.current();
-            let precedence = operator.precedence();
-
-            if matches!(operator, Token::INCREMENT | Token::DECREMENT) {
-                self.advance();
-                let mut new_lhs = MTree::new(Token::EXPR);
-                new_lhs._push(lhs);
-                new_lhs._push(MTree::new(operator));
-                lhs = new_lhs;
-                continue;
-            }
-
-            self.advance();
-
-            let next_minimum_precedence = if matches!(
-                operator,
-                Token::ASSIGN
-                    | Token::ADD_ASSIGN
-                    | Token::SUB_ASSIGN
-                    | Token::MULT_ASSIGN
-                    | Token::DIV_ASSIGN
-                    | Token::REM_ASSIGN
-                    | Token::POWER_ASSIGN
-                    | Token::ROOT_ASSIGN
-            ) {
-                Precedence::from_u8(precedence as u8 - 1)
-            } else {
-                precedence
-            };
-
-            let rhs = self.parse_expression_precedence(next_minimum_precedence);
-            let mut new_lhs = MTree::new(Token::EXPR);
-            new_lhs._push(lhs);
-            new_lhs._push(MTree::new(operator));
-            new_lhs._push(rhs);
-
-            lhs = new_lhs;
-        }
-
-        self.log.indent_dec();
-
-        lhs
-    }
-
-    pub fn parse_prefix(&mut self) -> MTree {
-        self.log.info("parse_prefix()");
-        self.log.indent_inc();
-
-        let mut child: MTree;
-
-        match self.current() {
-            Token::LIT_INT { .. }
-            | Token::LIT_FLOAT { .. }
-            | Token::LIT_CHAR { .. }
-            | Token::LIT_STRING { .. }
-            | Token::LIT_BOOL { .. }
-            | Token::NULL => {
-                let literal = self.current();
-                child = MTree::new(literal.clone()); // TODO: clone?
-                self.advance();
-            }
-            Token::ID { .. } => {
-                let id = self.current();
-                child = MTree::new(id.clone());
-                self.advance();
-            }
-            Token::PAREN_L => {
-                self.expect(Token::PAREN_L);
-                child = self.parse_expression();
-                self.expect(Token::PAREN_R);
-            }
-            Token::NOT | Token::SUB | Token::INCREMENT | Token::DECREMENT => {
-                let operator: Token = self.current();
-                self.advance();
-                let rhs = self.parse_expression_precedence(Precedence::UNARY);
-                child = MTree::new(Token::EXPR);
-                child._push(MTree::new(operator));
-                child._push(rhs);
-            }
-            _ => panic!(
-                "Unexpected token '{:?}' in prefix expression!",
-                self.current()
-            ),
-        }
 
         self.log.indent_dec();
 

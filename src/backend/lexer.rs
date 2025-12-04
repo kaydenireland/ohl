@@ -1,3 +1,5 @@
+use std::thread::current;
+
 use crate::backend::token::Token;
 
 enum LexerState {
@@ -29,6 +31,10 @@ enum LexerState {
     AMPERSAND,
 
     EXCLAIM,
+
+    COMMENTS,
+    BLOCK_COMMENT,
+    BLOCK_COMMENT2,
 }
 
 pub struct Lexer {
@@ -113,7 +119,6 @@ impl Lexer {
             let current_char = self.input_string.chars().nth(self.position).unwrap();
             self.position += 1;
 
-            // TODO: Alternatives for logical operators (&&, ||, ^^)
             match self.state {
                 LexerState::START => match current_char {
                     'A'..='Z' | 'a'..='z' | '_' => {
@@ -390,10 +395,8 @@ impl Lexer {
                     }
                 },
                 LexerState::SLASH => match current_char {
-                    '/' => {
-                        // TODO: Comments
-                        self.state = LexerState::START;
-                    }
+                    '/' => self.state = LexerState::COMMENTS,
+                    '*' => self.state = LexerState::BLOCK_COMMENT,
                     '=' => {
                         self.state = LexerState::START;
                         self.current_token = Token::DIV_ASSIGN;
@@ -465,6 +468,22 @@ impl Lexer {
                         break;
                     }
                 },
+                LexerState::COMMENTS => {
+                    if current_char == '\n' {
+                        self.state = LexerState::START;
+                    }
+                },
+                LexerState::BLOCK_COMMENT => {
+                    if current_char == '*' {
+                        self.state = LexerState::BLOCK_COMMENT2
+                    }
+                },
+                LexerState::BLOCK_COMMENT2 => {
+                    match current_char {
+                        '/' => self.state = LexerState::START,
+                        _ => self.state = LexerState::BLOCK_COMMENT,
+                    }
+                },
                 LexerState::PIPE => match current_char {
                     '|' => {
                         self.state = LexerState::START;
@@ -506,6 +525,9 @@ impl Lexer {
             "in" => Token::IN,
             "while" => Token::WHILE,
             "loop" => Token::LOOP,
+            "continue" => Token::CONTINUE,
+            "repeat" => Token::REPEAT,
+            "break" => Token::BREAK,
             "match" => Token::MATCH,
             "default" => Token::DEFAULT,
             "print" => Token::PRINT,

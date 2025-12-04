@@ -74,6 +74,7 @@ pub enum Token {
     LOOP,
     CONTINUE,
     BREAK,
+    REPEAT,
     PRINT,
     RETURN,
     MATCH,
@@ -102,7 +103,8 @@ pub enum Token {
     LIT_STRING { value: String },
     LIT_BOOL { value: bool },
 
-    // End of Input
+    // End of Input, Error
+    ERROR { msg: String },
     EOI,
 
     // Metadata Nonterminals
@@ -116,6 +118,7 @@ pub enum Token {
     VAR_DECL,
     RTRN_STMT,
     EXPR,
+    MATCH_ARM,
 }
 
 impl Token {
