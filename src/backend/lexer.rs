@@ -85,9 +85,9 @@ impl Lexer {
             if self.position == self.input_string.len() {
                 match self.state {
                     LexerState::NUM_POINT => {
-                        let value: i32 = self.buffer_string.parse().unwrap();
+                        let value: f32 = self.buffer_string.parse().unwrap();
                         self.state = LexerState::START;
-                        self.current_token = Token::LIT_INT { value };
+                        self.current_token = Token::LIT_FLOAT { value };
                         self.buffer_string = String::new();
                         self.position -= 1;
                         break;
@@ -103,6 +103,7 @@ impl Lexer {
                     LexerState::CARET => self.current_token = Token::POWER,
                     LexerState::ROOT => self.current_token = Token::ROOT,
                     LexerState::EXCLAIM => self.current_token = Token::NOT,
+                    LexerState::PERIOD => self.current_token = Token::POINT,
                     _ => self.current_token = Token::EOI,
                 }
 
@@ -121,6 +122,7 @@ impl Lexer {
 
             match self.state {
                 LexerState::START => match current_char {
+                    ' ' | '\t' | '\r' | '\n' => continue,
                     'A'..='Z' | 'a'..='z' | '_' => {
                         self.state = LexerState::CHARS;
                         self.buffer_string.push(current_char);
@@ -226,11 +228,11 @@ impl Lexer {
 
                     _ => {
                         self.state = LexerState::START;
-                        let value: i32 = self.buffer_string.parse().unwrap();
-                        self.current_token = Token::LIT_INT { value };
+                        let value: f32 = self.buffer_string.parse().unwrap();
+                        self.current_token = Token::LIT_FLOAT { value };
                         self.buffer_string = String::new();
 
-                        self.position -= 2;
+                        self.position -= 1;
                         break;
                     }
                 },
