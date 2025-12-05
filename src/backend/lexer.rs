@@ -333,6 +333,7 @@ impl Lexer {
                         self.current_token = Token::LT;
                         self.position -= 1;
                         self.state = LexerState::START;
+                        break;
                     }
                 },
                 LexerState::PLUS => match current_char {

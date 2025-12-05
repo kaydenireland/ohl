@@ -24,67 +24,63 @@ impl Token {
     }
 
     pub fn binding_power(&self) -> BindingPower {
-        match self {    // TODO: Tweak BPs
-            Token::EOI => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::ID { .. } => BindingPower { left: 1, right: 1, unary: 0 },
+        match self {
 
-            Token::LIT_CHAR { .. } => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::LIT_INT { .. } => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::LIT_FLOAT { .. } => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::LIT_BOOL { .. } => BindingPower { left: 0, right: 0, unary: 0 },
+            Token::ASSIGN |
+            Token::ADD_ASSIGN |
+            Token::SUB_ASSIGN |
+            Token::MULT_ASSIGN |
+            Token::DIV_ASSIGN |
+            Token::REM_ASSIGN |
+            Token::POWER_ASSIGN |
+            Token::ROOT_ASSIGN => BindingPower { left: 5, right: 4, unary: 0 },
+
+
+            Token::OR | Token::XOR => BindingPower { left: 15, right: 16, unary: 0 },
+            Token::AND => BindingPower { left: 20, right: 21, unary: 0 },
+
+            Token::EQUAL | Token::NEQ => BindingPower { left: 30, right: 31, unary: 0 },
+
+
+            Token::LT |
+            Token::GT |
+            Token::NLT |
+            Token::NGT =>  BindingPower { left: 32, right: 33, unary: 0 },
+
+            Token::ADD => BindingPower { left: 40, right: 41, unary: 0 },
+            Token::SUB => BindingPower { left: 40, right: 41, unary: 70 },
+            Token::MULT |  Token::REM => BindingPower { left: 50, right: 51, unary: 0 },
+            Token::DIV => BindingPower { left: 50, right: 51, unary: 70 },
+
+            Token::POWER | Token::ROOT => BindingPower { left: 90, right: 89, unary: 0 },
+
+            Token::NOT => BindingPower { left: 0, right: 0, unary: 70 },
+
+            Token::INCREMENT | Token::DECREMENT | Token::SQUARE => BindingPower { left: 80, right: 0, unary: 0 },
+
+
+            Token::ID { .. } |
+            Token::LIT_CHAR { .. } |
+            Token::LIT_INT { .. } |
+            Token::LIT_FLOAT { .. } |
+            Token::LIT_BOOL { .. } |
             Token::LIT_STRING { .. } => BindingPower { left: 0, right: 0, unary: 0 },
 
-            Token::ASSIGN => BindingPower { left: 5, right: 4, unary: 0 },
-
-            Token::ADD_ASSIGN => BindingPower { left: 7, right: 6, unary: 0 },
-            Token::SUB_ASSIGN => BindingPower { left: 7, right: 6, unary: 0 },
-            Token::MULT_ASSIGN => BindingPower { left: 7, right: 6, unary: 0 },
-            Token::DIV_ASSIGN => BindingPower { left: 7, right: 6, unary: 0 },
-            Token::REM_ASSIGN => BindingPower { left: 7, right: 6, unary: 0 },
-            Token::POWER_ASSIGN => BindingPower { left: 7, right: 6, unary: 0 },
-            Token::ROOT_ASSIGN => BindingPower { left: 7, right: 6, unary: 0 },
+            Token::PAREN_L | Token::POINT => BindingPower { left: 80, right: 0, unary: 0 },
 
 
-            Token::OR => BindingPower { left: 10, right: 11, unary: 0 },
-            Token::XOR => BindingPower { left: 10, right: 11, unary: 0 },
-            Token::AND => BindingPower { left: 11, right: 12, unary: 0 }, 
-            Token::NOT => BindingPower { left: 18, right: 19, unary: 100 },
-
-            Token::LT => BindingPower { left: 30, right: 30, unary: 0 },
-            Token::GT => BindingPower { left: 30, right: 30, unary: 0 },
-            Token::NLT => BindingPower { left: 30, right: 30, unary: 0 },
-            Token::NGT => BindingPower { left: 30, right: 30, unary: 0 },
-            Token::EQUAL => BindingPower { left: 30, right: 30, unary: 0 },
-            Token::NEQ => BindingPower { left: 30, right: 30, unary: 0 },
-
-            Token::ADD =>  BindingPower { left: 30, right: 31, unary: 0 },
-            Token::SUB =>  BindingPower { left: 30, right: 31, unary: 100 }, 
-            Token::MULT =>  BindingPower { left: 31, right: 32, unary: 0 },           
-            Token::DIV =>  BindingPower { left: 31, right: 32, unary: 100 },
-            Token::REM =>  BindingPower { left: 31, right: 32, unary: 0 },
-
-            Token::POWER =>  BindingPower { left: 40, right: 41, unary: 0 },
-            Token::ROOT =>  BindingPower { left: 40, right: 41, unary: 0 },
-            Token::INCREMENT => BindingPower { left: 50, right: 0, unary: 100 },
-            Token::DECREMENT => BindingPower { left: 50, right: 0, unary: 100 },
-            Token::SQUARE =>  BindingPower { left: 50, right: 0, unary: 0 },
+            Token::PAREN_R |
+            Token::BRACKET_R |
+            Token::BRACE_L |
+            Token::BRACE_R |
+            Token::COMMA |
+            Token::COLON |
+            Token::SEMICOLON |
+            Token::EOI => BindingPower { left: 0, right: 0, unary: 0 },
 
 
-
-            Token::PAREN_L => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::PAREN_R => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::BRACKET_L => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::BRACKET_R => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::BRACE_L => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::BRACE_R => BindingPower { left: 0, right: 0, unary: 0 },
-
-            Token::POINT => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::COMMA => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::COLON => BindingPower { left: 0, right: 0, unary: 0 },
-            Token::SEMICOLON => BindingPower { left: 0, right: 0, unary: 0 },
-
-            _ => BindingPower { left: 0, right: 0, unary: 0 }
-            
+            // ---------- Catch-all ----------
+            _ => BindingPower { left: 0, right: 0, unary: 0 },
         }
     }
 }
