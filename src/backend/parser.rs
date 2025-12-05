@@ -87,6 +87,8 @@ impl Parser {
 
     pub fn parse(&mut self) -> MTree {
         let mut tree = MTree::new(Token::START);
+        self.log.info("parse()");
+        self.log.indent_inc();
         while !self.accept(Token::EOI) {
             tree._push(self.parse_function());
         }
