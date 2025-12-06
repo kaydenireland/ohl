@@ -1,9 +1,8 @@
 use crate::backend::token::Token;
-use std::rc::Rc;
 
 pub struct MTree {
     pub token: Token,
-    pub children: Vec<Rc<MTree>>
+    pub children: Vec<MTree>
 }
 
 
@@ -17,7 +16,7 @@ impl MTree {
     }
 
     pub fn _push(&mut self, tree: MTree) {
-        self.children.push(Rc::new(tree));
+        self.children.push(tree);
     }
 
     pub fn node_string(&self) -> String {
@@ -29,7 +28,7 @@ impl MTree {
         print!("{:1$}", "", shift);
         println!("{}", self.node_string());
         for child in &self.children {
-            child.as_ref().print_recursively(level + 1);
+            child.print_recursively(level + 1);
         }
     }
 

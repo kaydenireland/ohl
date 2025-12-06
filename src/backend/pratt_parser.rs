@@ -117,7 +117,7 @@ impl Parser {
         let token = self.current();
         self.advance();
         let child = self.parse_expression_token(token.binding_power().unary);
-        MTree{ token, children: vec![Rc::new(child)]}
+        MTree{ token, children: vec![child]}
     }
 
     pub fn parse_parenthesis_expression(&mut self) -> MTree {
@@ -141,9 +141,9 @@ impl Parser {
         let mut child = MTree::new(token);
         self.expect(Token::PAREN_L);
         if ! self.is(Token::PAREN_R) {
-            child.children.push(Rc::new(self.parse_expression()) );
+            child.children.push(self.parse_expression());
             while self.accept(Token::COMMA) {
-                child.children.push(Rc::new(self.parse_expression()) );
+                child.children.push(self.parse_expression());
             }
         }
         self.expect(Token::PAREN_R);
@@ -161,7 +161,7 @@ impl Parser {
 
             if op_infix.is_postfix_operator() {
                 self.advance();
-                left = MTree { token: op_infix, children: vec![Rc::new(left)] };
+                left = MTree { token: op_infix, children: vec![left] };
                 continue;
             }
 
@@ -172,8 +172,8 @@ impl Parser {
             left = MTree {
                 token: op_infix,
                 children: vec![
-                    Rc::new(left),
-                    Rc::new(right),
+                    left,
+                    right
                 ]
             }
         }

@@ -1,7 +1,9 @@
 use clap::{Parser, Subcommand};
 
 use crate::backend::lexer::Lexer;
+use crate::backend::mtree::MTree;
 use crate::backend::parser::Parser as OhlParser;
+use crate::backend::semantics::Converter;
 
 #[derive(Parser)]
 #[command(name = "oo", version)]
@@ -25,13 +27,19 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
     },
+    Inspect {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool,
+    },
 }
 
 pub fn handle(cli: Cli) {
     match cli.command {
         Command::Print { filepath, numbered } => print(filepath, numbered),
         Command::Tokenize { filepath } => tokenize(filepath),
-        Command::Parse { filepath, debug } => parse(filepath, debug),
+        Command::Parse { filepath, debug } => _ = parse(filepath, debug),
+        Command::Inspect { filepath, debug } => inspect(filepath, debug),
     }
 }
 
@@ -59,11 +67,23 @@ pub fn tokenize(path: String) {
     lexer.print_tokens();
 }
 
-pub fn parse(path: String, debug: bool) {
+pub fn parse(path: String, debug: bool) -> MTree {
     let contents = std::fs::read_to_string(path).unwrap();
     let lexer = Lexer::new(contents);
     let mut parser = OhlParser::new(lexer, debug);
     let tree = parser.analyze();
     println!("\n\nParse Tree:\n");
     tree.print();
+    tree
+}
+
+
+pub fn inspect(path: String, debug: bool) {
+    let tree: MTree = parse(path, debug);
+    let mut converter: Converter = Converter::new(debug);
+    converter.convert_tree(&tree);
+}
+
+pub fn analyze(path: String, debug: bool) {
+
 }

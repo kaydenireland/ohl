@@ -1,6 +1,7 @@
-use std::thread::current;
-
 use crate::backend::token::Token;
+#[allow(non_camel_case_types)]
+
+
 
 enum LexerState {
     START,
