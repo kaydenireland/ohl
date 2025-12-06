@@ -176,9 +176,12 @@ impl Converter {
                 self.log.indent_dec();
 
                 self.log.info("convert_block()");
+                self.log.indent_inc();
                 // Block
                 let block_node = iterator.next().ok_or("Missing Function Block")?;
                 let body = self.convert_tree(block_node)?;
+                
+                self.log.indent_dec();
 
                 Ok(
                     STree::FUNCTION {
@@ -191,7 +194,19 @@ impl Converter {
                 )
             }
 
+            Token::BLOCK => {
+                let mut statements = Vec::new();
+                for child in &node.children {
+                    self.log.info("convert_statement()");
+                    self.log.indent_inc();
 
+                    let stmt = self.convert_tree(child)?;
+                    statements.push(stmt);
+
+                    self.log.indent_dec();
+                }
+                Ok(STree::BLOCK { statements })
+            }
 
             _ => {
                 self.log.indent_dec();

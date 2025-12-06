@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use crate::backend::lexer::Lexer;
 use crate::backend::mtree::MTree;
 use crate::backend::parser::Parser as OhlParser;
-use crate::backend::semantics::Converter;
+use crate::backend::semantics::{Converter, STree};
 
 #[derive(Parser)]
 #[command(name = "oo", version)]
@@ -38,8 +38,8 @@ pub fn handle(cli: Cli) {
     match cli.command {
         Command::Print { filepath, numbered } => print(filepath, numbered),
         Command::Tokenize { filepath } => tokenize(filepath),
-        Command::Parse { filepath, debug } => _ = parse(filepath, debug),
-        Command::Inspect { filepath, debug } => inspect(filepath, debug),
+        Command::Parse { filepath, debug } => _ = parse(filepath, debug, true),
+        Command::Inspect { filepath, debug } => _ = inspect(filepath, debug),
     }
 }
 
@@ -67,21 +67,32 @@ pub fn tokenize(path: String) {
     lexer.print_tokens();
 }
 
-pub fn parse(path: String, debug: bool) -> MTree {
+pub fn parse(path: String, debug: bool, print: bool) -> MTree {
     let contents = std::fs::read_to_string(path).unwrap();
     let lexer = Lexer::new(contents);
     let mut parser = OhlParser::new(lexer, debug);
     let tree = parser.analyze();
-    println!("\n\nParse Tree:\n");
-    tree.print();
+    if print {
+        println!("\n\nParse Tree:\n");
+        tree.print();
+        println!();
+    }
     tree
 }
 
 
-pub fn inspect(path: String, debug: bool) {
-    let tree: MTree = parse(path, debug);
+pub fn inspect(path: String, debug: bool) -> STree {
+    let mtree: MTree = parse(path, debug, debug);
     let mut converter: Converter = Converter::new(debug);
-    converter.convert_tree(&tree);
+    let result: Result<STree, String> = converter.convert_tree(&mtree);
+    let stree = match result {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("ERROR: Semantic Conversion Failed \n{}", e);
+            std::process::exit(1)
+        }
+    };
+    stree
 }
 
 pub fn analyze(path: String, debug: bool) {
