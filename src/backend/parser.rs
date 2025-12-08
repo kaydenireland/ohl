@@ -252,7 +252,14 @@ impl Parser {
 
         let mut child = MTree::new(Token::FOR);
         self.expect(Token::PAREN_L);
-        child._push(self.parse_let());
+
+        if self.is(Token::LET) {
+            child._push(self.parse_let()); // also parses first ;
+        } else {
+            child._push(self.parse_expression());
+            self.expect(Token::SEMICOLON);
+        }
+
         child._push(self.parse_expression());
         self.expect(Token::SEMICOLON);
         child._push(self.parse_expression());
@@ -367,7 +374,6 @@ impl Parser {
         
         let mut child = MTree::new(Token::MATCH_ARM);
 
-        child._push(self.parse_expression());
 
         if self.is(Token::DEFAULT) {
             let default_token = self.current();

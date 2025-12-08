@@ -51,21 +51,54 @@ impl SymbolTable {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum Operator {
+    ADD,
+    SUBTRACT,
+    MULTIPLY,
+    DIVIDER,
+    REMAINDER,
+    POWER,
+    ROOT,
+
+    NEGATIVE,
+    RECIPRICOL,
+
+    INCREMENT,
+    DECREMENT,
+    SQUARE,
+
+    NOT,
+    AND,
+    OR,
+    XOR,
+
+    EQUAL,
+    LESS_THAN,
+    NOT_GREATER_THAN,
+    GREATER_THAN,
+    NOT_LESS_THAN,
+    NOT_EQUAL,
+}
 
 // Semantic AST
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum STree {
     START { functions: Vec<STree> },
     FUNCTION { function_type: FunctionType, return_type: VariableType, name: String, params: Vec<(String, VariableType)>, body: Box<STree> },
     BLOCK { statements: Vec<STree> },
     LET_STMT { id: String, var_type: VariableType, expression: Option<Box<STree>> },
     ASSIGN_STMT { id: String, expression: Box<STree> },
+    FOR_EXPR { init: Option<Box<STree>>, condition: Box<STree>, modifier: Option<Box<STree>>, body: Box<STree> },
+    FOR_EACH { variable: String, iterable: Box<STree>, body: Box<STree> },
     IF_EXPR { condition: Box<STree>, then_block: Box<STree>, else_block: Option<Box<STree>> },
     WHILE_EXPR { condition: Box<STree>, body: Box<STree> },
     LOOP_EXPR { condition: Box<STree>, body: Box<STree> },
     RETURN_STMT { expression: Option<Box<STree>> },
     PRINT_STMT { expression: Box<STree> },
-    EXPR { left: Box<STree>, operator: Token, right: Box<STree> },
+    EXPR { left: Box<STree>, operator: Operator, right: Box<STree> },
+    PRFX_EXPR { operator: Operator, right: Box<STree> },
+    PTFX_EXPR { left: Box<STree>, operator: Operator },
     CALL { name: String, arguments: Vec<STree> },
     ID { name: String },
     BREAK,
@@ -91,7 +124,7 @@ impl Converter {
 
     pub fn convert_tree(&mut self, node: &MTree) -> Result<STree, String> {
         
-        match node.token {
+        match &node.token {
 
             // Program Root: All Children are Functions
             Token::START => {
@@ -113,7 +146,7 @@ impl Converter {
             }
 
             // Expected Function Declaration Children
-            // [ FunctionType, ReturnType, Id(name), PARAM_LIST, BLOCK ]
+            // [ FunctionType, ReturnType, ID(name), PARAM_LIST, BLOCK ]
             Token::FUNC_DECL => {
                 let mut iterator = node.children.iter();
 
@@ -197,20 +230,396 @@ impl Converter {
             Token::BLOCK => {
                 let mut statements = Vec::new();
                 for child in &node.children {
-                    self.log.info("convert_statement()");
-                    self.log.indent_inc();
-
                     let stmt = self.convert_tree(child)?;
                     statements.push(stmt);
-
-                    self.log.indent_dec();
                 }
                 Ok(STree::BLOCK { statements })
             }
 
-            _ => {
+            // Expected Variable Declaration Children
+            // [ ID(name), VARIABLE_TYPE, Option<Expression> ]
+            Token::VAR_DECL => {
+                self.log.info("convert_let_statement()");
+                self.log.indent_inc();
+
+                let id_node = node.children.get(0).ok_or("Let Missing ID")?;
+                let id = match &id_node.token {
+                    Token::ID { name } => name.clone(),
+                    _ => return Err("Unexpected ID in Let".into()),
+                };
+
+                let type_node = &node.children[1];
+                let variable_type: VariableType = match &type_node.token {
+                    Token::INT => VariableType::INT,
+                    Token::FLOAT => VariableType::FLOAT,
+                    Token::BOOLEAN => VariableType::BOOLEAN,
+                    Token::CHAR => VariableType::CHAR,
+                    Token::STRING => VariableType::STRING,
+                    _ => return Err("Unexpected Variable Type".into()),
+                };
+
+                let mut expression: Option<Box<STree>> = None;
+                if node.children.len() >= 3 {
+                    let expression_node = &node.children[2];
+                    expression = Some(Box::new(self.convert_tree(expression_node)?));
+                }
+
                 self.log.indent_dec();
-                Err(format!("Unrecognized node in semantic conversion: {:?}", node.token))
+
+                Ok(STree::LET_STMT { id, var_type: variable_type, expression })
+            }
+
+            // Expected Assignment Children
+            // [ ID(name), VARIABLE_TYPE, Option<Expression> ]
+            Token::ASSIGN => {
+                self.log.info("convert_assignment()");
+                self.log.indent_inc();
+
+                if node.children.len() != 2 {
+                    return Err("Assignment must have left and right side".into());
+                }
+
+                let left = &node.children[0];
+                let id = match &left.token {
+                    Token::ID { name } => name.clone(),
+                    _ => return Err("Left side of assignment must be an ID".into()),
+                };
+                let right = self.convert_tree(&node.children[1])?;
+
+                self.log.indent_dec();
+
+                Ok(STree::ASSIGN_STMT { id, expression: Box::new(right) })
+            }
+
+
+            Token::ADD_ASSIGN | Token::SUB_ASSIGN | Token::MULT_ASSIGN |Token::DIV_ASSIGN
+            | Token::REM_ASSIGN | Token::POWER_ASSIGN | Token::ROOT_ASSIGN => {
+                self.log.info("convert_expression_assignment()");
+                self.log.indent_inc();
+
+                let variable_node = node.children.get(0).ok_or("Assignment missing left side")?;
+                let variable = self.convert_tree(variable_node)?;
+                let name = match &variable_node.token {
+                    Token::ID { name } => name.clone(),
+                    _ => return Err("Left side of assignment must be an ID".into()),
+                };
+
+                let right_node = node.children.get(1).ok_or("Assignment missing right side")?;
+                let expression = self.convert_tree(right_node)?;
+
+                let operator = match &node.token {
+                    Token::ADD_ASSIGN => Operator::ADD,
+                    Token::SUB_ASSIGN => Operator::SUBTRACT,
+                    Token::MULT_ASSIGN => Operator::MULTIPLY,
+                    Token::DIV_ASSIGN => Operator::DIVIDER,
+                    Token::REM_ASSIGN => Operator::REMAINDER,
+                    Token::POWER_ASSIGN => Operator::POWER,
+                    Token::ROOT_ASSIGN => Operator::ROOT,
+                    _ => return Err("Invalid expression assignment operator".into())
+                };
+
+                let combined = STree::EXPR { left: Box::new(variable.clone()), operator, right: Box::new(expression) };
+
+                self.log.indent_dec();
+
+                Ok(STree::ASSIGN_STMT { id: name, expression: Box::new(combined) })
+            }
+
+            // Expected Return Children
+            // [ Expression ]
+            Token::RETURN => {
+                self.log.info("convert_return()");
+                self.log.indent_inc();
+
+                let expression_node = node.children.get(0).ok_or("Return Statement Missing Expression")?;
+                let expression = self.convert_tree(expression_node)?;
+
+                self.log.indent_dec();
+
+                Ok(STree::RETURN_STMT { expression: Some(Box::new(expression)) })
+            }
+
+            // TODO: For-Each Loop
+            // Expected For-Loop Children
+            // [ Option<Assign>, Expression, Expression, Block ]
+            Token::FOR => {
+
+                // detect for-each 
+                if node.children.len() == 3 {
+                    self.log.info("convert_for_each()");
+                    self.log.indent_inc();
+
+                    let variable_node = node.children.get(0).ok_or("Missing loop variable in for-each")?;
+                    let variable_name = match &variable_node.token {
+                        Token::ID { name } => name.clone(),
+                        _ => return Err("Expected identifier as loop variable".into()),
+                    };
+
+                    let iterable_node = node.children.get(1).ok_or("Missing iterable in for-each")?;
+                    let iterable = self.convert_tree(iterable_node)?;
+
+                    let body_node = node.children.get(2).ok_or("Missing body block in for-each")?;
+                    let body = self.convert_tree(body_node)?;
+
+                    self.log.indent_dec();
+
+                    return Ok(STree::FOR_EACH { variable: variable_name, iterable: Box::new(iterable), body: Box::new(body)});
+                }
+
+                self.log.info("convert_for()");
+                self.log.indent_inc();
+
+                // optional initial assignment
+                let init_node = node.children.get(0).ok_or("For loop missing init statement")?;
+
+                let init = match init_node.token {
+                    Token::VAR_DECL | Token::ASSIGN => {
+                        Some(Box::new(self.convert_tree(init_node)?))
+                    }
+                    _ => return Err("Invalid init section in for-loop".into()),
+                };
+
+                // condition 
+                let condition_node = node.children.get(1).ok_or("For loop missing condition expression")?;
+                let condition = self.convert_tree(condition_node)?;
+
+                // increment
+                let modifier_node = node.children.get(2).ok_or("For loop missing increment expression")?;
+
+                let modifier = match modifier_node.token {
+                    Token::INCREMENT | Token::DECREMENT | Token::SQUARE | Token::ASSIGN => {
+                        Some(Box::new(self.convert_tree(modifier_node)?))
+                    }
+                    _ => return Err("Invalid increment section in for-loop".into()),
+                };
+
+                // body
+                let body_node = node.children.get(3).ok_or("For loop missing body block")?;
+                let body = self.convert_tree(body_node)?;
+
+                self.log.indent_dec();
+
+                Ok(STree::FOR_EXPR {
+                    init,
+                    condition: Box::new(condition),
+                    modifier,
+                    body: Box::new(body),
+                })
+            }
+
+
+            // Expected While Children
+            // [ Expression, Body ]
+            Token::WHILE => {
+                self.log.info("convert_while()");
+                self.log.indent_inc();
+
+                let condition_node = node.children.get(0).ok_or("While missing condition")?;
+                let condition = self.convert_tree(condition_node)?;
+
+                let body_node = node.children.get(1).ok_or("While missing body")?;
+                let body = self.convert_tree(body_node)?;
+
+                self.log.indent_dec();
+
+                Ok(STree::WHILE_EXPR { condition: Box::new(condition), body: Box::new(body) })
+            }
+
+            // Expected Loop Children
+            // [ Expression, Body ]
+            Token::LOOP => {
+                self.log.info("convert_loop()");
+                self.log.indent_inc();
+
+                let condition_node = node.children.get(0).ok_or("While missing condition")?;
+                let condition = self.convert_tree(condition_node)?;
+
+                let body_node = node.children.get(1).ok_or("While missing body")?;
+                let body = self.convert_tree(body_node)?;
+
+                self.log.indent_dec();
+
+                Ok(STree::LOOP_EXPR { condition: Box::new(condition), body: Box::new(body) })
+            }
+
+            Token::BREAK => Ok(STree::BREAK),
+            Token::CONTINUE => Ok(STree::CONTINUE),
+            Token::REPEAT => Ok(STree::REPEAT),
+
+            // Expected If Children
+            // [ Expression, Body, Else(Else if) ]
+            Token::IF_STMT => {
+                self.log.info("convert_if()");
+                self.log.indent_inc();
+
+                // condition
+                let condition_node = node.children.get(0).ok_or("If statement missing condition")?;
+                let condition = self.convert_tree(condition_node)?;
+
+                // then block
+                let then_node = node.children.get(1).ok_or("If statement missing then block")?;
+                let then_block = self.convert_tree(then_node)?;
+
+                // else or else-if
+                let else_block = if node.children.len() > 2 {
+                    let else_node = &node.children[2];
+
+                    match else_node.token {
+                        Token::IF_STMT => {
+                            Some(Box::new(self.convert_tree(else_node)?))
+                        }
+                        Token::BLOCK => {
+                            Some(Box::new(self.convert_tree(else_node)?))
+                        }
+                        _ => return Err("Invalid else clause in if-statement".into()),
+                    }
+                } else {
+                    None
+                };
+
+                self.log.indent_dec();
+                Ok(STree::IF_EXPR {
+                    condition: Box::new(condition),
+                    then_block: Box::new(then_block),
+                    else_block,
+                })
+            } 
+
+            // Expected Print Children
+            // [ Expression ]
+            Token::PRINT =>  {
+                self.log.info("convert_print()");
+                self.log.indent_inc();
+
+                let expression_node = node.children.get(0).ok_or("Print missing expression")?;
+                let expression = self.convert_tree(expression_node)?;
+
+                self.log.indent_dec();
+
+                Ok(STree::PRINT_STMT { expression: Box::new(expression) })
+            }
+
+            // Unary Prefix Operators 
+            Token::NOT => {
+                self.log.info("convert_unary_op()");
+                self.log.indent_inc();
+
+                if node.children.len() != 1 {
+                    return Err("Unary Prefix NOT must have one child".into());
+                }
+
+                let child = self.convert_tree(&node.children[0])?;
+
+                self.log.indent_dec();
+
+                Ok(STree::PRFX_EXPR { operator: Operator::NOT, right: Box::new(child) })
+            }
+
+            // Unary Postfix Operators 
+            Token::INCREMENT | Token::DECREMENT | Token::SQUARE => {
+                self.log.info("convert_unary_op()");
+                self.log.indent_inc();
+
+                if node.children.len() != 1 {
+                    return Err("Unary postfix operator must have one child".into());
+                }
+
+                let child = self.convert_tree(&node.children[0])?;
+
+                let operator = match &node.token {
+                    Token::INCREMENT => Operator::INCREMENT,
+                    Token::DECREMENT => Operator::DECREMENT,
+                    Token::SQUARE => Operator::SQUARE,
+                    _ => return Err("Invalid Unary Postfix Operator".into())
+                };
+
+                self.log.indent_dec();
+
+                Ok(STree::PTFX_EXPR { left: Box::new(child) , operator })
+            }
+
+            // Binary Operators
+            Token::ADD | Token::SUB | Token::MULT | Token::DIV | Token::REM | Token::POWER | Token::ROOT 
+            | Token::EQUAL | Token::NEQ | Token::LT | Token::GT | Token::NLT | Token::NGT 
+            | Token::AND | Token::OR | Token::XOR => {
+                // Check for Unary
+                if node.children.len() == 1 {
+                    self.log.info("convert_unary_op()");
+                    self.log.indent_inc();
+
+                    let child = self.convert_tree(&node.children[0])?;
+                    let operator = match &node.token {
+                        Token::SUB => Operator::NEGATIVE,
+                        Token::DIV => Operator::RECIPRICOL,
+                        _ => return Err("Invalid Unary Prefix Operator".into())
+                    };
+
+                    self.log.indent_dec();
+
+                    Ok(STree::PRFX_EXPR { operator, right: Box::new(child) })
+                } else if node.children.len() == 2 {
+                    self.log.info("convert_binary_op()");
+                    self.log.indent_inc();
+
+                    let left = self.convert_tree(&node.children[0])?;
+                    let right = self.convert_tree(&node.children[1])?;
+                    let operator = match &node.token {
+                        Token::ADD => Operator::ADD,
+                        Token::SUB => Operator::SUBTRACT,
+                        Token::MULT => Operator::MULTIPLY,
+                        Token::DIV => Operator::DIVIDER,
+                        Token::REM => Operator::REMAINDER,
+                        Token::POWER => Operator::POWER,
+                        Token::ROOT => Operator::ROOT,
+                        Token::EQUAL => Operator::EQUAL,
+                        Token::NEQ => Operator::NOT_EQUAL,
+                        Token::LT => Operator::LESS_THAN,
+                        Token::GT => Operator::GREATER_THAN,
+                        Token::NLT => Operator::NOT_LESS_THAN,
+                        Token::NGT => Operator::NOT_GREATER_THAN,
+                        Token::AND => Operator::AND,
+                        Token::OR => Operator::OR,
+                        Token::XOR => Operator::XOR,
+                        _ => return Err("Invalid Binary Operator".into())
+                    };
+
+                    self.log.indent_dec();
+                    Ok(STree::EXPR { left: Box::new(left), operator, right: Box::new(right) })
+                } else {
+                    return Err("Operator must have either one or two children".into());
+                }
+            }
+
+            // Identifier
+            Token::ID { name } => {
+                self.log.info("convert_id()");
+                self.log.indent_inc();
+
+                if node.children.len() > 0 {
+                    let mut args = Vec::new();
+                    for argument_node in &node.children {
+                        args.push(self.convert_tree(argument_node)?);
+                    }
+                    self.log.indent_dec();
+                    Ok(STree::CALL { name: name.clone(), arguments: args })
+                } else {
+                    self.log.indent_dec();
+                    Ok(STree::ID { name: name.clone() })
+                }
+
+            }
+
+
+            Token::LIT_INT { value } => Ok(STree::LIT_INT { value: *value }),
+            Token::LIT_FLOAT { value } => Ok(STree::LIT_FLOAT { value: *value }),
+            Token::LIT_BOOL { value } => Ok(STree::LIT_BOOL { value: *value }),
+            Token::LIT_CHAR { value } => Ok(STree::LIT_CHAR { value: *value }),
+            Token::LIT_STRING { value } => Ok(STree::LIT_STRING { value: value.clone() }),
+
+
+            other => {
+                self.log.indent_dec();
+                Err(format!("Unrecognized token in semantic conversion: {:?}", other ))
             }
         }
     }

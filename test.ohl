@@ -1,0 +1,5 @@
+public null main() {
+    for each digit in (str) {
+        add(3, 5);
+    }
+}

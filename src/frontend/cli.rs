@@ -92,6 +92,9 @@ pub fn inspect(path: String, debug: bool) -> STree {
             std::process::exit(1)
         }
     };
+
+    println!("\nSemantic Tree\n{:#?}", stree);
+
     stree
 }
 

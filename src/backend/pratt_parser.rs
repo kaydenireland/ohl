@@ -66,7 +66,7 @@ impl Token {
             Token::LIT_BOOL { .. } |
             Token::LIT_STRING { .. } => BindingPower { left: 0, right: 0, unary: 0 },
 
-            Token::PAREN_L | Token::POINT => BindingPower { left: 80, right: 0, unary: 0 },
+            Token::PAREN_L | Token::POINT => BindingPower { left: 0, right: 0, unary: 0 },
 
 
             Token::PAREN_R |
@@ -79,7 +79,6 @@ impl Token {
             Token::EOI => BindingPower { left: 0, right: 0, unary: 0 },
 
 
-            // ---------- Catch-all ----------
             _ => BindingPower { left: 0, right: 0, unary: 0 },
         }
     }
