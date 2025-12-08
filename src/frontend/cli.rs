@@ -93,7 +93,7 @@ pub fn inspect(path: String, debug: bool) -> STree {
         }
     };
 
-    println!("\nSemantic Tree\n{:#?}", stree);
+    println!("\n\nSemantic Tree:\n{:#?}", stree);
 
     stree
 }

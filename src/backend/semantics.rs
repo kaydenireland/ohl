@@ -4,6 +4,7 @@ use crate::backend::token::Token;
 use crate::backend::mtree::MTree;
 use crate::backend::logger::Logger;
 
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum FunctionType {
     PUBLIC,
@@ -50,6 +51,7 @@ impl SymbolTable {
 
     }
 }
+
 
 #[derive(Debug, Clone)]
 pub enum Operator {
@@ -327,7 +329,7 @@ impl Converter {
 
             // Expected Return Children
             // [ Expression ]
-            Token::RETURN => {
+            Token::RTRN_STMT => {
                 self.log.info("convert_return()");
                 self.log.indent_inc();
 
@@ -339,7 +341,6 @@ impl Converter {
                 Ok(STree::RETURN_STMT { expression: Some(Box::new(expression)) })
             }
 
-            // TODO: For-Each Loop
             // Expected For-Loop Children
             // [ Option<Assign>, Expression, Expression, Block ]
             Token::FOR => {
