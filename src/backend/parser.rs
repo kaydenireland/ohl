@@ -10,8 +10,8 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(lexer: Lexer, debug: bool) -> Parser {
-        let log = Logger::new(debug);
+    pub fn new(lexer: Lexer, _debug: bool) -> Parser {
+        let log = Logger::new(_debug);
         Parser { lexer, log }
     }
 

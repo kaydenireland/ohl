@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use crate::backend::lexer::Lexer;
 use crate::backend::mtree::MTree;
 use crate::backend::parser::Parser as OhlParser;
-use crate::backend::semantics::{Converter, STree};
+use crate::backend::converter::{Converter, STree};
 
 #[derive(Parser)]
 #[command(name = "oo", version)]
@@ -38,8 +38,8 @@ pub fn handle(cli: Cli) {
     match cli.command {
         Command::Print { filepath, numbered } => print(filepath, numbered),
         Command::Tokenize { filepath } => tokenize(filepath),
-        Command::Parse { filepath, debug } => _ = parse(filepath, debug, true),
-        Command::Inspect { filepath, debug } => _ = inspect(filepath, debug),
+        Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
+        Command::Inspect { filepath, debug: _debug } => _ = inspect(filepath, _debug),
     }
 }
 
@@ -67,10 +67,10 @@ pub fn tokenize(path: String) {
     lexer.print_tokens();
 }
 
-pub fn parse(path: String, debug: bool, print: bool) -> MTree {
+pub fn parse(path: String, _debug: bool, print: bool) -> MTree {
     let contents = std::fs::read_to_string(path).unwrap();
     let lexer = Lexer::new(contents);
-    let mut parser = OhlParser::new(lexer, debug);
+    let mut parser = OhlParser::new(lexer, _debug);
     let tree = parser.analyze();
     if print {
         println!("\n\nParse Tree:\n");
@@ -81,9 +81,9 @@ pub fn parse(path: String, debug: bool, print: bool) -> MTree {
 }
 
 
-pub fn inspect(path: String, debug: bool) -> STree {
-    let mtree: MTree = parse(path, debug, debug);
-    let mut converter: Converter = Converter::new(debug);
+pub fn inspect(path: String, _debug: bool) -> STree {
+    let mtree: MTree = parse(path, _debug, _debug);
+    let mut converter: Converter = Converter::new(_debug);
     let result: Result<STree, String> = converter.convert_tree(&mtree);
     let stree = match result {
         Ok(s) => s,
@@ -98,6 +98,6 @@ pub fn inspect(path: String, debug: bool) -> STree {
     stree
 }
 
-pub fn analyze(path: String, debug: bool) {
+pub fn analyze(path: String, _debug: bool) {
 
 }

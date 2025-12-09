@@ -1,8 +1,6 @@
 use crate::backend::token::Token;
 #[allow(non_camel_case_types)]
 
-
-
 enum LexerState {
     START,
     END,
@@ -76,9 +74,9 @@ impl Lexer {
             if let Token::EOI = self.current() {
                 break;
             }
-            print!("{:?}, ", self.current());
+            println!("{:?}, ", self.current());
         }
-        print!("{:?}", self.current());
+        println!("{:?}", self.current());
     }
 
     pub fn advance(&mut self) -> Token {

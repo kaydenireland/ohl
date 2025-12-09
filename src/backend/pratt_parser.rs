@@ -2,8 +2,6 @@ use crate::backend::mtree::MTree;
 use crate::backend::parser::Parser;
 use crate::backend::token::Token;
 
-use std::rc::Rc;
-
 pub struct BindingPower {
     pub left: u8,
     pub right: u8,

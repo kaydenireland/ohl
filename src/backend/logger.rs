@@ -1,17 +1,17 @@
 pub struct Logger{
     indent: usize,
-    debug: bool
+    _debug: bool
 }
 
 impl Logger {
     const INDENT: usize = 2;
 
-    pub fn new(debug: bool) -> Logger {
-        Logger { indent: 0, debug }
+    pub fn new(_debug: bool) -> Logger {
+        Logger { indent: 0, _debug }
     }
 
     pub fn info(&self, msg: &str) {
-        if self.debug {
+        if self._debug {
             println!("{:<indent$}{:}", "", msg, indent=self.indent);
         }
     }
