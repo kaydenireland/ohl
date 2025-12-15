@@ -1,7 +1,7 @@
-use crate::backend::lexer::Lexer;
-use crate::backend::logger::Logger;
-use crate::backend::mtree::MTree;
-use crate::backend::token::Token;
+use crate::language::tokenizing::lexer::Lexer;
+use crate::language::logger::Logger;
+use crate::language::parsing::mtree::MTree;
+use crate::language::tokenizing::token::Token;
 
 // TODO: Match, Imports
 pub struct Parser {

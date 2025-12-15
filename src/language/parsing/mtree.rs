@@ -1,4 +1,4 @@
-use crate::backend::token::Token;
+use crate::language::tokenizing::token::Token;
 
 pub struct MTree {
     pub token: Token,

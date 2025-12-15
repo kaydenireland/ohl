@@ -1,12 +1,5 @@
 use std::collections::HashMap;
-use crate::backend::{converter::VariableType, logger::Logger};
-
-
-#[derive(Debug)]
-pub struct FunctionSignature {
-    parameters: Vec<VariableType>,
-    return_type: VariableType
-}
+use crate::language::analyzing::types::VariableType;
 
 #[derive(Debug)]
 pub struct SymbolTable {
@@ -37,23 +30,3 @@ impl SymbolTable {
 
     }
 }
-
-pub struct Analyzer {
-    pub scopes: Vec<HashMap<String, VariableType>>, 
-    pub functions: HashMap<String, FunctionSignature>,
-    pub errors: Vec<String>,
-    pub log: Logger,
-}
-
-impl Analyzer {
-    pub fn new(_debug: bool) -> Analyzer {
-        let log = Logger::new(_debug);
-        Analyzer {
-            scopes: vec![HashMap::new()],
-            functions: HashMap::new(),
-            errors: vec![],
-            log,
-        }
-    }
-}
-

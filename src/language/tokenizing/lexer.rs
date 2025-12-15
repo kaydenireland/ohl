@@ -1,4 +1,4 @@
-use crate::backend::token::Token;
+use crate::language::tokenizing::token::Token;
 #[allow(non_camel_case_types)]
 
 enum LexerState {

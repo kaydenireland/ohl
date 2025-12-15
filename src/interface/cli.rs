@@ -1,9 +1,11 @@
 use clap::{Parser, Subcommand};
 
-use crate::backend::lexer::Lexer;
-use crate::backend::mtree::MTree;
-use crate::backend::parser::Parser as OhlParser;
-use crate::backend::converter::{Converter, STree};
+use crate::language::tokenizing::lexer::Lexer;
+use crate::language::parsing::mtree::MTree;
+use crate::language::parsing::parser::Parser as OhlParser;
+use crate::language::analyzing::converter::Converter;
+use crate::language::analyzing::stree::STree;
+
 
 #[derive(Parser)]
 #[command(name = "oo", version)]
@@ -27,7 +29,12 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
     },
-    Inspect {
+    Convert {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool,
+    },
+    Execute {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
@@ -39,7 +46,8 @@ pub fn handle(cli: Cli) {
         Command::Print { filepath, numbered } => print(filepath, numbered),
         Command::Tokenize { filepath } => tokenize(filepath),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
-        Command::Inspect { filepath, debug: _debug } => _ = inspect(filepath, _debug),
+        Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
+        Command::Execute { filepath, debug: _debug } => execute(filepath, _debug),
     }
 }
 
@@ -67,12 +75,12 @@ pub fn tokenize(path: String) {
     lexer.print_tokens();
 }
 
-pub fn parse(path: String, _debug: bool, print: bool) -> MTree {
+pub fn parse(path: String, _debug: bool, print_tree: bool) -> MTree {
     let contents = std::fs::read_to_string(path).unwrap();
     let lexer = Lexer::new(contents);
     let mut parser = OhlParser::new(lexer, _debug);
     let tree = parser.analyze();
-    if print {
+    if print_tree {
         println!("\n\nParse Tree:\n");
         tree.print();
         println!();
@@ -81,7 +89,7 @@ pub fn parse(path: String, _debug: bool, print: bool) -> MTree {
 }
 
 
-pub fn inspect(path: String, _debug: bool) -> STree {
+pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     let mtree: MTree = parse(path, _debug, _debug);
     let mut converter: Converter = Converter::new(_debug);
     let result: Result<STree, String> = converter.convert_tree(&mtree);
@@ -93,11 +101,14 @@ pub fn inspect(path: String, _debug: bool) -> STree {
         }
     };
 
-    println!("\n\nSemantic Tree:\n{:#?}", stree);
+    if print_tree {
+        println!("\n\nSemantic Tree:\n{:#?}", stree);
+    }
 
     stree
 }
 
-pub fn analyze(path: String, _debug: bool) {
-
+pub fn execute(path: String, _debug: bool) {
+    println!("Coming Soon");
+    convert(path, _debug, _debug);
 }
