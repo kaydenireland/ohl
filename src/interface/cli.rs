@@ -21,6 +21,9 @@ pub enum Command {
         #[arg(short, long)]
         numbered: bool,
     },
+    Size {
+        filepath: String,
+    },
     Tokenize {
         filepath: String,
     },
@@ -44,6 +47,7 @@ pub enum Command {
 pub fn handle(cli: Cli) {
     match cli.command {
         Command::Print { filepath, numbered } => print(filepath, numbered),
+        Command::Size { filepath } => size(filepath),
         Command::Tokenize { filepath } => tokenize(filepath),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
@@ -67,6 +71,16 @@ pub fn print(path: String, numbered: bool) {
     } else {
         println!("{}", contents);
     }
+}
+
+pub fn size(path: String) {
+    use std::fs;
+    let data = fs::metadata(path.clone()).unwrap_or_else( |e| {
+        eprint!("Failed to get size of file at {}: {}", path, e);
+        std::process::exit(1);
+    });
+
+    print!("{:?} bytes", data.len());
 }
 
 pub fn tokenize(path: String) {
