@@ -4,7 +4,7 @@ use crate::language::analyzing::operator::Operator;
 use crate::language::analyzing::types::{FunctionType, VariableType};
 
 // Semantic AST
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum STree {
     START { functions: Vec<STree> },
     FUNCTION { function_type: FunctionType, return_type: VariableType, name: String, params: Vec<(String, VariableType)>, body: Box<STree> },
@@ -31,4 +31,17 @@ pub enum STree {
     LIT_BOOL { value: bool },
     LIT_CHAR { value: char },
     LIT_STRING { value: String },
+}
+
+impl STree {
+    pub fn is_literal(&self) -> bool {
+        matches!(
+            self,
+            STree::LIT_INT { .. }
+            | STree::LIT_FLOAT { .. }
+            | STree::LIT_BOOL { .. }
+            | STree::LIT_CHAR { .. }
+            | STree::LIT_STRING { .. }
+        )
+    }
 }

@@ -1,5 +1,3 @@
 public null main() {
-    for each digit in (str) {
-        add(3, 5);
-    }
+    let x: int = 3 + 5;
 }

@@ -486,7 +486,7 @@ impl Converter {
 
             // Identifier
             Token::ID { name } => {
-                self.log.info("convert_id()");
+                self.log.info("convert_identifier()");
                 self.log.indent_inc();
 
                 if node.children.len() > 0 {

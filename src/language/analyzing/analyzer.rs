@@ -31,6 +31,8 @@ impl Analyzer {
     }
     
     pub fn analyze(mut self, tree: &STree) -> Result<VariableType, Vec<String>> {
+        self.log.info("\nanalyze_tree()");
+        self.log.indent_inc();
 
         self.collect_function_signatures(tree);
         let ty = self.visit(tree, &mut SymbolTable::new());
@@ -53,7 +55,10 @@ impl Analyzer {
                 VariableType::NULL
             }
 
-            STree::FUNCTION { function_type, name, params, return_type, body } => {
+            STree::FUNCTION { function_type: _, name, params, return_type, body } => {
+                self.log.info("analyze_function()");
+                self.log.indent_inc();
+
                 let mut local = SymbolTable::new();
                 for (pname, ptype) in params {
                     let _ = local.declare_variable(pname.clone(), ptype.clone());
@@ -78,18 +83,29 @@ impl Analyzer {
                     ));
                 }
 
+                self.log.indent_dec();
+
                 VariableType::NULL
             }
 
             STree::BLOCK { statements } => {
+                self.log.info("analyze_block()");
+                self.log.indent_inc();
+
                 let mut last = VariableType::NULL;
                 for s in statements {
                     last = self.visit(s, symbols);
                 }
+
+                self.log.indent_dec();
+
                 last
             }
 
             STree::LET_STMT { id, var_type, expression } => {
+                self.log.info("analyze_let()");
+                self.log.indent_inc();
+
                 let inferred = if let Some(e) = expression {
                     let et = self.visit(e, symbols);
                     if *var_type != VariableType::NULL && et != *var_type && et != VariableType::NULL {
@@ -107,10 +123,15 @@ impl Analyzer {
                     self.errors.push(e);
                 }
 
+                self.log.indent_dec();
+
                 VariableType::NULL
             }
 
             STree::ASSIGN_STMT { id, expression } => {
+                self.log.info("analyze_assignment()");
+                self.log.indent_inc();
+
                 match symbols.check_variable(id) {
                     Ok(vt) => {
                         let et = self.visit(expression, symbols);
@@ -123,19 +144,32 @@ impl Analyzer {
                     }
                     Err(e) => self.errors.push(e),
                 }
+
+                self.log.indent_dec();
+
                 VariableType::NULL
             }
 
             STree::RETURN_STMT { expression } => {
-                expression
+                self.log.info("analyze_return()");
+                self.log.indent_inc();
+                
+                let vt = expression
                     .as_ref()
                     .map(|e| self.visit(e, symbols))
-                    .unwrap_or(VariableType::NULL)
+                    .unwrap_or(VariableType::NULL);
+                
+                self.log.indent_dec();
+
+                vt
             }
 
 
 
             STree::WHILE_EXPR { condition, body } => {
+                self.log.info("analyze_while()");
+                self.log.indent_inc();
+
                 let ct = self.visit(condition, symbols);
                 if ct != VariableType::BOOLEAN && ct != VariableType::NULL {
                     self.errors.push(format!(
@@ -144,10 +178,16 @@ impl Analyzer {
                     ));
                 }
                 self.visit(body, symbols);
+
+                self.log.indent_dec();
+
                 VariableType::NULL
             }
 
             STree::IF_EXPR { condition, then_block, else_block } => {
+                self.log.info("analyze_if()");
+                self.log.indent_inc();
+
                 let ct = self.visit(condition, symbols);
                 if ct != VariableType::BOOLEAN && ct != VariableType::NULL {
                     self.errors.push(format!(
@@ -169,15 +209,25 @@ impl Analyzer {
                     ));
                 }
 
+                self.log.indent_dec();
+
                 if tt != VariableType::NULL { tt } else { et }
             }
 
             STree::PRINT_STMT { expression } => {
+                self.log.info("analyze_print()");
+                self.log.indent_inc();
+
                 self.visit(expression, symbols);
+
+                self.log.indent_dec();
+
                 VariableType::NULL
             }
 
             STree::EXPR { left, operator, right } => {
+                self.log.info("analyze_expression()");
+
                 let rt = self.visit(right, symbols);
 
                 // Unary operators
@@ -225,6 +275,8 @@ impl Analyzer {
             }
 
             STree::CALL { name, arguments } => {
+                self.log.info("analyze_function_call()");
+
                 let arg_types: Vec<_> = arguments
                     .iter()
                     .map(|a| self.visit(a, symbols))
@@ -250,6 +302,8 @@ impl Analyzer {
             }
 
             STree::ID { name } => {
+                self.log.info("analyze_identifier()");
+
                 match symbols.check_variable(name) {
                     Ok(t) => t,
                     Err(e) => {
@@ -277,6 +331,9 @@ impl Analyzer {
     fn collect_function_signatures(&mut self, tree: &STree) {
         if let STree::START { functions } = tree {
             for func in functions {
+                self.log.info("collecting_function_signature()");
+                self.log.indent_inc();
+                
                 // TODO: Function Types
                 if let STree::FUNCTION { return_type, name, params, .. } = func {
                     let param_types = params
@@ -291,6 +348,7 @@ impl Analyzer {
                         
                     }
                 }
+                self.log.indent_dec();
             }
         }
     }

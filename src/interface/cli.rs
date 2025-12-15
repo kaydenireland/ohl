@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use crate::language::analyzing::analyzer::Analyzer;
+use crate::language::analyzing::folder::ConstantFolder;
 use crate::language::tokenizing::lexer::Lexer;
 use crate::language::parsing::mtree::MTree;
 use crate::language::parsing::parser::Parser as OhlParser;
@@ -43,7 +44,7 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
     },
-    Execute {
+    Run {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
@@ -57,8 +58,8 @@ pub fn handle(cli: Cli) {
         Command::Tokenize { filepath } => tokenize(filepath),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
-        Command::Analyze { filepath, debug: _debug } => analyze(filepath, _debug),
-        Command::Execute { filepath, debug: _debug } => execute(filepath, _debug),
+        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
+        Command::Run { filepath, debug: _debug } => run(filepath, _debug),
     }
 }
 
@@ -129,10 +130,10 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     stree
 }
 
-pub fn analyze(path: String, _debug: bool) {
-    let tree: STree = convert(path, _debug, _debug);
+pub fn analyze(path: String, _debug: bool) -> STree {
+    let stree: STree = convert(path, _debug, _debug);
     let analyzer = Analyzer::new(_debug);
-    let result = analyzer.analyze(&tree);
+    let result = analyzer.analyze(&stree);
     match result {
         Ok(t) => t,
         Err(errors) => {
@@ -144,8 +145,11 @@ pub fn analyze(path: String, _debug: bool) {
         }
     };
     
+    stree
 }
 
-pub fn execute(path: String, _debug: bool) {
-    analyze(path, _debug);
+pub fn run(path: String, _debug: bool) {
+    let mut stree = analyze(path, _debug);
+    let mut folder: ConstantFolder = ConstantFolder::new(_debug);
+    folder.run(&mut stree);
 }
