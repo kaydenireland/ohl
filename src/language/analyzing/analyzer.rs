@@ -18,6 +18,7 @@ pub struct Analyzer {
     pub functions: HashMap<String, FunctionSignature>,
     pub errors: Vec<String>,
     pub log: Logger,
+    loop_depth: usize
 }
 
 impl Analyzer {
@@ -27,6 +28,7 @@ impl Analyzer {
             functions: HashMap::new(),
             errors: vec![],
             log,
+            loop_depth: 0
         }
     }
     
@@ -92,14 +94,14 @@ impl Analyzer {
                 self.log.info("analyze_block()");
                 self.log.indent_inc();
 
-                let mut last = VariableType::NULL;
+                let mut local = SymbolTable::new_child(symbols);
                 for s in statements {
-                    last = self.visit(s, symbols);
+                    self.visit(s, &mut local);
                 }
 
                 self.log.indent_dec();
 
-                last
+                VariableType::NULL
             }
 
             STree::LET_STMT { id, var_type, expression } => {
@@ -164,7 +166,42 @@ impl Analyzer {
                 vt
             }
 
+            STree::LOOP_EXPR { condition, body } => {
+                self.log.info("analyze_loop()");
+                self.log.indent_inc();
 
+                match condition.as_ref() {
+                    STree::LIT_INT { .. } => {}
+
+                    STree::ID { name } => {
+                        match symbols.check_variable(name) {
+                            Ok(VariableType::INT) => {}
+                            Ok(other) => {
+                                self.errors.push(format!(
+                                    "Loop condition variable '{}' must be INT, found {:?}",
+                                    name, other
+                                ));
+                            }
+                            Err(e) => self.errors.push(e),
+                        }
+                    }
+
+                    _ => {
+                        let ct = self.visit(condition, symbols);
+                        self.errors.push(format!(
+                            "Loop condition must be an int literal or int variable, found {:?}",
+                            ct
+                        ));
+                    }
+                }
+
+                self.loop_depth += 1;
+                self.visit(body, symbols);
+                self.loop_depth -= 1;
+
+                self.log.indent_dec();
+                VariableType::NULL
+            }
 
             STree::WHILE_EXPR { condition, body } => {
                 self.log.info("analyze_while()");
@@ -177,12 +214,105 @@ impl Analyzer {
                         ct
                     ));
                 }
-                self.visit(body, symbols);
+
+                self.loop_depth += 1;
+                let mut local = SymbolTable::new_child(symbols);
+                self.visit(body, &mut local);
+                self.loop_depth -= 1;
 
                 self.log.indent_dec();
 
                 VariableType::NULL
             }
+
+            STree::FOR_EXPR { init, condition, modifier, body } => {
+                self.log.info("analyze_for()");
+                self.log.indent_inc();
+
+                let mut local = SymbolTable::new_child(symbols);
+
+                // init
+                if let Some(i) = init {
+                    self.visit(i, &mut local);
+                }
+
+                // condition
+                let ct = self.visit(condition, &mut local);
+                if ct != VariableType::BOOLEAN && ct != VariableType::NULL {
+                    self.errors.push(format!(
+                        "For-loop condition must be Bool, found {:?}",
+                        ct
+                    ));
+                }
+
+                self.loop_depth += 1;
+
+                // body
+                self.visit(body, &mut local);
+
+                // modifier
+                if let Some(m) = modifier {
+                    self.visit(m, &mut local);
+                }
+
+                self.loop_depth -= 1;
+
+                self.log.indent_dec();
+
+                VariableType::NULL
+            }
+
+
+            STree::FOR_EACH { variable, iterable, body } => {
+                self.log.info("analyze_for_each()");
+                self.log.indent_inc();
+
+                let it_type = self.visit(iterable, symbols);
+
+                let element_type = match it_type {
+                    VariableType::STRING => VariableType::CHAR,
+
+                    _ => {
+                        self.errors.push(format!(
+                            "Cannot iterate over type {:?}",
+                            it_type
+                        ));
+                        VariableType::NULL
+                    }
+                };
+
+                let mut local = SymbolTable::new_child(symbols);
+
+                if let Err(e) = local.declare_variable(variable.clone(), element_type) {
+                    self.errors.push(e);
+                }
+
+                self.loop_depth += 1;
+                self.visit(body, &mut local);
+                self.loop_depth -= 1;
+
+                self.log.indent_dec();
+                VariableType::NULL
+            }
+
+            STree::BREAK => {
+                self.log.info("analyze_break()");
+                self.require_loop("break");
+                VariableType::NULL
+            }
+
+            STree::CONTINUE => {
+                self.log.info("analyze_continue()");
+                self.require_loop("continue");
+                VariableType::NULL
+            }
+
+            STree::REPEAT => {
+                self.log.info("analyze_repeat()");
+                self.require_loop("repeat");
+                VariableType::NULL
+            }
+
 
             STree::IF_EXPR { condition, then_block, else_block } => {
                 self.log.info("analyze_if()");
@@ -196,11 +326,15 @@ impl Analyzer {
                     ));
                 }
 
-                let tt = self.visit(then_block, symbols);
-                let et = else_block
-                    .as_ref()
-                    .map(|b| self.visit(b, symbols))
-                    .unwrap_or(VariableType::NULL);
+                let mut then_scope = SymbolTable::new_child(symbols);
+                let tt = self.visit(then_block, &mut then_scope);
+
+                let et = if let Some(else_block) = else_block {
+                    let mut else_scope = SymbolTable::new_child(symbols);
+                    self.visit(else_block, &mut else_scope)
+                } else {
+                    VariableType::NULL
+                };
 
                 if tt != VariableType::NULL && et != VariableType::NULL && tt != et {
                     self.errors.push(format!(
@@ -213,6 +347,7 @@ impl Analyzer {
 
                 if tt != VariableType::NULL { tt } else { et }
             }
+
 
             STree::PRINT_STMT { expression } => {
                 self.log.info("analyze_print()");
@@ -274,6 +409,69 @@ impl Analyzer {
                 self.type_binary_operator(operator, lt, rt)
             }
 
+            STree::PRFX_EXPR { operator, right } => {
+                self.log.info("analyze_prefix_expr()");
+                self.log.indent_inc();
+
+                let rt = self.visit(right, symbols);
+
+                match operator {
+                    
+
+                    Operator::NOT => {
+                        if rt == VariableType::BOOLEAN || rt == VariableType::NULL {
+                            VariableType::BOOLEAN
+                        } else {
+                            self.errors.push(format!(
+                                "Unary NOT requires Bool, found {:?}",
+                                rt
+                            ));
+                            VariableType::NULL
+                        }
+                    }
+
+                    Operator::NEGATIVE => {
+                        if rt.is_numeric() {
+                            rt
+                        } else {
+                            self.errors.push(format!(
+                                "Unary minus requires numeric type, found {:?}",
+                                rt
+                            ));
+                            VariableType::NULL
+                        }
+                    }
+
+                    _ => VariableType::NULL,
+                }
+            }
+
+            STree::PTFX_EXPR { left, operator } => {
+                self.log.info("analyze_postfix_expr()");
+                self.log.indent_inc();
+
+                let lt = self.visit(left, symbols);
+
+                match operator {
+                    Operator::INCREMENT | Operator::DECREMENT | Operator::SQUARE => {
+                        match left.as_ref() {
+                            STree::ID { .. } if lt.is_numeric() => lt,
+                            _ => {
+                                self.errors.push(format!(
+                                    "Postfix {:?} requires a numeric variable",
+                                    operator
+                                ));
+                                VariableType::NULL
+                            }
+                        }
+                    }
+
+                    _ => VariableType::NULL,
+                }
+            }
+
+
+
             STree::CALL { name, arguments } => {
                 self.log.info("analyze_function_call()");
 
@@ -319,8 +517,6 @@ impl Analyzer {
             STree::LIT_CHAR { .. } => VariableType::CHAR,
             STree::LIT_STRING { .. } => VariableType::STRING,
 
-            // Place Holder, TODO
-            _ => VariableType::NULL
         }
     }
 }
@@ -440,6 +636,15 @@ impl Analyzer {
             }
 
             _ => VariableType::NULL,
+        }
+    }
+
+    fn require_loop(&mut self, keyword: &str) {
+        if self.loop_depth == 0 {
+            self.errors.push(format!(
+                "'{}' used outside of a loop",
+                keyword
+            ));
         }
     }
 

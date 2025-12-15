@@ -198,8 +198,14 @@ impl Parser {
             Token::FOR => child = self.parse_for(),
             Token::WHILE => child = self.parse_while(),
             Token::LOOP => child = self.parse_loop(),
+
+            Token::BREAK => child = self.parse_break(),
+            Token::CONTINUE => child = self.parse_continue(),
+            Token::REPEAT => child = self.parse_repeat(),
+
             Token::MATCH => child = self.parse_match(),
             Token::IF => child = self.parse_if(),
+            
             Token::RETURN => child = self.parse_return(),
             Token::BRACE_L => child = self.parse_block_nest(),
             Token::LET => child = self.parse_let(),
@@ -316,12 +322,53 @@ impl Parser {
         let mut child = MTree::new(Token::LOOP);
 
         self.expect(Token::LOOP);
+        // TODO: Optional Condition
+        self.expect(Token::PAREN_L);
+        child._push(self.parse_expression());
+        self.expect(Token::PAREN_R);
         child._push(self.parse_block_nest());
 
         self.log.indent_dec();
 
         child
     }
+
+    pub fn parse_break(&mut self) -> MTree {
+        self.log.info("parse_break()");
+        self.log.indent_inc();
+
+        let child = MTree::new(Token::BREAK);
+        self.expect(Token::BREAK);
+        self.expect(Token::SEMICOLON);
+
+        self.log.indent_dec();
+        child
+    }
+
+    pub fn parse_continue(&mut self) -> MTree {
+        self.log.info("parse_continue()");
+        self.log.indent_inc();
+
+        let child = MTree::new(Token::CONTINUE);
+        self.expect(Token::CONTINUE);
+        self.expect(Token::SEMICOLON);
+
+        self.log.indent_dec();
+        child
+    }
+
+    pub fn parse_repeat(&mut self) -> MTree {
+        self.log.info("parse_repeat()");
+        self.log.indent_inc();
+
+        let child = MTree::new(Token::REPEAT);
+        self.expect(Token::REPEAT);
+        self.expect(Token::SEMICOLON);
+
+        self.log.indent_dec();
+        child
+    }
+
 
     pub fn parse_if(&mut self) -> MTree {
         self.log.info("parse_if()");
