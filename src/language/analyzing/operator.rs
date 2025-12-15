@@ -1,11 +1,11 @@
 #![allow(warnings)]
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Operator {
     ADD,
     SUBTRACT,
     MULTIPLY,
-    DIVIDER,
+    DIVIDE,
     REMAINDER,
     POWER,
     ROOT,

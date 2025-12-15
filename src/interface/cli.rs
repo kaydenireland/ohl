@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 
+use crate::language::analyzing::analyzer::Analyzer;
 use crate::language::tokenizing::lexer::Lexer;
 use crate::language::parsing::mtree::MTree;
 use crate::language::parsing::parser::Parser as OhlParser;
@@ -37,6 +38,11 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
     },
+    Analyze {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool,
+    },
     Execute {
         filepath: String,
         #[arg(short, long)]
@@ -51,6 +57,7 @@ pub fn handle(cli: Cli) {
         Command::Tokenize { filepath } => tokenize(filepath),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
+        Command::Analyze { filepath, debug: _debug } => analyze(filepath, _debug),
         Command::Execute { filepath, debug: _debug } => execute(filepath, _debug),
     }
 }
@@ -122,7 +129,23 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     stree
 }
 
+pub fn analyze(path: String, _debug: bool) {
+    let tree: STree = convert(path, _debug, _debug);
+    let analyzer = Analyzer::new(_debug);
+    let result = analyzer.analyze(&tree);
+    match result {
+        Ok(t) => t,
+        Err(errors) => {
+            println!("Analysis completed with {} error(s):", errors.len());
+            for (i, error) in errors.iter().enumerate() {
+                println!("  {}. {}", i + 1, error);
+            }
+            std::process::exit(0);
+        }
+    };
+    
+}
+
 pub fn execute(path: String, _debug: bool) {
-    println!("Coming Soon");
-    convert(path, _debug, _debug);
+    analyze(path, _debug);
 }

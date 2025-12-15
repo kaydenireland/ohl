@@ -14,3 +14,20 @@ pub enum VariableType {
     STRING,
     NULL,
 }
+
+impl VariableType {
+    pub fn is_numeric(&self) -> bool {
+        matches!(self, VariableType::INT | VariableType::FLOAT)
+    }
+
+    pub fn is_comparable(&self) -> bool {
+        matches!(
+            self,
+            VariableType::INT
+                | VariableType::FLOAT
+                | VariableType::CHAR
+                | VariableType::STRING
+                | VariableType::BOOLEAN
+        )
+    }
+}

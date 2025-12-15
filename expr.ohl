@@ -17,8 +17,8 @@ public int stressTest(a: int, b: int, c: int, d: int) {
     a = b - -c;
     
     b = !(a < c);
-    c = a > b && d < a;
-    d = a == b || c != d;
+    let e: boolean = a > b && d < a;
+    let f: boolean = a == b || c != d;
 
     a = (a + b) * (c - d) / (a + 1);
     b = (a * (b + (c * (d + 2))));

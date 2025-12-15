@@ -205,7 +205,7 @@ impl Converter {
                     Token::ADD_ASSIGN => Operator::ADD,
                     Token::SUB_ASSIGN => Operator::SUBTRACT,
                     Token::MULT_ASSIGN => Operator::MULTIPLY,
-                    Token::DIV_ASSIGN => Operator::DIVIDER,
+                    Token::DIV_ASSIGN => Operator::DIVIDE,
                     Token::REM_ASSIGN => Operator::REMAINDER,
                     Token::POWER_ASSIGN => Operator::POWER,
                     Token::ROOT_ASSIGN => Operator::ROOT,
@@ -225,6 +225,7 @@ impl Converter {
                 self.log.info("convert_return()");
                 self.log.indent_inc();
 
+                // TODO: Empty returns (return;)
                 let expression_node = node.children.get(0).ok_or("Return Statement Missing Expression")?;
                 let expression = self.convert_tree(expression_node)?;
 
@@ -460,7 +461,7 @@ impl Converter {
                         Token::ADD => Operator::ADD,
                         Token::SUB => Operator::SUBTRACT,
                         Token::MULT => Operator::MULTIPLY,
-                        Token::DIV => Operator::DIVIDER,
+                        Token::DIV => Operator::DIVIDE,
                         Token::REM => Operator::REMAINDER,
                         Token::POWER => Operator::POWER,
                         Token::ROOT => Operator::ROOT,

@@ -14,11 +14,12 @@ impl SymbolTable {
     }
 
     // TODO: Proper Error Handling
-    pub fn declare_variable(&mut self, name: String, var_type: VariableType) {
+    pub fn declare_variable(&mut self, name: String, var_type: VariableType) -> Result<(), String> {
         if self.variables.contains_key(&name) {
-            panic!("Variable '{}' is already declared.", name);
+            Err(format!("Variable '{}' is already declared.", name))
         } else {
             self.variables.insert(name, var_type);
+            Ok(())
         }
     }
 
