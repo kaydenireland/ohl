@@ -1,6 +1,5 @@
-use std::thread::current;
-
-use crate::backend::token::Token;
+use crate::language::tokenizing::token::Token;
+#[allow(non_camel_case_types)]
 
 enum LexerState {
     START,
@@ -75,9 +74,9 @@ impl Lexer {
             if let Token::EOI = self.current() {
                 break;
             }
-            print!("{:?}, ", self.current());
+            println!("{:?}, ", self.current());
         }
-        print!("{:?}", self.current());
+        println!("{:?}", self.current());
     }
 
     pub fn advance(&mut self) -> Token {
@@ -267,7 +266,6 @@ impl Lexer {
                     }
                 },
                 // TODO: Error Handling for unclosed chars/strings, invalid chars
-                // TODO: More case testing
                 LexerState::READ_STRING => match current_char {
                     '"' => {
                         self.state = LexerState::START;
@@ -531,7 +529,7 @@ impl Lexer {
             "continue" => Token::CONTINUE,
             "repeat" => Token::REPEAT,
             "break" => Token::BREAK,
-            "match" => Token::MATCH,
+            //"match" => Token::MATCH,
             "default" => Token::DEFAULT,
             "print" => Token::PRINT,
             "not" => Token::NOT,
@@ -541,6 +539,7 @@ impl Lexer {
             "class" => Token::CLASS,
             "impl" => Token::IMPL,
             "enum" => Token::ENUM,
+            "extends" => Token::EXTENDS,
             "int" => Token::INT,
             "float" => Token::FLOAT,
             "char" => Token::CHAR,

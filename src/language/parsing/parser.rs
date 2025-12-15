@@ -1,7 +1,7 @@
-use crate::backend::lexer::Lexer;
-use crate::backend::logger::Logger;
-use crate::backend::mtree::MTree;
-use crate::backend::token::Token;
+use crate::language::tokenizing::lexer::Lexer;
+use crate::language::logger::Logger;
+use crate::language::parsing::mtree::MTree;
+use crate::language::tokenizing::token::Token;
 
 // TODO: Match, Imports
 pub struct Parser {
@@ -10,8 +10,8 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(lexer: Lexer, debug: bool) -> Parser {
-        let log = Logger::new(debug);
+    pub fn new(lexer: Lexer, _debug: bool) -> Parser {
+        let log = Logger::new(_debug);
         Parser { lexer, log }
     }
 
@@ -87,6 +87,8 @@ impl Parser {
 
     pub fn parse(&mut self) -> MTree {
         let mut tree = MTree::new(Token::START);
+        self.log.info("parse()");
+        self.log.indent_inc();
         while !self.accept(Token::EOI) {
             tree._push(self.parse_function());
         }
@@ -196,8 +198,14 @@ impl Parser {
             Token::FOR => child = self.parse_for(),
             Token::WHILE => child = self.parse_while(),
             Token::LOOP => child = self.parse_loop(),
+
+            Token::BREAK => child = self.parse_break(),
+            Token::CONTINUE => child = self.parse_continue(),
+            Token::REPEAT => child = self.parse_repeat(),
+
             Token::MATCH => child = self.parse_match(),
             Token::IF => child = self.parse_if(),
+            
             Token::RETURN => child = self.parse_return(),
             Token::BRACE_L => child = self.parse_block_nest(),
             Token::LET => child = self.parse_let(),
@@ -250,7 +258,14 @@ impl Parser {
 
         let mut child = MTree::new(Token::FOR);
         self.expect(Token::PAREN_L);
-        child._push(self.parse_let());
+
+        if self.is(Token::LET) {
+            child._push(self.parse_let()); // also parses first ;
+        } else {
+            child._push(self.parse_expression());
+            self.expect(Token::SEMICOLON);
+        }
+
         child._push(self.parse_expression());
         self.expect(Token::SEMICOLON);
         child._push(self.parse_expression());
@@ -307,12 +322,53 @@ impl Parser {
         let mut child = MTree::new(Token::LOOP);
 
         self.expect(Token::LOOP);
+        // TODO: Optional Condition
+        self.expect(Token::PAREN_L);
+        child._push(self.parse_expression());
+        self.expect(Token::PAREN_R);
         child._push(self.parse_block_nest());
 
         self.log.indent_dec();
 
         child
     }
+
+    pub fn parse_break(&mut self) -> MTree {
+        self.log.info("parse_break()");
+        self.log.indent_inc();
+
+        let child = MTree::new(Token::BREAK);
+        self.expect(Token::BREAK);
+        self.expect(Token::SEMICOLON);
+
+        self.log.indent_dec();
+        child
+    }
+
+    pub fn parse_continue(&mut self) -> MTree {
+        self.log.info("parse_continue()");
+        self.log.indent_inc();
+
+        let child = MTree::new(Token::CONTINUE);
+        self.expect(Token::CONTINUE);
+        self.expect(Token::SEMICOLON);
+
+        self.log.indent_dec();
+        child
+    }
+
+    pub fn parse_repeat(&mut self) -> MTree {
+        self.log.info("parse_repeat()");
+        self.log.indent_inc();
+
+        let child = MTree::new(Token::REPEAT);
+        self.expect(Token::REPEAT);
+        self.expect(Token::SEMICOLON);
+
+        self.log.indent_dec();
+        child
+    }
+
 
     pub fn parse_if(&mut self) -> MTree {
         self.log.info("parse_if()");
@@ -365,7 +421,6 @@ impl Parser {
         
         let mut child = MTree::new(Token::MATCH_ARM);
 
-        child._push(self.parse_expression());
 
         if self.is(Token::DEFAULT) {
             let default_token = self.current();

@@ -1,8 +1,8 @@
-pub mod frontend;
-pub mod backend;
+pub mod interface;
+pub mod language;
 
 use clap::Parser;
-use crate::frontend::cli::{Cli, handle};
+use crate::interface::cli::{Cli, handle};
 
 fn main() {
     let args: Cli = Cli::parse();

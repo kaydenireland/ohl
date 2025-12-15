@@ -83,6 +83,7 @@ pub enum Token {
     CLASS,
     IMPL,
     ENUM,
+    EXTENDS,
 
     // Identifiers
     ID { name: String },
@@ -110,7 +111,7 @@ pub enum Token {
     // Metadata Nonterminals
     START,
     FUNC_DECL,
-    ASSIGN_STMT,
+    
     PARAM_LIST,
     PARAM,
     BLOCK,
@@ -142,6 +143,20 @@ impl Token {
                 | Token::LIT_STRING { .. }
                 | Token::LIT_BOOL { .. }
                 | Token::NULL
+        )
+    }
+
+    pub fn is_assignment_operator(&self) -> bool {
+        matches!(
+            self,
+            Token::ASSIGN
+            | Token::ADD_ASSIGN
+            | Token::SUB_ASSIGN
+            | Token::MULT_ASSIGN
+            | Token::DIV_ASSIGN
+            | Token::REM_ASSIGN
+            | Token::POWER_ASSIGN
+            | Token::ROOT_ASSIGN
         )
     }
 }
