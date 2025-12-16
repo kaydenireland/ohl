@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use colored::Colorize;
 
 use crate::language::analyzing::analyzer::Analyzer;
 use crate::language::analyzing::folder::ConstantFolder;
@@ -74,7 +75,7 @@ pub fn print(path: String, numbered: bool) {
         for line in contents.lines() {
             counter += 1;
             let num_str = format!("{num:>width$}", num = counter, width = width);
-            println!("{} {} {line}", num_str, "|", line = line);
+            println!("{} {} {line}", num_str.dimmed(), "|".dimmed(), line = line);
         }
     } else {
         println!("{}", contents);
@@ -84,11 +85,11 @@ pub fn print(path: String, numbered: bool) {
 pub fn size(path: String) {
     use std::fs;
     let data = fs::metadata(path.clone()).unwrap_or_else( |e| {
-        eprint!("Failed to get size of file at {}: {}", path, e);
+        eprint!("Failed to get size of file at {}: {}\n", path.yellow(), e.to_string().red());
         std::process::exit(1);
     });
 
-    print!("{:?} bytes", data.len());
+    print!("{} bytes", data.len().to_string().cyan());
 }
 
 pub fn tokenize(path: String) {
@@ -118,7 +119,7 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     let stree = match result {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("ERROR: Semantic Conversion Failed \n{}", e);
+            eprintln!("{}: Semantic Conversion Failed \n{}/n", "ERROR".red(), e.red());
             std::process::exit(1)
         }
     };
@@ -141,14 +142,14 @@ pub fn analyze(path: String, _debug: bool) -> STree {
     match result {
         Ok(warnings) => {
             if !warnings.is_empty() {
-                println!("Analysis completed with {} warnings(s):", warnings.len());
+                println!("Analysis completed with {} {}:", warnings.len().to_string().yellow(), "warnings(s)".yellow());
                 for (i, warning) in warnings.iter().enumerate() {
                     println!("  {}. {}", i + 1, warning);
                 }
             }
         },
         Err(errors) => {
-            println!("Analysis completed with {} error(s):", errors.len());
+            println!("Analysis completed with {} {}:", errors.len().to_string().yellow(), "error(s)".red());
             for (i, error) in errors.iter().enumerate() {
                 println!("  {}. {}", i + 1, error);
             }
