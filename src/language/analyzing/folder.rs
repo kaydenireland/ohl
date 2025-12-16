@@ -36,6 +36,13 @@ impl ConstantFolder {
                 }
             }
 
+            STree::PRFX_EXPR { operator, right } => {
+                self.fold_constants(right);
+                if let Some(folded) = self.fold_unary(operator, right) {
+                    *node = folded;
+                }
+            }
+
             STree::BLOCK { statements } => {
                 for s in statements {
                     self.fold_constants(s);
@@ -89,6 +96,13 @@ impl ConstantFolder {
 
             (Operator::POWER, STree::LIT_INT { value: a }, STree::LIT_INT { value: b }) if *b >= 0 =>
                 Some(STree::LIT_INT { value: a.pow(*b as u32) }),
+
+            (Operator::ROOT, STree::LIT_INT { value: a }, STree::LIT_INT { value: b })
+                if *a >= 0 && *b > 0 =>
+                    Some(STree::LIT_INT {
+                        value: (*a as f64).powf(1.0 / *b as f64) as i32
+                    }),
+
 
 
             // FLOAT arithmetic
@@ -168,12 +182,6 @@ impl ConstantFolder {
             // INT
             (Operator::NEGATIVE, STree::LIT_INT { value }) =>
                 Some(STree::LIT_INT { value: -*value }),
-
-            (Operator::INCREMENT, STree::LIT_INT { value }) =>
-                Some(STree::LIT_INT { value: value + 1 }),
-
-            (Operator::DECREMENT, STree::LIT_INT { value }) =>
-                Some(STree::LIT_INT { value: value - 1 }),
 
             // FLOAT
             (Operator::NEGATIVE, STree::LIT_FLOAT { value }) =>

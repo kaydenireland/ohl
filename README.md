@@ -24,6 +24,13 @@ Use --numbered (-n) to number the lines in the print
 oo print "file/path" --numbered
 ```
 
+### Size
+
+Prints the size of a file in bytes.
+```bash
+oo size "file/path"
+```
+
 ### Tokenize
 
 Prints the tokens of a file.
@@ -35,10 +42,37 @@ oo tokenize "file/path"
 ### Parse
 
 Prints the MTree of parsed tokens.
-Use --debug (-d) to see full parse log.
+Use --debug (-d) to see full log.
 
 ```bash
 oo parse "file/path" --debug
+```
+
+### Convert
+
+Prints the converted semantic tree from the parse tree
+Use --debug (-d) to see full log.
+
+```bash
+oo convert "file/path" --debug
+```
+
+### Analyze
+
+Checks the input code for warnings and errors.
+Use --debug (-d) to see full log.
+
+```bash
+oo analyze "file/path" --debug
+```
+
+### Run
+
+Optimizes and runs the input file.
+Use --debug (-d) to see full log.
+
+```bash
+oo run "file/path" --debug
 ```
 
 ## Alternative
@@ -84,8 +118,19 @@ public null main() {
 The compiler reports semantic errors with details:
 
 ```
-✓ Semantic analysis completed with 3 error(s):
-  1. Variable 'undefined_var' not declared
-  2. Type mismatch for 'x': expected Int, found Bool
-  3. Function 'unknown_func' expects 1 arg but 2 provided
+Analysis completed with 14 error(s):
+  1. Function 'foo' already declared
+  2. Function 'noReturn' declares return type INT but has no return statement
+  3. Variable 'a' is already declared in this scope
+  4. Variable 'a' is not declared
+  5. Variable 'a' is not declared
+  6. Assignment type mismatch for 'a': INT vs BOOLEAN
+  7. Unary NOT requires Bool, found INT
+  8. Invalid operands for ADD: INT and STRING
+  9. Comparison requires numeric types, got INT and STRING
+  10. Logical operator AND requires Bool operands
+  11. While condition must be Bool, found INT
+  12. Function 'foo' expects 0 args but 1 provided
+  13. Call to unknown function 'bar'
+  14. Postfix INCREMENT requires a numeric variable
 ```

@@ -1,13 +1,14 @@
-public int signum(x: int) {
-    if (x < 0) {
-        return -1;
-    } else if(x > 0) {
-        return 1;
-    } else {
-        return 0;
-    }
+public null main(){
+    add(4, 1);
 }
 
-public null main(){
-    let result: int = signum(5);
+public int add(x: int, y: int) {
+    return x + y;
+
+    let a: int = 5;
+    a++;
+}
+
+public null hey(){
+    let x: int = 5;
 }
