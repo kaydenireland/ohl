@@ -2,13 +2,18 @@ use std::collections::HashMap;
 use crate::language::analyzing::types::VariableType;
 
 #[derive(Debug, Clone)]
+pub struct VariableInfo {
+    pub var_type: VariableType,
+    pub used: bool,
+}
+
+#[derive(Debug, Clone)]
 pub struct SymbolTable {
-    variables: HashMap<String, VariableType>,
-    parent: Option<Box<SymbolTable>>,
+    pub variables: HashMap<String, VariableInfo>,
+    pub parent: Option<Box<SymbolTable>>,
 }
 
 impl SymbolTable {
-    /// Create a root (global) symbol table
     pub fn new() -> Self {
         SymbolTable {
             variables: HashMap::new(),
@@ -16,7 +21,6 @@ impl SymbolTable {
         }
     }
 
-    /// Create a child scope
     pub fn new_child(parent: &SymbolTable) -> Self {
         SymbolTable {
             variables: HashMap::new(),
@@ -24,7 +28,6 @@ impl SymbolTable {
         }
     }
 
-    /// Declare a variable in the current scope only
     pub fn declare_variable(
         &mut self,
         name: String,
@@ -36,15 +39,14 @@ impl SymbolTable {
                 name
             ))
         } else {
-            self.variables.insert(name, var_type);
+            self.variables.insert(name, VariableInfo { var_type, used: false });
             Ok(())
         }
     }
 
-    /// Look up a variable, walking up through parent scopes
     pub fn check_variable(&self, name: &String) -> Result<VariableType, String> {
         if let Some(v) = self.variables.get(name) {
-            Ok(v.clone())
+            Ok(v.var_type.clone())
         } else if let Some(parent) = &self.parent {
             parent.check_variable(name)
         } else {
@@ -52,8 +54,19 @@ impl SymbolTable {
         }
     }
 
-    /// Check if a variable exists in the current scope only
     pub fn contains_local(&self, name: &String) -> bool {
         self.variables.contains_key(name)
     }
+
+    pub fn mark_used(&mut self, name: &str) -> Result<VariableType, String> {
+        if let Some(v) = self.variables.get_mut(name) {
+            v.used = true;
+            Ok(v.var_type.clone())
+        } else if let Some(parent) = &mut self.parent {
+            parent.mark_used(name)
+        } else {
+            Err(format!("Variable '{}' is not declared.", name))
+        }
+    }
+
 }

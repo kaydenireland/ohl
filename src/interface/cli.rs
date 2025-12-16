@@ -131,11 +131,22 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
 }
 
 pub fn analyze(path: String, _debug: bool) -> STree {
-    let stree: STree = convert(path, _debug, _debug);
+    let mut stree: STree = convert(path, _debug, _debug);
+
+    let mut folder: ConstantFolder = ConstantFolder::new(_debug);
+    folder.run(&mut stree);
+
     let analyzer = Analyzer::new(_debug);
     let result = analyzer.analyze(&stree);
     match result {
-        Ok(t) => t,
+        Ok(warnings) => {
+            if !warnings.is_empty() {
+                println!("Analysis completed with {} warnings(s):", warnings.len());
+                for (i, warning) in warnings.iter().enumerate() {
+                    println!("  {}. {}", i + 1, warning);
+                }
+            }
+        },
         Err(errors) => {
             println!("Analysis completed with {} error(s):", errors.len());
             for (i, error) in errors.iter().enumerate() {
