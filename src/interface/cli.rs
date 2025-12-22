@@ -99,13 +99,39 @@ pub fn size(path: String) {
     print!("{} bytes", data.len().to_string().cyan());
 }
 
+pub fn validate_ohl_file(path: String) {
+    use std::path::Path;
+
+    let p = Path::new(&path);
+
+    if p.is_dir() {
+        eprintln!("Expected a file, got a directory");
+        std::process::exit(0);
+    }
+
+
+    match p.extension().and_then(|e| e.to_str()) {
+        Some("ohl") => {}
+        _ => {
+            eprintln!(
+                "{}: expected an .ohl file, got '{}'",
+                "Error".red(),
+                path
+            );
+            std::process::exit(0);
+        }
+    }
+}
+
 pub fn tokenize(path: String) {
+    validate_ohl_file(path.clone());
     let contents = std::fs::read_to_string(path).unwrap();
     let mut lexer = Lexer::new(contents);
     lexer.print_tokens();
 }
 
 pub fn parse(path: String, _debug: bool, print_tree: bool) -> MTree {
+    validate_ohl_file(path.clone());
     let contents = std::fs::read_to_string(path).unwrap();
     let lexer = Lexer::new(contents);
     let mut parser = OhlParser::new(lexer, _debug);
@@ -127,7 +153,7 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{}: Semantic Conversion Failed \n{}/n", "ERROR".red(), e.red());
-            std::process::exit(1)
+            std::process::exit(0)
         }
     };
 
