@@ -70,6 +70,8 @@ oo analyze "file/path" --debug
 
 Optimizes and runs the input file.
 Use --debug (-d) to see full log.
+Use --time (-t) to see length of execution
+Use --warnings (-w) to hide warnings
 
 ```bash
 oo run "file/path" --debug
@@ -109,7 +111,7 @@ private int factorial(n: int) {
 
 public null main() {
     let result: int = factorial(5);
-    print result;
+    print(result);
 }
 ```
 
@@ -133,4 +135,14 @@ Analysis completed with 14 error(s):
   12. Function 'foo' expects 0 args but 1 provided
   13. Call to unknown function 'bar'
   14. Postfix INCREMENT requires a numeric variable
+```
+
+## Execution Output
+
+```bash
+Running example.ohl
+
+120
+
+Completed execution in 0.0005s
 ```
