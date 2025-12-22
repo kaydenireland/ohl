@@ -1,3 +1,5 @@
+use std::process::exit;
+
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 
@@ -188,7 +190,8 @@ pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
     match result {
         Ok(_) => {}
         Err(err) => {
-            println!("{}: {}", "Runtime Error".red(), err);
+            println!("{}: {}", "\nRuntime Error".red(), err);
+            std::process::exit(0);
         }
     }
 

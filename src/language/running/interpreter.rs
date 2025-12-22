@@ -89,7 +89,7 @@ impl Interpreter {
 
     fn call_function(&mut self, name: &str, args: Vec<Value>) -> Result<Value, String> {
         self.call_depth += 1;
-        if self.call_depth > 100 {
+        if self.call_depth > 50 {
             self.call_depth -= 1;
             return Err("Maximum recursion depth exceeded".to_string());
         }
