@@ -187,7 +187,7 @@ impl ConstantFolder {
             (Operator::NEGATIVE, STree::LIT_FLOAT { value }) =>
                 Some(STree::LIT_FLOAT { value: -*value }),
 
-            (Operator::RECIPRICOL, STree::LIT_FLOAT { value }) if *value != 0.0 =>
+            (Operator::RECIPROCAL, STree::LIT_FLOAT { value }) if *value != 0.0 =>
                 Some(STree::LIT_FLOAT { value: 1.0 / value }),
 
 

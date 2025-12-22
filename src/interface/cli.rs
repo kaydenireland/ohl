@@ -1,8 +1,11 @@
+use std::process::exit;
+
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 
 use crate::language::analyzing::analyzer::Analyzer;
 use crate::language::analyzing::folder::ConstantFolder;
+use crate::language::running::interpreter::Interpreter;
 use crate::language::tokenizing::lexer::Lexer;
 use crate::language::parsing::mtree::MTree;
 use crate::language::parsing::parser::Parser as OhlParser;
@@ -49,6 +52,10 @@ pub enum Command {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
+        #[arg(short, long)]
+        warnings: bool,
+        #[arg(short, long)]
+        time: bool
     },
 }
 
@@ -59,8 +66,8 @@ pub fn handle(cli: Cli) {
         Command::Tokenize { filepath } => tokenize(filepath),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
-        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
-        Command::Run { filepath, debug: _debug } => run(filepath, _debug),
+        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug, true),
+        Command::Run { filepath, debug: _debug, warnings, time: _time } => run(filepath, _debug, warnings, _time),
     }
 }
 
@@ -92,13 +99,39 @@ pub fn size(path: String) {
     print!("{} bytes", data.len().to_string().cyan());
 }
 
+pub fn validate_ohl_file(path: String) {
+    use std::path::Path;
+
+    let p = Path::new(&path);
+
+    if p.is_dir() {
+        eprintln!("Expected a file, got a directory");
+        std::process::exit(0);
+    }
+
+
+    match p.extension().and_then(|e| e.to_str()) {
+        Some("ohl") => {}
+        _ => {
+            eprintln!(
+                "{}: expected an .ohl file, got '{}'",
+                "Error".red(),
+                path
+            );
+            std::process::exit(0);
+        }
+    }
+}
+
 pub fn tokenize(path: String) {
+    validate_ohl_file(path.clone());
     let contents = std::fs::read_to_string(path).unwrap();
     let mut lexer = Lexer::new(contents);
     lexer.print_tokens();
 }
 
 pub fn parse(path: String, _debug: bool, print_tree: bool) -> MTree {
+    validate_ohl_file(path.clone());
     let contents = std::fs::read_to_string(path).unwrap();
     let lexer = Lexer::new(contents);
     let mut parser = OhlParser::new(lexer, _debug);
@@ -120,7 +153,7 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{}: Semantic Conversion Failed \n{}/n", "ERROR".red(), e.red());
-            std::process::exit(1)
+            std::process::exit(0)
         }
     };
 
@@ -131,7 +164,7 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     stree
 }
 
-pub fn analyze(path: String, _debug: bool) -> STree {
+pub fn analyze(path: String, _debug: bool, show: bool) -> STree {
     let mut stree: STree = convert(path, _debug, _debug);
 
     let mut folder: ConstantFolder = ConstantFolder::new(_debug);
@@ -141,7 +174,7 @@ pub fn analyze(path: String, _debug: bool) -> STree {
     let result = analyzer.analyze(&stree);
     match result {
         Ok(warnings) => {
-            if !warnings.is_empty() {
+            if !warnings.is_empty() && show {
                 println!("Analysis completed with {} {}:", warnings.len().to_string().yellow(), "warnings(s)".yellow());
                 for (i, warning) in warnings.iter().enumerate() {
                     println!("  {}. {}", i + 1, warning);
@@ -160,8 +193,40 @@ pub fn analyze(path: String, _debug: bool) -> STree {
     stree
 }
 
-pub fn run(path: String, _debug: bool) {
-    let mut stree = analyze(path, _debug);
+pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
+    use std::time::Instant;
+
+    let mut stree = analyze(path.clone(), _debug, !hide_warnings);
     let mut folder: ConstantFolder = ConstantFolder::new(_debug);
     folder.run(&mut stree);
+
+    println!("\n{} {}\n", "Running".to_string().green(), &path.white());
+
+    let mut interpreter = Interpreter::new();
+
+    let start = if _time {
+        Some(Instant::now())
+    } else {
+        None
+    };
+
+
+    let result = interpreter.execute(stree);
+
+    match result {
+        Ok(_) => {}
+        Err(err) => {
+            println!("{}: {}", "\nRuntime Error".red(), err);
+            std::process::exit(0);
+        }
+    }
+
+    if let Some(start) = start {
+        let elapsed = start.elapsed();
+        println!(
+            "\n{} execution in {:.6}s",
+            "Completed".green(),
+            elapsed.as_secs_f64().to_string().cyan()
+        );
+    }
 }
