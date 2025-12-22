@@ -11,7 +11,7 @@ pub enum Operator {
     ROOT,
 
     NEGATIVE,
-    RECIPRICOL,
+    RECIPROCAL,
 
     INCREMENT,
     DECREMENT,

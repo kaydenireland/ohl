@@ -444,7 +444,7 @@ impl Converter {
                     let child = self.convert_tree(&node.children[0])?;
                     let operator = match &node.token {
                         Token::SUB => Operator::NEGATIVE,
-                        Token::DIV => Operator::RECIPRICOL,
+                        Token::DIV => Operator::RECIPROCAL,
                         _ => return Err("Invalid Unary Prefix Operator".into())
                     };
 

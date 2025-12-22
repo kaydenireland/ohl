@@ -3,6 +3,7 @@ use colored::Colorize;
 
 use crate::language::analyzing::analyzer::Analyzer;
 use crate::language::analyzing::folder::ConstantFolder;
+use crate::language::running::interpreter::Interpreter;
 use crate::language::tokenizing::lexer::Lexer;
 use crate::language::parsing::mtree::MTree;
 use crate::language::parsing::parser::Parser as OhlParser;
@@ -49,6 +50,8 @@ pub enum Command {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
+        #[arg(short, long)]
+        time: bool
     },
 }
 
@@ -60,7 +63,7 @@ pub fn handle(cli: Cli) {
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
         Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
-        Command::Run { filepath, debug: _debug } => run(filepath, _debug),
+        Command::Run { filepath, debug: _debug, time } => run(filepath, _debug, time),
     }
 }
 
@@ -160,8 +163,20 @@ pub fn analyze(path: String, _debug: bool) -> STree {
     stree
 }
 
-pub fn run(path: String, _debug: bool) {
-    let mut stree = analyze(path, _debug);
+pub fn run(path: String, _debug: bool, time: bool) {
+    let mut stree = analyze(path.clone(), _debug);
     let mut folder: ConstantFolder = ConstantFolder::new(_debug);
     folder.run(&mut stree);
+
+    println!("{} {}", "Running".to_string().green(), &path.white());
+
+    let mut interpreter = Interpreter::new();
+    let result = interpreter.execute(stree);
+
+    match result {
+        Ok(_) => {}
+        Err(err) => {
+            println!("Runtime Error: {}", err);
+        }
+    }
 }

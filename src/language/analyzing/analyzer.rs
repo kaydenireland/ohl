@@ -6,7 +6,7 @@ use crate::language::analyzing::types::VariableType;
 use crate::language::analyzing::symbol_table::SymbolTable;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Flow {
+enum Flow {
     CONTINUE,
     STOP,
 }
@@ -539,7 +539,7 @@ impl Analyzer {
                         .map(|(_, t)| t.clone())
                         .collect();
 
-                    let called = name == "main"; // 🔥 main is always used
+                    let called = name == "main"; 
 
                     match self.functions.entry(name.clone()) {
                         Entry::Occupied(_) => {
