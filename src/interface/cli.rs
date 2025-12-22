@@ -51,6 +51,8 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
         #[arg(short, long)]
+        warnings: bool,
+        #[arg(short, long)]
         time: bool
     },
 }
@@ -62,8 +64,8 @@ pub fn handle(cli: Cli) {
         Command::Tokenize { filepath } => tokenize(filepath),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
-        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
-        Command::Run { filepath, debug: _debug, time } => run(filepath, _debug, time),
+        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug, true),
+        Command::Run { filepath, debug: _debug, warnings, time: _time } => run(filepath, _debug, warnings, _time),
     }
 }
 
@@ -134,7 +136,7 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     stree
 }
 
-pub fn analyze(path: String, _debug: bool) -> STree {
+pub fn analyze(path: String, _debug: bool, show: bool) -> STree {
     let mut stree: STree = convert(path, _debug, _debug);
 
     let mut folder: ConstantFolder = ConstantFolder::new(_debug);
@@ -144,7 +146,7 @@ pub fn analyze(path: String, _debug: bool) -> STree {
     let result = analyzer.analyze(&stree);
     match result {
         Ok(warnings) => {
-            if !warnings.is_empty() {
+            if !warnings.is_empty() && show {
                 println!("Analysis completed with {} {}:", warnings.len().to_string().yellow(), "warnings(s)".yellow());
                 for (i, warning) in warnings.iter().enumerate() {
                     println!("  {}. {}", i + 1, warning);
@@ -163,20 +165,39 @@ pub fn analyze(path: String, _debug: bool) -> STree {
     stree
 }
 
-pub fn run(path: String, _debug: bool, time: bool) {
-    let mut stree = analyze(path.clone(), _debug);
+pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
+    use std::time::Instant;
+
+    let mut stree = analyze(path.clone(), _debug, !hide_warnings);
     let mut folder: ConstantFolder = ConstantFolder::new(_debug);
     folder.run(&mut stree);
 
-    println!("{} {}", "Running".to_string().green(), &path.white());
+    println!("\n{} {}\n", "Running".to_string().green(), &path.white());
 
     let mut interpreter = Interpreter::new();
+
+    let start = if _time {
+        Some(Instant::now())
+    } else {
+        None
+    };
+
+
     let result = interpreter.execute(stree);
 
     match result {
         Ok(_) => {}
         Err(err) => {
-            println!("Runtime Error: {}", err);
+            println!("{}: {}", "Runtime Error".red(), err);
         }
+    }
+
+    if let Some(start) = start {
+        let elapsed = start.elapsed();
+        println!(
+            "\n{} execution in {:.6}s",
+            "Completed".green(),
+            elapsed.as_secs_f64().to_string().cyan()
+        );
     }
 }

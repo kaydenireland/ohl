@@ -2,10 +2,10 @@
 
 use std::collections::HashMap;
 
-use colored::Colorize;
 
-use crate::language::{analyzing::{operator::Operator, stree::STree, types::{FunctionType, VariableType}}, running::{environment::Environment, value::Value}};
-// TODO: Seperate Crate imports into multiple lines
+use crate::language::analyzing::{operator::Operator, stree::STree, types::{FunctionType, VariableType}};
+use crate::language::running::{environment::Environment, value::Value};
+
 
 
 enum ControlFlow {
@@ -25,20 +25,36 @@ pub struct Function {
     pub body: Box<STree>,
 }
 
+pub enum RuntimeFunction {
+    User(Function),
+    Native(fn(Vec<Value>) -> Result<Value, String>),
+}
 
 // TODO: Error Enum
 
 pub struct Interpreter {
     env: Environment,
-    functions: HashMap<String, Function>,
+    functions: HashMap<String, RuntimeFunction>,
+    call_depth: usize
 }
 
 impl Interpreter {
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> Interpreter {
+        let mut interpreter = Interpreter {
             env: Environment::new(),
             functions: HashMap::new(),
-        }
+            call_depth: 0
+        };
+
+        interpreter.register_system_functions();
+        interpreter
+    }
+
+    fn register_system_functions(&mut self) {
+        self.functions.insert(
+            "print".to_string(),
+            RuntimeFunction::Native(Self::sys_print),
+        );
     }
 
     pub fn execute(&mut self, tree: STree) -> Result<(), String> {
@@ -53,15 +69,15 @@ impl Interpreter {
                 } = function
                 {
                     self.functions.insert(
-                        name.clone(),
-                        Function {
-                            function_type: function_type.clone(),
-                            return_type: return_type.clone(),
-                            name: name.clone(),
-                            params: params.clone(),
-                            body: body.clone(),
-                        },
-                    );
+                    name.clone(),
+                    RuntimeFunction::User(Function {
+                        function_type: function_type.clone(),
+                        return_type: return_type.clone(),
+                        name: name.clone(),
+                        params: params.clone(),
+                        body: body.clone(),
+                    }),
+                );
                 }
             }
         }
@@ -72,53 +88,59 @@ impl Interpreter {
 
 
     fn call_function(&mut self, name: &str, args: Vec<Value>) -> Result<Value, String> {
-        let func = self.functions
-            .get(name)
-            .ok_or_else(|| format!("Function '{}' not found", name.yellow()))?
-            .clone();
-
-        if func.params.len() != args.len() {
-            return Err(format!(
-                "Function '{}' expects {} arguments, got {}",
-                name.yellow(),
-                func.params.len().to_string().green(),
-                args.len().to_string().red()
-            ));
+        self.call_depth += 1;
+        if self.call_depth > 100 {
+            self.call_depth -= 1;
+            return Err("Maximum recursion depth exceeded".to_string());
         }
 
-        self.env.push_scope();
+        let result = (|| {
+            let func = self.functions
+                .get(name)
+                .ok_or_else(|| format!("Function '{}' not found", name))?;
 
-        for ((param_name, _param_type), arg_value) in
-            func.params.iter().zip(args.into_iter())
-        {
-            self.env.declare(
-                param_name.clone(),
-                arg_value,
-                false,
-            );
-        }
+            match func {
+                RuntimeFunction::Native(native) => {
+                    native(args)
+                }
 
-        let result = match self.execute_block(&func.body)? {
-            ControlFlow::RETURN(v) => v,
-            ControlFlow::CONTINUE => Value::NULL,
-            ControlFlow::BREAK => {
-                self.env.pop_scope();
-                return Err("Break used outside of loop".to_string());
-            },
-            ControlFlow::CONTINUE_LOOP => {
-                self.env.pop_scope();
-                return Err("Continue used outside of loop".to_string());
-            },
-            ControlFlow::REPEAT_LOOP => {
-                self.env.pop_scope();
-                return Err("Repeat used outside of loop".to_string());
+                RuntimeFunction::User(func) => {
+                    if func.params.len() != args.len() {
+                        return Err(format!(
+                            "Function '{}' expects {} arguments, got {}",
+                            name,
+                            func.params.len(),
+                            args.len()
+                        ));
+                    }
+
+                    self.env.push_scope();
+
+                    for ((param_name, _), arg_value) in func.params.iter().zip(args.into_iter()) {
+                        self.env.declare(param_name.clone(), arg_value, false);
+                    }
+
+                    let value = match self.execute_block(&func.body.clone())? {
+                        ControlFlow::RETURN(v) => v,
+                        ControlFlow::CONTINUE => Value::NULL,
+                        ControlFlow::BREAK
+                        | ControlFlow::CONTINUE_LOOP
+                        | ControlFlow::REPEAT_LOOP => {
+                            return Err("Loop control used outside of loop".to_string());
+                        }
+                    };
+
+                    self.env.pop_scope();
+                    Ok(value)
+                }
             }
-        };
+        })();
 
-        self.env.pop_scope();
-
-        Ok(result)
+        self.call_depth -= 1;
+        result
     }
+
+
 
 }
 
@@ -174,20 +196,6 @@ impl Interpreter {
             STree::BREAK => Ok(ControlFlow::BREAK),
             STree::CONTINUE => Ok(ControlFlow::CONTINUE_LOOP),
             STree::REPEAT => Ok(ControlFlow::REPEAT_LOOP),
-
-            // Print 
-            STree::PRINT_STMT { expression } => {
-                let v = self.evaluate_expression(expression)?;
-                match v {
-                    Value::INT(i) => println!("{}", i),
-                    Value::FLOAT(f) => println!("{}", f),
-                    Value::CHAR(c) => println!("{}", c),
-                    Value::STRING(s) => println!("{}", s),
-                    Value::BOOLEAN(b) => println!("{}", if b { "true" } else { "false" }),
-                    Value::NULL => println!("null"),
-                }
-                Ok(ControlFlow::CONTINUE)
-            }
 
             // If
             STree::IF_EXPR { condition, then_block, else_block } => {
@@ -309,7 +317,6 @@ impl Interpreter {
                             | STree::LOOP_EXPR { .. }
                             | STree::FOR_EXPR { .. }
                             | STree::FOR_EACH { .. }
-                            | STree::PRINT_STMT { .. }
                             | STree::BREAK
                             | STree::CONTINUE
                             | STree::REPEAT
@@ -594,5 +601,23 @@ impl Interpreter {
             _ => Err(format!("Expected binary operator, got {:?}", operator))
 
         }
+    }
+}
+
+// System
+impl Interpreter {
+    fn sys_print(args: Vec<Value>) -> Result<Value, String> {
+        for (_, arg) in args.iter().enumerate() {
+            match arg {
+                Value::INT(v) => print!("{}", v),
+                Value::FLOAT(v) => print!("{}", v),
+                Value::BOOLEAN(v) => print!("{}", v),
+                Value::CHAR(v) => print!("{}", v),
+                Value::STRING(v) => print!("{}", v),
+                Value::NULL => print!("null"),
+            }
+        }
+        println!();
+        Ok(Value::NULL)
     }
 }

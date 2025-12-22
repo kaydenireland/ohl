@@ -29,13 +29,27 @@ pub struct Analyzer {
 impl Analyzer {
     pub fn new(_debug: bool) -> Analyzer {
         let log = Logger::new(_debug);
-        Analyzer {
+        let mut analyzer = Analyzer {
             functions: HashMap::new(),
             errors: vec![],
             warnings: vec![],
             log,
             loop_depth: 0,
-        }
+        };
+
+        analyzer.register_system_functions();
+        analyzer
+    }
+
+    fn register_system_functions(&mut self) {
+        self.functions.insert(
+            "print".to_string(),
+            FunctionSignature {
+                parameters: vec![],              // variadic (checked loosely)
+                return_type: VariableType::NULL, // print returns null
+                called: true,                    // never warn as unused
+            },
+        );
     }
 
     pub fn analyze(mut self, tree: &STree) -> Result<Vec<String>, Vec<String>> {
@@ -487,7 +501,7 @@ impl Analyzer {
                 if let Some(sig) = self.functions.get_mut(name) {
                     sig.called = true;
 
-                    if sig.parameters.len() != arg_types.len() {
+                    if !sig.parameters.is_empty() && sig.parameters.len() != arg_types.len() {
                         self.errors.push(format!(
                             "Function '{}' expects {} args but {} provided",
                             name,
