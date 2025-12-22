@@ -1,0 +1,12 @@
+{
+
+    "iconDefinitions": {
+        "ohl-file": {
+            "iconPath": "./ohl-file.svg"
+        }
+    },
+
+    "fileExtensions": {
+        "ohl": "ohl-file"
+    }
+}
