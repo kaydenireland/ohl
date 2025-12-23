@@ -1,0 +1,58 @@
+{
+  "name": "ohl",
+  "displayName": "Ohl",
+  "description": "An extension to allow support for the Ohl language, allowing syntax checking and running ohl files from VSCode.",
+  "version": "1.0.0",
+  "main": "./out/extension.js",
+  "engines": {
+    "vscode": "^1.107.0"
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "ohl",
+        "aliases": [
+          "Ohl",
+          "ohl"
+        ],
+        "extensions": [
+          ".ohl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ohl",
+        "scopeName": "source.ohl",
+        "path": "./syntaxes/ohl.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "ohl.runFile",
+        "title": "Run"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "ohl.runFile",
+          "when": "resourceExtname == .ohl",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.107.0",
+    "typescript": "^5.9.3"
+  }
+}
