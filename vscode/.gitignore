@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Build output
+out/
+
+# VS Code
+.vscode/
+.vscode-test/
+
+# OS junk
+.DS_Store
+Thumbs.db

@@ -229,4 +229,5 @@ pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
             elapsed.as_secs_f64().to_string().cyan()
         );
     }
+    println!();
 }
