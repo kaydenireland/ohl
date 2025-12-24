@@ -208,7 +208,11 @@ impl Parser {
             
             Token::RETURN => child = self.parse_return(),
             Token::BRACE_L => child = self.parse_block_nest(),
-            Token::LET => child = self.parse_let(),
+            Token::LET => {
+                child = self.parse_let();
+                self.expect(Token::SEMICOLON);
+            },
+            // TODO parse empty statements (just semicolons)
             _ => {
                 child = self.parse_expression();
                 self.expect(Token::SEMICOLON);
@@ -240,8 +244,6 @@ impl Parser {
             child._push(self.parse_expression());
         }
 
-        self.expect(Token::SEMICOLON);
-
         self.log.indent_dec();
 
         child
@@ -260,7 +262,8 @@ impl Parser {
         self.expect(Token::PAREN_L);
 
         if self.is(Token::LET) {
-            child._push(self.parse_let()); // also parses first ;
+            child._push(self.parse_let()); 
+            self.expect(Token::SEMICOLON);
         } else {
             child._push(self.parse_expression());
             self.expect(Token::SEMICOLON);

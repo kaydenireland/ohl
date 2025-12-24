@@ -47,53 +47,82 @@ impl Parser {
     pub fn parse_atom_expression(&mut self) -> MTree {
         let atom = self.current();
         self.advance();
-        if self.is(Token::PAREN_L) {
-            self.parse_call_expression(atom)
-        } else {
-            MTree::new(atom)
-        }
+        MTree::new(atom)
     }
 
-    pub fn parse_call_expression(&mut self, token: Token) -> MTree {
-        let mut child = MTree::new(token);
+
+    // pub fn parse_call_expression(&mut self, token: Token) -> MTree {
+    //     let mut child = MTree::new(token);
+    //     self.expect(Token::PAREN_L);
+    //     if ! self.is(Token::PAREN_R) {
+    //         child.children.push(self.parse_expression());
+    //         while self.accept(Token::COMMA) {
+    //             child.children.push(self.parse_expression());
+    //         }
+    //     }
+    //     self.expect(Token::PAREN_R);
+    //     child
+    // }
+
+    pub fn parse_call_expression_from_expr(&mut self, callee: MTree) -> MTree {
+        let mut node = MTree::new(Token::CALL);
+
+        node.children.push(callee);
+
         self.expect(Token::PAREN_L);
-        if ! self.is(Token::PAREN_R) {
-            child.children.push(self.parse_expression());
+
+        if !self.is(Token::PAREN_R) {
+            node.children.push(self.parse_expression());
             while self.accept(Token::COMMA) {
-                child.children.push(self.parse_expression());
+                node.children.push(self.parse_expression());
             }
         }
+
         self.expect(Token::PAREN_R);
-        child
+        node
     }
+
 
     pub fn parse_infix_expression(&mut self, mut left: MTree, rbl: u8) -> MTree {
         loop {
-            let op_infix = self.current();
-            if rbl > op_infix.binding_power().left {
-                return left;
-            }
+            let current = self.current();
 
-            
-
-            if op_infix.is_postfix_operator() {
-                self.advance();
-                left = MTree { token: op_infix, children: vec![left] };
+            // call
+            if current == Token::PAREN_L {
+                left = self.parse_call_expression_from_expr(left);
                 continue;
             }
 
-            self.advance();
+            // member access
+            if current == Token::POINT {
+                self.advance();
+                let id = self.current();
+                self.expect(Token::id());
 
-
-            let right = self.parse_expression_token(op_infix.binding_power().right);
-            left = MTree {
-                token: op_infix,
-                children: vec![
-                    left,
-                    right
-                ]
+                left = MTree {
+                    token: Token::POINT,
+                    children: vec![left, MTree::new(id)],
+                };
+                continue;
             }
+
+            // postfix ops (++ etc)
+            if current.is_postfix_operator() {
+                self.advance();
+                left = MTree { token: current, children: vec![left] };
+                continue;
+            }
+
+            // infix ops
+            if rbl > current.binding_power().left {
+                return left;
+            }
+
+            self.advance();
+            let right = self.parse_expression_token(current.binding_power().right);
+            left = MTree { token: current, children: vec![left, right] };
         }
     }
+
 
 }

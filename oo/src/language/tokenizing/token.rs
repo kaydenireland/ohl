@@ -87,6 +87,7 @@ pub enum Token {
 
     // Identifiers
     ID { name: String },
+    CALL,
 
     // Basic Types
     INT,

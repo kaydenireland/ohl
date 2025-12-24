@@ -1,5 +1,3 @@
-use std::process::exit;
-
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 
