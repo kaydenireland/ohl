@@ -13,9 +13,9 @@ enum Flow {
 
 #[derive(Debug, Clone)]
 pub struct FunctionSignature {
-    parameters: Vec<VariableType>,
-    return_type: VariableType,
-    called: bool
+    pub parameters: Vec<VariableType>,
+    pub return_type: VariableType,
+    pub called: bool
 }
 
 pub struct Analyzer {
@@ -37,20 +37,10 @@ impl Analyzer {
             loop_depth: 0,
         };
 
-        analyzer.register_system_functions();
+        analyzer.register_native_functions();
         analyzer
     }
 
-    fn register_system_functions(&mut self) {
-        self.functions.insert(
-            vec!["System".to_string(), "print".to_string()],
-            FunctionSignature {
-                parameters: vec![],              // variadic (checked loosely)
-                return_type: VariableType::NULL, // print returns null
-                called: true,                    // never warn as unused
-            },
-        );
-    }
 
     pub fn analyze(mut self, tree: &STree) -> Result<Vec<String>, Vec<String>> {
         self.collect_function_signatures(tree);
@@ -509,6 +499,10 @@ impl Analyzer {
                             sig.parameters.len(),
                             arg_types.len()
                         ));
+                    }
+
+                    if path.join(".") == "System.exit" {
+                        return (Some(sig.return_type.clone()), Flow::STOP);
                     }
 
                     return (Some(sig.return_type.clone()), Flow::CONTINUE);

@@ -15,6 +15,7 @@ enum ControlFlow {
     CONTINUE,
     REPEAT
 }
+// TODO: EXIT ControlFlow
 
 #[derive(Clone)]
 pub struct Function {
@@ -35,7 +36,7 @@ pub enum RuntimeFunction {
 
 pub struct Interpreter {
     env: Environment,
-    functions: HashMap<Vec<String>, RuntimeFunction>,
+    pub functions: HashMap<Vec<String>, RuntimeFunction>,
     call_depth: usize
 }
 
@@ -47,15 +48,8 @@ impl Interpreter {
             call_depth: 0
         };
 
-        interpreter.register_system_functions();
+        interpreter.register_native_functions();
         interpreter
-    }
-
-    fn register_system_functions(&mut self) {
-        self.functions.insert(
-            vec!["System".to_string(), "print".to_string()],
-            RuntimeFunction::Native(Self::sys_print),
-        );
     }
 
     pub fn execute(&mut self, tree: STree) -> Result<(), String> {
@@ -583,20 +577,3 @@ impl Interpreter {
     }
 }
 
-// System
-impl Interpreter {
-    fn sys_print(args: Vec<Value>) -> Result<Value, String> {
-        for (_, arg) in args.iter().enumerate() {
-            match arg {
-                Value::INT(v) => print!("{}", v),
-                Value::FLOAT(v) => print!("{}", v),
-                Value::BOOLEAN(v) => print!("{}", v),
-                Value::CHAR(v) => print!("{}", v),
-                Value::STRING(v) => print!("{}", v),
-                Value::NULL => print!("null"),
-            }
-        }
-        println!();
-        Ok(Value::NULL)
-    }
-}
