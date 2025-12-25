@@ -565,6 +565,8 @@ impl Analyzer {
             STree::LIT_BOOL { .. } => (Some(VariableType::BOOLEAN), Flow::CONTINUE),
             STree::LIT_CHAR { .. } => (Some(VariableType::CHAR), Flow::CONTINUE),
             STree::LIT_STRING { .. } => (Some(VariableType::STRING), Flow::CONTINUE),
+
+            STree::BLANK_STMT => (None, Flow::CONTINUE)
         }
     }
 }
@@ -677,6 +679,7 @@ impl Analyzer {
 
             _ => VariableType::NULL,
         }
+
     }
 
     fn require_loop(&mut self, keyword: &str) {

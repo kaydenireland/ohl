@@ -32,6 +32,7 @@ pub enum STree {
     LIT_BOOL { value: bool },
     LIT_CHAR { value: char },
     LIT_STRING { value: String },
+    BLANK_STMT
 }
 
 impl STree {

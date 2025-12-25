@@ -198,7 +198,7 @@ pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
     let mut folder: ConstantFolder = ConstantFolder::new(_debug);
     folder.run(&mut stree);
 
-    println!("\n{} {}\n", "Running".to_string().green(), &path.white());
+    println!("\n{} {}", "Running".to_string().green(), &path.white());
 
     let mut interpreter = Interpreter::new();
 
@@ -222,10 +222,12 @@ pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
     if let Some(start) = start {
         let elapsed = start.elapsed();
         println!(
-            "\n{} execution in {:.6}s",
+            "\n\n{} execution in {:.6}s",
             "Completed".green(),
             elapsed.as_secs_f64().to_string().cyan()
         );
+    } else {
+        println!("\n");
     }
-    println!();
+    
 }

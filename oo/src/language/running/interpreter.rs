@@ -127,7 +127,7 @@ impl Interpreter {
                         }
                     };
 
-                    self.pop_scope();
+                    self.pop_scope()?;
                     Ok(value)
                 }
             }
@@ -201,14 +201,14 @@ impl Interpreter {
                 if cond {
                     self.env.push_scope();
                     let flow = self.execute_block(then_block)?;
-                    self.pop_scope();
+                    self.pop_scope()?;
                     Ok(flow)
                 } else if let Some(else_node) = else_block {
                     match else_node.as_ref() {
                         STree::BLOCK { .. } => {
                             self.env.push_scope();
                             let flow = self.execute_block(else_node)?;
-                            self.pop_scope();
+                            self.pop_scope()?;
                             Ok(flow)
                         }
                         // else-if is another IF_EXPR
@@ -228,7 +228,7 @@ impl Interpreter {
 
                     self.env.push_scope();
                     let flow = self.execute_block(body)?;
-                    self.pop_scope();
+                    self.pop_scope()?;
 
                     match flow {
                         ControlFlow::NORMAL => {}
@@ -256,7 +256,7 @@ impl Interpreter {
 
                     self.env.push_scope();
                     let flow = self.execute_block(body)?;
-                    self.pop_scope();
+                    self.pop_scope()?;
 
                     match flow {
                         ControlFlow::NORMAL => {}
@@ -291,11 +291,11 @@ impl Interpreter {
 
                     self.env.push_scope();
                     let flow = self.execute_block(body)?;
-                    self.pop_scope();
+                    self.pop_scope()?;
 
                     match flow {
                         ControlFlow::RETURN(v) => { 
-                            self.pop_scope(); 
+                            self.pop_scope()?; 
                             return Ok(ControlFlow::RETURN(v)); 
                         }
                         ControlFlow::BREAK => break,
@@ -308,7 +308,7 @@ impl Interpreter {
                     }
                 }
 
-                self.pop_scope();
+                self.pop_scope()?;
                 Ok(ControlFlow::NORMAL)
             }
 
@@ -335,13 +335,13 @@ impl Interpreter {
                         ControlFlow::CONTINUE | ControlFlow::REPEAT => continue,
                         ControlFlow::BREAK => break,
                         ControlFlow::RETURN(val) => {
-                            self.pop_scope(); // pop loop scope
+                            self.pop_scope()?; // pop loop scope
                             return Ok(ControlFlow::RETURN(val));
                         }
                     }
                 }
 
-                self.pop_scope();
+                self.pop_scope()?;
                 Ok(ControlFlow::NORMAL)
             }
 
@@ -356,9 +356,12 @@ impl Interpreter {
             STree::BLOCK { .. } => {
                 self.env.push_scope();
                 let flow = self.execute_block(stmt)?;
-                self.pop_scope();
+                self.pop_scope()?;
                 Ok(flow)
             }
+
+            // Blank
+            STree::BLANK_STMT => Ok(ControlFlow::NORMAL),
 
             // Expression statement 
             _ => {

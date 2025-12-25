@@ -532,6 +532,7 @@ impl Converter {
             Token::LIT_CHAR { value } => Ok(STree::LIT_CHAR { value: *value }),
             Token::LIT_STRING { value } => Ok(STree::LIT_STRING { value: value.clone() }),
 
+            Token::BLANK_STMT => Ok(STree::BLANK_STMT),
 
             other => {
                 self.log.indent_dec();

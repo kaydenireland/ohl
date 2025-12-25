@@ -27,6 +27,7 @@ impl Parser {
             Token::IF => child = self.parse_if(),
             
             Token::RETURN => child = self.parse_return(),
+            Token::SEMICOLON => child = self.parse_blank(),
             Token::BRACE_L => child = self.parse_block_nest(),
             Token::LET => {
                 child = self.parse_let();
@@ -306,5 +307,13 @@ impl Parser {
         self.log.indent_dec();
 
         child
+    }
+
+    pub fn parse_blank(&mut self) -> MTree {
+        self.log.info("parse_blank()");
+        while self.is(Token::SEMICOLON) {
+            self.expect(Token::SEMICOLON);
+        }
+        MTree::new(Token::BLANK_STMT)
     }
 }

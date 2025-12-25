@@ -1,14 +1,4 @@
 public null main() {
     let x: int = 5;
     System.println(x);
-
-    defer {
-        x += 14;
-        System.println(x);
-    }
-
-    defer System.println("Deferred");
-
-    let y: int := x - 67;
-    System.println(y);
 }

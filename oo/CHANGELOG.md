@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Immutable variables 
 - Empty returns for null functions
 - Defer statements
+- Blank statements from extra semicolons
 
 ### Changed
 
