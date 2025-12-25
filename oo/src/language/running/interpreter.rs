@@ -9,11 +9,11 @@ use crate::language::running::{environment::Environment, value::Value};
 
 
 enum ControlFlow {
-    CONTINUE,
+    NORMAL,
     RETURN(Value),
     BREAK,
-    CONTINUE_LOOP,
-    REPEAT_LOOP
+    CONTINUE,
+    REPEAT
 }
 
 #[derive(Clone)]
@@ -25,6 +25,7 @@ pub struct Function {
     pub body: Box<STree>,
 }
 
+#[derive(Clone)]
 pub enum RuntimeFunction {
     User(Function),
     Native(fn(Vec<Value>) -> Result<Value, String>),
@@ -34,7 +35,7 @@ pub enum RuntimeFunction {
 
 pub struct Interpreter {
     env: Environment,
-    functions: HashMap<String, RuntimeFunction>,
+    functions: HashMap<Vec<String>, RuntimeFunction>,
     call_depth: usize
 }
 
@@ -52,7 +53,7 @@ impl Interpreter {
 
     fn register_system_functions(&mut self) {
         self.functions.insert(
-            "print".to_string(),
+            vec!["System".to_string(), "print".to_string()],
             RuntimeFunction::Native(Self::sys_print),
         );
     }
@@ -69,7 +70,7 @@ impl Interpreter {
                 } = function
                 {
                     self.functions.insert(
-                    name.clone(),
+                    vec![name.clone()],
                     RuntimeFunction::User(Function {
                         function_type: function_type.clone(),
                         return_type: return_type.clone(),
@@ -82,12 +83,12 @@ impl Interpreter {
             }
         }
 
-        self.call_function("main", vec![])?;
+        self.call_function(&["main".to_string()], vec![])?;
         Ok(())
     }
 
 
-    fn call_function(&mut self, name: &str, args: Vec<Value>) -> Result<Value, String> {
+    fn call_function(&mut self, path: &[String], args: Vec<Value>) -> Result<Value, String> {
         self.call_depth += 1;
         if self.call_depth > 50 {
             self.call_depth -= 1;
@@ -96,8 +97,10 @@ impl Interpreter {
 
         let result = (|| {
             let func = self.functions
-                .get(name)
-                .ok_or_else(|| format!("Function '{}' not found", name))?;
+                .get(path)
+                .ok_or_else(|| format!("Function '{}' not found", path.join(".")))?
+                .clone();
+
 
             match func {
                 RuntimeFunction::Native(native) => {
@@ -108,7 +111,7 @@ impl Interpreter {
                     if func.params.len() != args.len() {
                         return Err(format!(
                             "Function '{}' expects {} arguments, got {}",
-                            name,
+                            path.join("."),
                             func.params.len(),
                             args.len()
                         ));
@@ -122,10 +125,10 @@ impl Interpreter {
 
                     let value = match self.execute_block(&func.body.clone())? {
                         ControlFlow::RETURN(v) => v,
-                        ControlFlow::CONTINUE => Value::NULL,
+                        ControlFlow::NORMAL => Value::NULL,
                         ControlFlow::BREAK
-                        | ControlFlow::CONTINUE_LOOP
-                        | ControlFlow::REPEAT_LOOP => {
+                        | ControlFlow::CONTINUE
+                        | ControlFlow::REPEAT => {
                             return Err("Loop control used outside of loop".to_string());
                         }
                     };
@@ -149,11 +152,11 @@ impl Interpreter {
         if let STree::BLOCK { statements } = block {
             for stmt in statements {
                 match self.execute_statement(stmt)? {
-                    ControlFlow::CONTINUE => {}
+                    ControlFlow::NORMAL => {}
                     flow => return Ok(flow),
                 }
             }
-            Ok(ControlFlow::CONTINUE)
+            Ok(ControlFlow::NORMAL)
         } else {
             Err("Expected STree::BLOCK".to_string())
         }
@@ -172,14 +175,14 @@ impl Interpreter {
 
                 // Variables always mutable
                 self.env.declare(id.clone(), value, true);
-                Ok(ControlFlow::CONTINUE)
+                Ok(ControlFlow::NORMAL)
             }
 
             // Assignment 
             STree::ASSIGN_STMT { id, expression } => {
                 let value = self.evaluate_expression(expression)?;
                 self.env.set(id, value)?;
-                Ok(ControlFlow::CONTINUE)
+                Ok(ControlFlow::NORMAL)
             }
 
             // Return 
@@ -194,8 +197,8 @@ impl Interpreter {
 
             // Loop control
             STree::BREAK => Ok(ControlFlow::BREAK),
-            STree::CONTINUE => Ok(ControlFlow::CONTINUE_LOOP),
-            STree::REPEAT => Ok(ControlFlow::REPEAT_LOOP),
+            STree::CONTINUE => Ok(ControlFlow::CONTINUE),
+            STree::REPEAT => Ok(ControlFlow::REPEAT),
 
             // If
             STree::IF_EXPR { condition, then_block, else_block } => {
@@ -218,9 +221,10 @@ impl Interpreter {
                         _ => self.execute_statement(else_node),
                     }
                 } else {
-                    Ok(ControlFlow::CONTINUE)
+                    Ok(ControlFlow::NORMAL)
                 }
             }
+
 
             // While 
             STree::WHILE_EXPR { condition, body } => {
@@ -233,14 +237,15 @@ impl Interpreter {
                     self.env.pop_scope();
 
                     match flow {
-                        ControlFlow::CONTINUE => {}
-                        ControlFlow::CONTINUE_LOOP | ControlFlow::REPEAT_LOOP => continue,
+                        ControlFlow::NORMAL => {}
+                        ControlFlow::CONTINUE | ControlFlow::REPEAT => continue,
                         ControlFlow::BREAK => break,
                         ControlFlow::RETURN(v) => return Ok(ControlFlow::RETURN(v)),
                     }
                 }
-                Ok(ControlFlow::CONTINUE)
+                Ok(ControlFlow::NORMAL)
             }
+
 
             // Loop 
             STree::LOOP_EXPR { condition, body } => {
@@ -249,7 +254,7 @@ impl Interpreter {
 
                 // TODO: -1 causes infinite loop
                 if remaining <= 0 {
-                    return Ok(ControlFlow::CONTINUE);
+                    return Ok(ControlFlow::NORMAL);
                 }
 
                 while remaining > 0 {
@@ -260,11 +265,11 @@ impl Interpreter {
                     self.env.pop_scope();
 
                     match flow {
+                        ControlFlow::NORMAL => {}
+
                         ControlFlow::CONTINUE => {}
 
-                        ControlFlow::CONTINUE_LOOP => {}
-
-                        ControlFlow::REPEAT_LOOP => {
+                        ControlFlow::REPEAT => {
                             remaining += 1;
                         }
 
@@ -274,22 +279,16 @@ impl Interpreter {
                     }
                 }
 
-                Ok(ControlFlow::CONTINUE)
+                Ok(ControlFlow::NORMAL)
             }
 
 
             // For
             STree::FOR_EXPR { init, condition, modifier, body } => {
-                self.env.push_scope();
+                self.env.push_scope(); 
 
                 if let Some(init_stmt) = init {
-                    let flow = self.execute_statement(init_stmt)?;
-                    match flow {
-                        ControlFlow::CONTINUE => {}
-                        ControlFlow::RETURN(v) => { self.env.pop_scope(); return Ok(ControlFlow::RETURN(v)); }
-                        ControlFlow::BREAK => { self.env.pop_scope(); return Err("break in for-init".to_string()); }
-                        ControlFlow::CONTINUE_LOOP | ControlFlow::REPEAT_LOOP => {},
-                    }
+                    self.execute_statement(init_stmt)?;
                 }
 
                 loop {
@@ -301,44 +300,24 @@ impl Interpreter {
                     self.env.pop_scope();
 
                     match flow {
-                        ControlFlow::RETURN(v) => { self.env.pop_scope(); return Ok(ControlFlow::RETURN(v)); }
+                        ControlFlow::RETURN(v) => { 
+                            self.env.pop_scope(); 
+                            return Ok(ControlFlow::RETURN(v)); 
+                        }
                         ControlFlow::BREAK => break,
-                        ControlFlow::CONTINUE | ControlFlow::CONTINUE_LOOP => {},
-                        ControlFlow::REPEAT_LOOP => continue
+                        ControlFlow::NORMAL | ControlFlow::CONTINUE => {}
+                        ControlFlow::REPEAT => continue,
                     }
 
                     if let Some(mod_node) = modifier {
-                        match mod_node.as_ref() {
-                            STree::ASSIGN_STMT { .. }
-                            | STree::LET_STMT { .. }
-                            | STree::RETURN_STMT { .. }
-                            | STree::IF_EXPR { .. }
-                            | STree::WHILE_EXPR { .. }
-                            | STree::LOOP_EXPR { .. }
-                            | STree::FOR_EXPR { .. }
-                            | STree::FOR_EACH { .. }
-                            | STree::BREAK
-                            | STree::CONTINUE
-                            | STree::REPEAT
-                            | STree::BLOCK { .. } => {
-                                let mflow = self.execute_statement(mod_node)?;
-                                match mflow {
-                                    ControlFlow::CONTINUE => {}
-                                    ControlFlow::RETURN(v) => { self.env.pop_scope(); return Ok(ControlFlow::RETURN(v)); }
-                                    ControlFlow::BREAK => { self.env.pop_scope(); return Err("break in for-modifier".to_string()); }
-                                    ControlFlow::CONTINUE_LOOP | ControlFlow::REPEAT_LOOP => {}
-                                }
-                            }
-                            _ => {
-                                self.evaluate_expression(mod_node)?;
-                            }
-                        }
+                        self.execute_statement(mod_node)?;
                     }
                 }
 
                 self.env.pop_scope();
-                Ok(ControlFlow::CONTINUE)
+                Ok(ControlFlow::NORMAL)
             }
+
 
             // For-each
             STree::FOR_EACH { variable, iterable, body } => {
@@ -355,24 +334,23 @@ impl Interpreter {
                 for v in elements {
                     self.env.set(variable, v)?;
 
-                    self.env.push_scope();
                     let flow = self.execute_block(body)?;
-                    self.env.pop_scope();
 
                     match flow {
-                        ControlFlow::CONTINUE => {}
-                        ControlFlow::CONTINUE_LOOP | ControlFlow::REPEAT_LOOP => continue,
+                        ControlFlow::NORMAL => {}
+                        ControlFlow::CONTINUE | ControlFlow::REPEAT => continue,
                         ControlFlow::BREAK => break,
-                        ControlFlow::RETURN(val) => { 
-                            self.env.pop_scope(); 
-                            return Ok(ControlFlow::RETURN(val)); 
+                        ControlFlow::RETURN(val) => {
+                            self.env.pop_scope(); // pop loop scope
+                            return Ok(ControlFlow::RETURN(val));
                         }
                     }
                 }
 
                 self.env.pop_scope();
-                Ok(ControlFlow::CONTINUE)
+                Ok(ControlFlow::NORMAL)
             }
+
 
             // Block 
             STree::BLOCK { .. } => {
@@ -385,7 +363,7 @@ impl Interpreter {
             // Expression statement 
             _ => {
                 self.evaluate_expression(stmt)?;
-                Ok(ControlFlow::CONTINUE)
+                Ok(ControlFlow::NORMAL)
             }
         }
     }
@@ -404,13 +382,14 @@ impl Interpreter {
 
             STree::ID { name } => self.env.get(name),
 
-            STree::CALL { name, arguments } => {
+            STree::CALL { path, arguments } => {
                 let mut argument_values = Vec::new();
                 for arg in arguments {
                     argument_values.push(self.evaluate_expression(arg)?);
                 }
-                self.call_function(name, argument_values)
+                self.call_function(path, argument_values)
             }
+
 
 
             STree::PRFX_EXPR { operator, right } => {

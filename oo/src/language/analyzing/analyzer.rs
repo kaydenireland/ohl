@@ -19,7 +19,7 @@ pub struct FunctionSignature {
 }
 
 pub struct Analyzer {
-    pub functions: HashMap<String, FunctionSignature>,
+    pub functions: HashMap<Vec<String>, FunctionSignature>,
     pub errors: Vec<String>,
     pub warnings: Vec<String>,
     pub log: Logger,
@@ -43,7 +43,7 @@ impl Analyzer {
 
     fn register_system_functions(&mut self) {
         self.functions.insert(
-            "print".to_string(),
+            vec!["System".to_string(), "print".to_string()],
             FunctionSignature {
                 parameters: vec![],              // variadic (checked loosely)
                 return_type: VariableType::NULL, // print returns null
@@ -56,14 +56,15 @@ impl Analyzer {
         self.collect_function_signatures(tree);
         self.visit(tree, &mut SymbolTable::new());
 
-        for (name, sig) in &self.functions {
+        for (path, sig) in &self.functions {
             if !sig.called {
                 self.warnings.push(format!(
                     "Function '{}' is never called",
-                    name
+                    path.join(".")
                 ));
             }
         }
+
 
         if self.errors.is_empty() {
             Ok(self.warnings)
@@ -490,35 +491,36 @@ impl Analyzer {
                 (Some(out), Flow::CONTINUE)
             }
 
-            STree::CALL { name, arguments } => {
+            STree::CALL { path, arguments } => {
                 self.log.info("analyze_function_call()");
 
-                let arg_types: Vec<_> = arguments
+                let arg_types: Vec<VariableType> = arguments
                     .iter()
-                    .map(|a| self.visit(a, symbols).0)
+                    .map(|a| self.visit(a, symbols).0.unwrap_or(VariableType::NULL))
                     .collect();
 
-                if let Some(sig) = self.functions.get_mut(name) {
+                if let Some(sig) = self.functions.get_mut(path) {
                     sig.called = true;
 
                     if !sig.parameters.is_empty() && sig.parameters.len() != arg_types.len() {
                         self.errors.push(format!(
-                            "Function '{}' expects {} args but {} provided",
-                            name,
+                            "Function '{}': expects {} args but {} provided",
+                            path.join("."),
                             sig.parameters.len(),
                             arg_types.len()
                         ));
                     }
 
-                    (Some(sig.return_type.clone()), Flow::CONTINUE)
-                } else {
-                    self.errors.push(format!(
-                        "Call to unknown function '{}'",
-                        name
-                    ));
-                    (None, Flow::CONTINUE)
+                    return (Some(sig.return_type.clone()), Flow::CONTINUE);
                 }
+
+                self.errors.push(format!(
+                    "Call to unknown function '{}'",
+                    path.join(".")
+                ));
+                (None, Flow::CONTINUE)
             }
+
 
 
             STree::ID { name } => {
@@ -553,9 +555,10 @@ impl Analyzer {
                         .map(|(_, t)| t.clone())
                         .collect();
 
-                    let called = name == "main"; 
+                    let key = vec![name.clone()];
+                    let called = name == "main";
 
-                    match self.functions.entry(name.clone()) {
+                    match self.functions.entry(key) {
                         Entry::Occupied(_) => {
                             self.errors.push(format!(
                                 "Function '{}' already declared",

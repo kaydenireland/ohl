@@ -484,24 +484,40 @@ impl Converter {
                 }
             }
 
+            // Function/Module Calls
+            Token::CALL => {
+                self.log.info("convert_call()");
+                self.log.indent_inc();
+
+                if node.children.is_empty() {
+                    return Err("CALL node missing callee".into());
+                }
+
+                let callee_node = &node.children[0];
+
+                let mut arguments = Vec::new();
+                for arg_node in node.children.iter().skip(1) {
+                    arguments.push(self.convert_tree(arg_node)?);
+                }
+
+                let mut path = Vec::new();
+                self.extract_path(callee_node, &mut path)?;
+
+                self.log.indent_dec();
+                Ok(STree::CALL { path, arguments })
+            }
+
+            // Periods
+            Token::POINT => Err("Member access is only allowed as a call target".into()),
+
+
             // Identifier
             Token::ID { name } => {
                 self.log.info("convert_identifier()");
-                self.log.indent_inc();
-
-                if node.children.len() > 0 {
-                    let mut args = Vec::new();
-                    for argument_node in &node.children {
-                        args.push(self.convert_tree(argument_node)?);
-                    }
-                    self.log.indent_dec();
-                    Ok(STree::CALL { name: name.clone(), arguments: args })
-                } else {
-                    self.log.indent_dec();
-                    Ok(STree::ID { name: name.clone() })
-                }
-
+                Ok(STree::ID { name: name.clone() })
             }
+
+
 
 
             Token::LIT_INT { value } => Ok(STree::LIT_INT { value: *value }),
@@ -517,4 +533,26 @@ impl Converter {
             }
         }
     }
+}
+
+// Helpers
+impl Converter {
+    fn extract_path(&self, node: &MTree, out: &mut Vec<String>) -> Result<(), String> {
+        match &node.token {
+            Token::ID { name } => {
+                out.push(name.clone());
+                Ok(())
+            }
+            Token::POINT => {
+                if node.children.len() != 2 {
+                    return Err("POINT must have exactly 2 children".into());
+                }
+                self.extract_path(&node.children[0], out)?;
+                self.extract_path(&node.children[1], out)?;
+                Ok(())
+            }
+            _ => Err(format!("Expected ID or POINT in qualified name, got {:?}", node.token)),
+        }
+    }
+
 }

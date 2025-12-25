@@ -64,7 +64,7 @@ impl Parser {
     //     child
     // }
 
-    pub fn parse_call_expression_from_expr(&mut self, callee: MTree) -> MTree {
+    pub fn parse_call_expression_from_tree(&mut self, callee: MTree) -> MTree {
         let mut node = MTree::new(Token::CALL);
 
         node.children.push(callee);
@@ -89,7 +89,7 @@ impl Parser {
 
             // call
             if current == Token::PAREN_L {
-                left = self.parse_call_expression_from_expr(left);
+                left = self.parse_call_expression_from_tree(left);
                 continue;
             }
 
