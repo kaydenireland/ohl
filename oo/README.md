@@ -146,3 +146,7 @@ Running example.ohl
 
 Completed execution in 0.0005s
 ```
+
+---
+
+![Ohl Logo](../assets/logos/full-1024x512.png)
