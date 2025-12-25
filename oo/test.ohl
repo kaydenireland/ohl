@@ -1,7 +1,14 @@
 public null main() {
-    for each ch in ("Hello") {
-        let ch2: char = ch;
-        ch2 = 'e'; 
-        System.println(ch);
+    let x: int = 5;
+    System.println(x);
+
+    defer {
+        x += 14;
+        System.println(x);
     }
+
+    defer System.println("Deferred");
+
+    let y: int := x - 67;
+    System.println(y);
 }

@@ -227,13 +227,18 @@ impl Converter {
                 self.log.info("convert_return()");
                 self.log.indent_inc();
 
-                // TODO: Empty returns (return;)
-                let expression_node = node.children.get(0).ok_or("Return Statement Missing Expression")?;
-                let expression = self.convert_tree(expression_node)?;
-
-                self.log.indent_dec();
-
-                Ok(STree::RETURN_STMT { expression: Some(Box::new(expression)) })
+                let expression_node = node.children.get(0);
+                match expression_node {
+                    Some(_) => {
+                        let expression = self.convert_tree(expression_node.unwrap())?;
+                        self.log.indent_dec();
+                        Ok(STree::RETURN_STMT { expression: Some(Box::new(expression)) })
+                    },
+                    None => {
+                        self.log.indent_dec();
+                        Ok(STree::RETURN_STMT { expression: None })
+                    }
+                }
             }
 
             // Expected For-Loop Children
@@ -381,18 +386,17 @@ impl Converter {
                 })
             } 
 
-            // Expected Print Children
-            // [ Expression ]
-            Token::PRINT =>  {
-                self.log.info("convert_print()");
+            // Expected Defer Children
+            // [Block/Expression]
+            Token::DEFER => {
+                self.log.info("convert_defer()");
                 self.log.indent_inc();
 
-                let expression_node = node.children.get(0).ok_or("Print missing expression")?;
-                let expression = self.convert_tree(expression_node)?;
+                let body_node = node.children.get(0).ok_or("Defer must have a body".to_string())?;
+                let body = self.convert_tree(body_node)?;
 
                 self.log.indent_dec();
-
-                Ok(STree::PRINT_STMT { expression: Box::new(expression) })
+                Ok(STree::DEFER_STMT { body: Box::new(body) })
             }
 
             // Unary Prefix Operators 

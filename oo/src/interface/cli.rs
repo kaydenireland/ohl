@@ -150,7 +150,7 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     let stree = match result {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("{}: Semantic Conversion Failed \n{}/n", "ERROR".red(), e.red());
+            eprintln!("{}: Semantic Conversion Failed \n{}\n", "ERROR".red(), e.red());
             std::process::exit(0)
         }
     };

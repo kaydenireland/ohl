@@ -531,7 +531,7 @@ impl Lexer {
             "break" => Token::BREAK,
             //"match" => Token::MATCH,
             "default" => Token::DEFAULT,
-            //"print" => Token::PRINT,
+            "defer" => Token::DEFER,
             "not" => Token::NOT,
             "and" => Token::AND,
             "or" => Token::OR,

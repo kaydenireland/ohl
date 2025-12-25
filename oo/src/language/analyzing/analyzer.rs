@@ -1,5 +1,4 @@
 use std::collections::{HashMap, hash_map::Entry};
-use std::fmt::format;
 use crate::language::analyzing::operator::Operator;
 use crate::language::analyzing::stree::STree;
 use crate::language::logger::Logger;
@@ -25,6 +24,7 @@ pub struct Analyzer {
     pub warnings: Vec<String>,
     pub log: Logger,
     loop_depth: usize,
+    defer_depth: usize
 }
 
 impl Analyzer {
@@ -36,6 +36,7 @@ impl Analyzer {
             warnings: vec![],
             log,
             loop_depth: 0,
+            defer_depth: 0
         };
 
         analyzer.register_native_functions();
@@ -231,6 +232,27 @@ impl Analyzer {
                 (Some(ty), Flow::STOP)
             }
 
+            STree::DEFER_STMT { body } => {
+                self.log.info("analyze_defer()");
+                self.log.indent_inc();
+
+                self.defer_depth += 1;
+
+                match body.as_ref() {
+                    STree::BLOCK { .. } => {
+                        let mut local = SymbolTable::new_child(symbols);
+                        self.visit(body, &mut local);
+                    }
+                    _ => {
+                        self.visit(body, symbols);
+                    }
+                }
+
+                self.defer_depth -= 1;
+
+                self.log.indent_dec();
+                (None, Flow::CONTINUE)
+            }
 
             STree::IF_EXPR { condition, then_block, else_block } => {
                 self.log.info("analyze_if()");

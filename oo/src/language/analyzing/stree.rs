@@ -14,6 +14,7 @@ pub enum STree {
     FOR_EXPR { init: Option<Box<STree>>, condition: Box<STree>, modifier: Option<Box<STree>>, body: Box<STree> },
     FOR_EACH { variable: String, iterable: Box<STree>, body: Box<STree> },
     IF_EXPR { condition: Box<STree>, then_block: Box<STree>, else_block: Option<Box<STree>> },
+    DEFER_STMT { body: Box<STree> },
     WHILE_EXPR { condition: Box<STree>, body: Box<STree> },
     LOOP_EXPR { condition: Box<STree>, body: Box<STree> },
     RETURN_STMT { expression: Option<Box<STree>> },

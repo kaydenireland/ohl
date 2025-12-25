@@ -127,7 +127,7 @@ impl Interpreter {
                         }
                     };
 
-                    self.env.pop_scope();
+                    self.pop_scope();
                     Ok(value)
                 }
             }
@@ -201,14 +201,14 @@ impl Interpreter {
                 if cond {
                     self.env.push_scope();
                     let flow = self.execute_block(then_block)?;
-                    self.env.pop_scope();
+                    self.pop_scope();
                     Ok(flow)
                 } else if let Some(else_node) = else_block {
                     match else_node.as_ref() {
                         STree::BLOCK { .. } => {
                             self.env.push_scope();
                             let flow = self.execute_block(else_node)?;
-                            self.env.pop_scope();
+                            self.pop_scope();
                             Ok(flow)
                         }
                         // else-if is another IF_EXPR
@@ -228,7 +228,7 @@ impl Interpreter {
 
                     self.env.push_scope();
                     let flow = self.execute_block(body)?;
-                    self.env.pop_scope();
+                    self.pop_scope();
 
                     match flow {
                         ControlFlow::NORMAL => {}
@@ -256,7 +256,7 @@ impl Interpreter {
 
                     self.env.push_scope();
                     let flow = self.execute_block(body)?;
-                    self.env.pop_scope();
+                    self.pop_scope();
 
                     match flow {
                         ControlFlow::NORMAL => {}
@@ -291,11 +291,11 @@ impl Interpreter {
 
                     self.env.push_scope();
                     let flow = self.execute_block(body)?;
-                    self.env.pop_scope();
+                    self.pop_scope();
 
                     match flow {
                         ControlFlow::RETURN(v) => { 
-                            self.env.pop_scope(); 
+                            self.pop_scope(); 
                             return Ok(ControlFlow::RETURN(v)); 
                         }
                         ControlFlow::BREAK => break,
@@ -308,7 +308,7 @@ impl Interpreter {
                     }
                 }
 
-                self.env.pop_scope();
+                self.pop_scope();
                 Ok(ControlFlow::NORMAL)
             }
 
@@ -335,13 +335,19 @@ impl Interpreter {
                         ControlFlow::CONTINUE | ControlFlow::REPEAT => continue,
                         ControlFlow::BREAK => break,
                         ControlFlow::RETURN(val) => {
-                            self.env.pop_scope(); // pop loop scope
+                            self.pop_scope(); // pop loop scope
                             return Ok(ControlFlow::RETURN(val));
                         }
                     }
                 }
 
-                self.env.pop_scope();
+                self.pop_scope();
+                Ok(ControlFlow::NORMAL)
+            }
+
+            // Defer
+            STree::DEFER_STMT { body } => {
+                self.env.defer(*body.clone());
                 Ok(ControlFlow::NORMAL)
             }
 
@@ -350,7 +356,7 @@ impl Interpreter {
             STree::BLOCK { .. } => {
                 self.env.push_scope();
                 let flow = self.execute_block(stmt)?;
-                self.env.pop_scope();
+                self.pop_scope();
                 Ok(flow)
             }
 
@@ -575,5 +581,25 @@ impl Interpreter {
 
         }
     }
+
+    fn pop_scope(&mut self) -> Result<(), String> {
+    let deferred = match self.env.peek_scope() {
+        Some(scope) => scope.deferred.clone(),
+        None => Vec::new(),
+    };
+
+    for stmt in deferred.into_iter().rev() {
+        match self.execute_statement(&stmt)? {
+            ControlFlow::NORMAL => {}
+            _ => return Err("Deferred code cannot affect control flow".to_string()),
+        }
+    }
+
+    self.env.pop_scope();
+    Ok(())
+}
+
+
+
 }
 

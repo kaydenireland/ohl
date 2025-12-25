@@ -77,6 +77,7 @@ pub enum Token {
     REPEAT,
     PRINT,
     RETURN,
+    DEFER,
     MATCH,
     DEFAULT,
 
