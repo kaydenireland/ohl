@@ -386,6 +386,59 @@ impl Converter {
                 })
             } 
 
+            // Expected Match Children
+            // [Expression, Vec<Arm>]
+            Token::MATCH => {
+                self.log.info("convert_match()");
+                self.log.indent_inc();
+
+                let expression_node = node.children.get(0).ok_or("Invalid expression for MATCH".to_string())?;
+                let expression = self.convert_tree(expression_node)?;
+
+                let mut arms: Vec<STree> = Vec::new();
+                for child in node.children.iter().skip(1) {
+                    match child.token {
+                        Token::MATCH_ARM => arms.push(self.convert_tree(child)?),
+                        _ => return Err(format!("Match child expected MATCH_ARM, got {:?}", child.token))
+                    }
+                }
+
+                self.log.indent_dec();
+                Ok(STree::MATCH_STMT { expression: Box::new(expression), arms })
+            }
+
+            // Expected Match Arm Children
+            // [Expression, Expression/Block]
+            Token::MATCH_ARM => {
+                self.log.info("convert_match_arm()");
+                self.log.indent_inc();
+
+                let pattern_node = node.children.get(0)
+                    .ok_or("MATCH_ARM missing pattern".to_string())?;
+
+                let body_node = node.children.get(1)
+                    .ok_or("MATCH_ARM missing body".to_string())?;
+
+                if node.children.len() != 2 {
+                    return Err(format!(
+                        "MATCH_ARM expects 2 children, got {}",
+                        node.children.len()
+                    ));
+                }
+
+                let pattern = self.convert_tree(pattern_node)?;
+                let body = self.convert_tree(body_node)?;
+
+                self.log.indent_dec();
+                Ok(STree::MATCH_ARM {
+                    expression: Box::new(pattern),
+                    body: Box::new(body),
+                })
+            }
+
+            Token::DEFAULT => Ok(STree::DEFAULT),
+
+
             // Expected Defer Children
             // [Block/Expression]
             Token::DEFER => {

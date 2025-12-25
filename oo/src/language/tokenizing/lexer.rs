@@ -529,7 +529,7 @@ impl Lexer {
             "continue" => Token::CONTINUE,
             "repeat" => Token::REPEAT,
             "break" => Token::BREAK,
-            //"match" => Token::MATCH,
+            "match" => Token::MATCH,
             "default" => Token::DEFAULT,
             "defer" => Token::DEFER,
             "not" => Token::NOT,

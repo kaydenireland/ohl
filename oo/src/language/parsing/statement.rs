@@ -33,7 +33,6 @@ impl Parser {
                 child = self.parse_let();
                 self.expect(Token::SEMICOLON);
             },
-            // TODO parse empty statements (just semicolons)
             _ => {
                 child = self.parse_expression();
                 self.expect(Token::SEMICOLON);

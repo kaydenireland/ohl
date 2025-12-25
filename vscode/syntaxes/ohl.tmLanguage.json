@@ -62,7 +62,7 @@
       "patterns": [
         {
           "name": "keyword.control.ohl",
-          "match": "\\b(if|else|for|each|in|defer|loop|while|return|break|continue|repeat)\\b"
+          "match": "\\b(if|else|for|each|in|defer|loop|while|return|break|continue|repeat|default)\\b"
         },
         {
           "name": "keyword.declaration.ohl",

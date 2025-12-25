@@ -1,4 +1,16 @@
 public null main() {
-    let x: int = 5;
-    System.println(x);
+    let x: int = 1;
+
+    match (x) {
+        1 => System.print(1);
+        3 => {
+            x**;
+            System.print(x);
+        }
+        default => System.println("Other");
+        4 => System.println("Unreachable");
+    }
+
+
+
 }

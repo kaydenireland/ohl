@@ -198,7 +198,7 @@ pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
     let mut folder: ConstantFolder = ConstantFolder::new(_debug);
     folder.run(&mut stree);
 
-    println!("\n{} {}", "Running".to_string().green(), &path.white());
+    println!("\n\n{} {}", "Running".to_string().green(), &path.white());
 
     let mut interpreter = Interpreter::new();
 

@@ -345,6 +345,38 @@ impl Interpreter {
                 Ok(ControlFlow::NORMAL)
             }
 
+            // Match Statement
+            STree::MATCH_STMT { expression, arms } => {
+                let scrutinee = self.evaluate_expression(expression)?;
+
+                for arm in arms {
+                    let STree::MATCH_ARM { expression: pattern, body } = arm else {
+                        return Err("Invalid MATCH arm node".to_string());
+                    };
+
+                    if let Some(binding) = self.match_pattern(&scrutinee, pattern.as_ref())? {
+                        self.env.push_scope();
+
+                        if let Some((name, val)) = binding {
+                            self.env.declare(name, val, false);
+                        }
+
+                        // body can be BLOCK or single statement
+                        let flow = match body.as_ref() {
+                            STree::BLOCK { .. } => self.execute_block(body)?,
+                            _ => self.execute_statement(body)?,
+                        };
+
+                        self.pop_scope()?;
+                        return Ok(flow);
+                    }
+                }
+
+                // No arm matched
+                Ok(ControlFlow::NORMAL)
+            }
+
+
             // Defer
             STree::DEFER_STMT { body } => {
                 self.env.defer(*body.clone());
@@ -586,22 +618,60 @@ impl Interpreter {
     }
 
     fn pop_scope(&mut self) -> Result<(), String> {
-    let deferred = match self.env.peek_scope() {
-        Some(scope) => scope.deferred.clone(),
-        None => Vec::new(),
-    };
+        let deferred = match self.env.peek_scope() {
+            Some(scope) => scope.deferred.clone(),
+            None => Vec::new(),
+        };
 
-    for stmt in deferred.into_iter().rev() {
-        match self.execute_statement(&stmt)? {
-            ControlFlow::NORMAL => {}
-            _ => return Err("Deferred code cannot affect control flow".to_string()),
+        for stmt in deferred.into_iter().rev() {
+            match self.execute_statement(&stmt)? {
+                ControlFlow::NORMAL => {}
+                _ => return Err("Deferred code cannot affect control flow".to_string()),
+            }
         }
+
+        self.env.pop_scope();
+        Ok(())
     }
 
-    self.env.pop_scope();
-    Ok(())
-}
 
+    fn match_pattern(&self, scrutinee: &Value, pattern: &STree) -> Result<Option<Option<(String, Value)>>, String> {
+        Ok(match pattern {
+            // default
+            STree::DEFAULT => Some(None),
+
+            // binding pattern
+            STree::ID { name } => Some(Some((name.clone(), scrutinee.clone()))),
+
+            // literal patterns
+            STree::LIT_INT { value } => match scrutinee {
+                Value::INT(i) if i == value => Some(None),
+                _ => None,
+            },
+
+            STree::LIT_FLOAT { value } => match scrutinee {
+                Value::FLOAT(f) if f == value => Some(None),
+                _ => None,
+            },
+
+            STree::LIT_BOOL { value } => match scrutinee {
+                Value::BOOLEAN(b) if b == value => Some(None),
+                _ => None,
+            },
+
+            STree::LIT_CHAR { value } => match scrutinee {
+                Value::CHAR(c) if c == value => Some(None),
+                _ => None,
+            },
+
+            STree::LIT_STRING { value } => match scrutinee {
+                Value::STRING(s) if s == value => Some(None),
+                _ => None,
+            },
+
+            _ => return Err(format!("Invalid match pattern: {:?}", pattern)),
+        })
+    }
 
 
 }

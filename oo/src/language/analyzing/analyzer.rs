@@ -99,14 +99,14 @@ impl Analyzer {
                     }
                 }
 
-                if let Some(bt) = body_ty_opt {
+                if let Some(body_type) = body_ty_opt {
                     if *return_type != VariableType::NULL
-                        && bt != *return_type
-                        && bt != VariableType::NULL
+                        && body_type != *return_type
+                        && body_type != VariableType::NULL
                     {
                         self.errors.push(format!(
                             "Function '{}' declared return type {:?}, but body returns {:?}",
-                            name, return_type, bt
+                            name, return_type, body_type
                         ));
                     }
                 }
@@ -209,16 +209,6 @@ impl Analyzer {
                 (None, Flow::CONTINUE)
             }
 
-            STree::PRINT_STMT { expression } => {
-                self.log.info("analyze_print()");
-                self.log.indent_inc();
-
-                let _ = self.visit(expression, symbols);
-
-                self.log.indent_dec();
-                (None, Flow::CONTINUE)
-            }
-
             STree::RETURN_STMT { expression } => {
                 self.log.info("analyze_return()");
                 self.log.indent_inc();
@@ -252,6 +242,84 @@ impl Analyzer {
 
                 self.log.indent_dec();
                 (None, Flow::CONTINUE)
+            }
+
+            STree::MATCH_STMT { expression, arms } => {
+                self.log.info("analyze_match()");
+                self.log.indent_inc();
+
+                let scrutinee_ty = self.visit(expression, symbols).0
+                    .unwrap_or(VariableType::NULL);
+
+                let mut arm_return_type: Option<VariableType> = None;
+                let mut all_stop = true;
+
+                let mut seen_default = false;
+                let mut default_count: usize = 0;
+
+                for arm in arms {
+                    let STree::MATCH_ARM { expression: pattern, body } = arm else {
+                        unreachable!();
+                    };
+
+                    if seen_default {
+                        self.warnings.push(format!(
+                            "Unreachable match arm '{:?}': all arms after default are unreachable",
+                            pattern
+                        ));
+                    }
+
+                    if matches!(pattern.as_ref(), STree::DEFAULT) {
+                        default_count += 1;
+                        seen_default = true;
+                    }
+
+
+                    let mut arm_scope = SymbolTable::new_child(symbols);
+
+                    self.analyze_match_pattern(pattern, scrutinee_ty.clone(), &mut arm_scope);
+
+                    let (result, flow) = self.visit(body, &mut arm_scope);
+
+                    if let Some(body_type) = result {
+                        match &arm_return_type {
+                            None => arm_return_type = Some(body_type),
+                            Some(prev) if *prev == body_type => {}
+                            Some(_) => {
+                                self.errors.push(
+                                    "Match arms return incompatible types".to_string()
+                                );
+                                arm_return_type = Some(VariableType::NULL);
+                            }
+                        }
+                    }
+
+                    if flow != Flow::STOP {
+                        all_stop = false;
+                    }
+                }
+
+                if default_count > 1 {
+                    self.errors.push(format!("Match can have one default arm at most, currently {}", default_count));
+                }
+
+                self.log.indent_dec();
+
+                (
+                    arm_return_type,
+                    if all_stop { Flow::STOP } else { Flow::CONTINUE }
+                )
+            }
+
+
+            STree::MATCH_ARM { expression: _, body: _ } => {
+                self.errors.push("MATCH_ARM must be analyzed inside MATCH_STMT".to_string());
+                (None, Flow::CONTINUE)
+            }
+
+            STree::DEFAULT => {
+                self.log.info("analyze_default()");
+                (Some(VariableType::NULL), Flow::CONTINUE)
             }
 
             STree::IF_EXPR { condition, then_block, else_block } => {
@@ -687,4 +755,26 @@ impl Analyzer {
             self.errors.push(format!("'{}' used outside of a loop", keyword));
         }
     }
+
+    fn analyze_match_pattern(&mut self, pattern: &STree, scrutinee_type: VariableType, scope: &mut SymbolTable) {
+        match pattern {
+            STree::ID { name } => {
+                scope.declare_variable(name.clone(), scrutinee_type, false).ok();
+            }
+
+            STree::LIT_INT { .. } if scrutinee_type == VariableType::INT => {}
+            STree::LIT_FLOAT { .. } if scrutinee_type == VariableType::FLOAT => {}
+            STree::LIT_BOOL { .. } if scrutinee_type == VariableType::BOOLEAN => {}
+            STree::LIT_CHAR { .. } if scrutinee_type == VariableType::CHAR => {}
+            STree::LIT_STRING { .. } if scrutinee_type == VariableType::STRING => {}
+            STree::DEFAULT  => {}
+
+
+            _ => self.errors.push(format!(
+                "Pattern {:?} does not match type {:?}",
+                pattern, scrutinee_type
+            )),
+        }
+    }
+
 }
