@@ -131,7 +131,7 @@ impl Converter {
             }
 
             // Expected Variable Declaration Children
-            // [ ID(name), VARIABLE_TYPE, Option<Expression> ]
+            // [ ID(name), VARIABLE_TYPE, MUTABLE/IMMUTABLE, Option<Expression> ]
             Token::VAR_DECL => {
                 self.log.info("convert_let_statement()");
                 self.log.indent_inc();
@@ -152,15 +152,17 @@ impl Converter {
                     _ => return Err("Unexpected Variable Type".into()),
                 };
 
+                let mutable = node.children[2].token == Token::MUTABLE;
+
                 let mut expression: Option<Box<STree>> = None;
-                if node.children.len() >= 3 {
-                    let expression_node = &node.children[2];
+                if node.children.len() >= 4 {
+                    let expression_node = &node.children[3];
                     expression = Some(Box::new(self.convert_tree(expression_node)?));
                 }
 
                 self.log.indent_dec();
 
-                Ok(STree::LET_STMT { id, var_type: variable_type, expression })
+                Ok(STree::LET_STMT { id, var_type: variable_type, mutable, expression })
             }
 
             // Expected Assignment Children

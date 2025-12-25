@@ -47,5 +47,14 @@ impl Environment {
         }
         Err(format!("Variable '{}' not found", name))
     }
+
+    pub fn is_mutable(&self, name: &str) -> Result<bool, String> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(binding) = scope.get(name) {
+                return Ok(binding.mutable.clone());
+            }
+        }
+        Err(format!("Variable '{}' not found", name))
+    }
     
 }

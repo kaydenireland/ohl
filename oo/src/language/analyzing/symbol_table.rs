@@ -5,6 +5,7 @@ use crate::language::analyzing::types::VariableType;
 pub struct VariableInfo {
     pub var_type: VariableType,
     pub used: bool,
+    pub mutable: bool
 }
 
 #[derive(Debug, Clone)]
@@ -28,18 +29,14 @@ impl SymbolTable {
         }
     }
 
-    pub fn declare_variable(
-        &mut self,
-        name: String,
-        var_type: VariableType,
-    ) -> Result<(), String> {
+    pub fn declare_variable(&mut self, name: String, var_type: VariableType, mutable: bool) -> Result<(), String> {
         if self.variables.contains_key(&name) {
             Err(format!(
                 "Variable '{}' is already declared in this scope",
                 name
             ))
         } else {
-            self.variables.insert(name, VariableInfo { var_type, used: false });
+            self.variables.insert(name, VariableInfo { var_type, used: false, mutable });
             Ok(())
         }
     }
@@ -49,6 +46,16 @@ impl SymbolTable {
             Ok(v.var_type.clone())
         } else if let Some(parent) = &self.parent {
             parent.check_variable(name)
+        } else {
+            Err(format!("Variable '{}' is not declared", name))
+        }
+    }
+
+    pub fn check_mutability(&self, name: &String) -> Result<bool, String> {
+        if let Some(v) = self.variables.get(name) {
+            Ok(v.mutable.clone())
+        } else if let Some(parent) = &self.parent {
+            parent.check_mutability(name)
         } else {
             Err(format!("Variable '{}' is not declared", name))
         }

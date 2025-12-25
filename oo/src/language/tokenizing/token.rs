@@ -121,6 +121,8 @@ pub enum Token {
     RTRN_STMT,
     EXPR,
     MATCH_ARM,
+    MUTABLE,
+    IMMUTABLE
 }
 
 impl Token {

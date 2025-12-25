@@ -241,7 +241,14 @@ impl Parser {
         child._push(MTree::new(type_token));
 
         if self.accept(Token::ASSIGN) {
+            child._push(MTree::new(Token::MUTABLE));
             child._push(self.parse_expression());
+        } else if self.accept(Token::COLON) {
+            self.expect(Token::ASSIGN);
+            child._push(MTree::new(Token::IMMUTABLE));
+            child._push(self.parse_expression());
+        } else {
+            child._push(MTree::new(Token::MUTABLE));
         }
 
         self.log.indent_dec();

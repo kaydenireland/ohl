@@ -27,3 +27,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Print function now under System module
+
+## [1.0.2]
+
+### Added
+
+- Immutable Variables 
+
+### Changed
+
+- For-Each variables are now immutable

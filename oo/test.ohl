@@ -1,0 +1,7 @@
+public null main() {
+    for each ch in ("Hello") {
+        let ch2: char = ch;
+        ch2 = 'e'; 
+        System.println(ch);
+    }
+}

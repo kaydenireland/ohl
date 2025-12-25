@@ -160,7 +160,7 @@ impl Interpreter {
         match stmt {
 
             // Variable declaration 
-            STree::LET_STMT { id, var_type: _, expression } => {
+            STree::LET_STMT { id, var_type: _, mutable, expression } => {
                 let value = if let Some(expr) = expression {
                     self.evaluate_expression(expr)?
                 } else {
@@ -168,7 +168,7 @@ impl Interpreter {
                 };
 
                 // Variables always mutable
-                self.env.declare(id.clone(), value, true);
+                self.env.declare(id.clone(), value, *mutable);
                 Ok(ControlFlow::NORMAL)
             }
 

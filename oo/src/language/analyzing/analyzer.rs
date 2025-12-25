@@ -1,4 +1,5 @@
 use std::collections::{HashMap, hash_map::Entry};
+use std::fmt::format;
 use crate::language::analyzing::operator::Operator;
 use crate::language::analyzing::stree::STree;
 use crate::language::logger::Logger;
@@ -83,7 +84,7 @@ impl Analyzer {
 
                 let mut local = SymbolTable::new();
                 for (pname, ptype) in params {
-                    let _ = local.declare_variable(pname.clone(), ptype.clone());
+                    let _ = local.declare_variable(pname.clone(), ptype.clone(), false);
                 }
 
                 let (body_ty_opt, body_flow) = self.visit(body, &mut local);
@@ -147,7 +148,7 @@ impl Analyzer {
                 (None, flow)
             }
 
-            STree::LET_STMT { id, var_type, expression } => {
+            STree::LET_STMT { id, var_type, mutable, expression } => {
                 self.log.info("analyze_let()");
                 self.log.indent_inc();
 
@@ -167,7 +168,7 @@ impl Analyzer {
                     var_type.clone()
                 };
 
-                if let Err(e) = symbols.declare_variable(id.clone(), inferred) {
+                if let Err(e) = symbols.declare_variable(id.clone(), inferred, mutable.clone()) {
                     self.errors.push(e);
                 }
 
@@ -189,6 +190,15 @@ impl Analyzer {
                                 "Assignment type mismatch for '{}': {:?} vs {:?}",
                                 id, vt, et
                             ));
+                        }
+                    }
+                    Err(e) => self.errors.push(e),
+                }
+
+                match symbols.check_mutability(id) {
+                    Ok(mutable) => {
+                        if !mutable {
+                            self.errors.push(format!("Variable '{}' is immutable and cannot be modified", id));
                         }
                     }
                     Err(e) => self.errors.push(e),
@@ -231,7 +241,7 @@ impl Analyzer {
 
                 if ct != VariableType::BOOLEAN && ct != VariableType::NULL {
                     self.errors.push(format!(
-                        "If condition must be Bool, found {:?}",
+                        "If condition must be bool, found {:?}",
                         ct
                     ));
                 }
@@ -365,7 +375,7 @@ impl Analyzer {
                 };
 
                 let mut local = SymbolTable::new_child(symbols);
-                if let Err(e) = local.declare_variable(variable.clone(), element_type) {
+                if let Err(e) = local.declare_variable(variable.clone(), element_type, false) {
                     self.errors.push(e);
                 }
 
