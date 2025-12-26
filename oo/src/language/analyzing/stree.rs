@@ -9,7 +9,7 @@ pub enum STree {
     START { functions: Vec<STree> },
     FUNCTION { function_type: FunctionType, return_type: VariableType, name: String, params: Vec<(String, VariableType)>, body: Box<STree> },
     BLOCK { statements: Vec<STree> },
-    LET_STMT { id: String, var_type: VariableType, mutable: bool, expression: Option<Box<STree>> },
+    LET_STMT { id: String, var_type: VariableType, mutable: bool, expression: Box<STree> },
     ASSIGN_STMT { id: String, expression: Box<STree> },
     FOR_EXPR { init: Option<Box<STree>>, condition: Box<STree>, modifier: Option<Box<STree>>, body: Box<STree> },
     FOR_EACH { variable: String, iterable: Box<STree>, body: Box<STree> },
@@ -34,6 +34,7 @@ pub enum STree {
     LIT_BOOL { value: bool },
     LIT_CHAR { value: char },
     LIT_STRING { value: String },
+    NULL,
     BLANK_STMT
 }
 

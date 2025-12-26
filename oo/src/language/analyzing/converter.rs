@@ -154,10 +154,12 @@ impl Converter {
 
                 let mutable = node.children[2].token == Token::MUTABLE;
 
-                let mut expression: Option<Box<STree>> = None;
+                let expression: Box<STree>;
                 if node.children.len() >= 4 {
                     let expression_node = &node.children[3];
-                    expression = Some(Box::new(self.convert_tree(expression_node)?));
+                    expression = Box::new(self.convert_tree(expression_node)?);
+                } else {
+                    expression = Box::new(STree::NULL)
                 }
 
                 self.log.indent_dec();
@@ -584,6 +586,7 @@ impl Converter {
             Token::LIT_BOOL { value } => Ok(STree::LIT_BOOL { value: *value }),
             Token::LIT_CHAR { value } => Ok(STree::LIT_CHAR { value: *value }),
             Token::LIT_STRING { value } => Ok(STree::LIT_STRING { value: value.clone() }),
+            Token::NULL => Ok(STree::NULL),
 
             Token::BLANK_STMT => Ok(STree::BLANK_STMT),
 

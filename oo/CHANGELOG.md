@@ -36,8 +36,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Empty returns for null functions
 - Defer statements
 - Blank statements from extra semicolons
-- Basic switch statements
+- Basic match statements
+- Null values
 
 ### Changed
 
 - For-Each variables are now immutable
+- If/While accept any variable type, non bool variable are true when not null

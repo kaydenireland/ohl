@@ -26,7 +26,7 @@ pub struct Analyzer {
     loop_depth: usize,
     defer_depth: usize
 }
-
+// TODO Better Null Analyzing
 impl Analyzer {
     pub fn new(_debug: bool) -> Analyzer {
         let log = Logger::new(_debug);
@@ -100,9 +100,7 @@ impl Analyzer {
                 }
 
                 if let Some(body_type) = body_ty_opt {
-                    if *return_type != VariableType::NULL
-                        && body_type != *return_type
-                        && body_type != VariableType::NULL
+                    if *return_type != VariableType::NULL && self.is_assignable(body_type.clone(), return_type.clone())
                     {
                         self.errors.push(format!(
                             "Function '{}' declared return type {:?}, but body returns {:?}",
@@ -153,11 +151,11 @@ impl Analyzer {
                 self.log.info("analyze_let()");
                 self.log.indent_inc();
 
-                let inferred = if let Some(e) = expression {
+                let inferred = if let e = expression {
                     let (et_opt, _) = self.visit(e, symbols);
                     let et = et_opt.unwrap_or(VariableType::NULL);
 
-                    if *var_type != VariableType::NULL && et != *var_type && et != VariableType::NULL {
+                    if *var_type != VariableType::NULL && !self.is_assignable(et.clone(), var_type.clone()) {
                         self.errors.push(format!(
                             "VariableType mismatch for '{}': expected {:?}, found {:?}",
                             id, var_type, et
@@ -186,7 +184,7 @@ impl Analyzer {
                         let (et_opt, _) = self.visit(expression, symbols);
                         let et = et_opt.unwrap_or(VariableType::NULL);
 
-                        if vt != et && vt != VariableType::NULL && et != VariableType::NULL {
+                        if !self.is_assignable(et.clone(), vt.clone()){
                             self.errors.push(format!(
                                 "Assignment type mismatch for '{}': {:?} vs {:?}",
                                 id, vt, et
@@ -326,15 +324,7 @@ impl Analyzer {
                 self.log.info("analyze_if()");
                 self.log.indent_inc();
 
-                let (ct_opt, _) = self.visit(condition, symbols);
-                let ct = ct_opt.unwrap_or(VariableType::NULL);
-
-                if ct != VariableType::BOOLEAN && ct != VariableType::NULL {
-                    self.errors.push(format!(
-                        "If condition must be bool, found {:?}",
-                        ct
-                    ));
-                }
+                self.visit(condition, symbols);
 
                 let mut then_scope = SymbolTable::new_child(symbols);
                 let (_, then_flow) = self.visit(then_block, &mut then_scope);
@@ -360,15 +350,7 @@ impl Analyzer {
                 self.log.info("analyze_while()");
                 self.log.indent_inc();
 
-                let (ct_opt, _) = self.visit(condition, symbols);
-                let ct = ct_opt.unwrap_or(VariableType::NULL);
-
-                if ct != VariableType::BOOLEAN && ct != VariableType::NULL {
-                    self.errors.push(format!(
-                        "While condition must be Bool, found {:?}",
-                        ct
-                    ));
-                }
+                self.visit(condition, symbols);
 
                 self.loop_depth += 1;
                 let mut local = SymbolTable::new_child(symbols);
@@ -633,6 +615,7 @@ impl Analyzer {
             STree::LIT_BOOL { .. } => (Some(VariableType::BOOLEAN), Flow::CONTINUE),
             STree::LIT_CHAR { .. } => (Some(VariableType::CHAR), Flow::CONTINUE),
             STree::LIT_STRING { .. } => (Some(VariableType::STRING), Flow::CONTINUE),
+            STree::NULL { .. } => (Some(VariableType::NULL), Flow::CONTINUE),
 
             STree::BLANK_STMT => (None, Flow::CONTINUE)
         }
@@ -691,9 +674,20 @@ impl Analyzer {
     }
 
     fn type_binary_operator(&mut self, operator: &Operator, left: VariableType, right: VariableType) -> VariableType {
+
+
+        if matches!(operator, Operator::EQUAL | Operator::NOT_EQUAL) {
+            return VariableType::BOOLEAN;
+        }
+
         if left == VariableType::NULL || right == VariableType::NULL {
+            self.errors.push(format!(
+                "Possible null operand for {:?}: {:?} and {:?}",
+                operator, left, right
+            ));
             return VariableType::NULL;
         }
+
 
         match operator {
             Operator::ADD | Operator::SUBTRACT | Operator::MULTIPLY | Operator::DIVIDE
@@ -711,15 +705,6 @@ impl Analyzer {
                         "Invalid operands for {:?}: {:?} and {:?}",
                         operator, left, right
                     ));
-                    VariableType::NULL
-                }
-            }
-
-            Operator::EQUAL | Operator::NOT_EQUAL => {
-                if left == right {
-                    VariableType::BOOLEAN
-                } else {
-                    self.errors.push(format!("Cannot compare {:?} with {:?}", left, right));
                     VariableType::NULL
                 }
             }
@@ -754,6 +739,13 @@ impl Analyzer {
         if self.loop_depth == 0 {
             self.errors.push(format!("'{}' used outside of a loop", keyword));
         }
+    }
+
+    fn is_assignable(&self, from: VariableType, to: VariableType) -> bool {
+        if from == VariableType::NULL {
+            return true;
+        }
+        from == to
     }
 
     fn analyze_match_pattern(&mut self, pattern: &STree, scrutinee_type: VariableType, scope: &mut SymbolTable) {

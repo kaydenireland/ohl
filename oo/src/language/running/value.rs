@@ -50,6 +50,14 @@ impl Value {
             _ => false
         }
     }
+
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Value::NULL => false,
+            Value::BOOLEAN(b) => *b,
+            _ => true,
+        }
+    }
 }
 
 #[derive(Clone)]

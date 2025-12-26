@@ -161,11 +161,7 @@ impl Interpreter {
 
             // Variable declaration 
             STree::LET_STMT { id, var_type: _, mutable, expression } => {
-                let value = if let Some(expr) = expression {
-                    self.evaluate_expression(expr)?
-                } else {
-                    Value::NULL
-                };
+                let value = self.evaluate_expression(expression)?;
 
                 // Variables always mutable
                 self.env.declare(id.clone(), value, *mutable);
@@ -196,7 +192,7 @@ impl Interpreter {
 
             // If
             STree::IF_EXPR { condition, then_block, else_block } => {
-                let cond = self.evaluate_expression(condition)?.as_boolean()?;
+                let cond = self.evaluate_expression(condition)?.is_truthy();
 
                 if cond {
                     self.env.push_scope();
@@ -223,7 +219,7 @@ impl Interpreter {
             // While 
             STree::WHILE_EXPR { condition, body } => {
                 loop {
-                    let cond = self.evaluate_expression(condition)?.as_boolean()?;
+                    let cond = self.evaluate_expression(condition)?.is_truthy();
                     if !cond { break; }
 
                     self.env.push_scope();
@@ -286,7 +282,7 @@ impl Interpreter {
                 }
 
                 loop {
-                    let cond = self.evaluate_expression(condition)?.as_boolean()?;
+                    let cond = self.evaluate_expression(condition)?.is_truthy();
                     if !cond { break; }
 
                     self.env.push_scope();
@@ -414,6 +410,7 @@ impl Interpreter {
             STree::LIT_BOOL { value } => Ok(Value::BOOLEAN(*value)),
             STree::LIT_CHAR { value } => Ok(Value::CHAR(*value)),
             STree::LIT_STRING { value } => Ok(Value::STRING(value.clone())),
+            STree::NULL => Ok(Value::NULL),
 
             STree::ID { name } => self.env.get(name),
 

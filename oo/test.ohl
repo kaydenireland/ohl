@@ -1,16 +1,17 @@
 public null main() {
-    let x: int = 1;
 
-    match (x) {
-        1 => System.print(1);
-        3 => {
-            x**;
-            System.print(x);
-        }
-        default => System.println("Other");
-        4 => System.println("Unreachable");
+    let x: int := null;
+    let y: int;
+    y = 5;
+    System.println(x, " ", y);
+
+    if(y > 0) {
+        y = null;
     }
 
+    if (y) {
+        System.println(y, " is not null");
+    }
 
 
 }
