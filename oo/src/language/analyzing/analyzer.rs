@@ -13,19 +13,20 @@ enum Flow {
 
 #[derive(Debug, Clone)]
 pub struct FunctionSignature {
-    parameters: Vec<VariableType>,
-    return_type: VariableType,
-    called: bool
+    pub parameters: Vec<VariableType>,
+    pub return_type: VariableType,
+    pub called: bool
 }
 
 pub struct Analyzer {
-    pub functions: HashMap<String, FunctionSignature>,
+    pub functions: HashMap<Vec<String>, FunctionSignature>,
     pub errors: Vec<String>,
     pub warnings: Vec<String>,
     pub log: Logger,
     loop_depth: usize,
+    defer_depth: usize
 }
-
+// TODO Better Null Analyzing
 impl Analyzer {
     pub fn new(_debug: bool) -> Analyzer {
         let log = Logger::new(_debug);
@@ -35,35 +36,27 @@ impl Analyzer {
             warnings: vec![],
             log,
             loop_depth: 0,
+            defer_depth: 0
         };
 
-        analyzer.register_system_functions();
+        analyzer.register_native_functions();
         analyzer
     }
 
-    fn register_system_functions(&mut self) {
-        self.functions.insert(
-            "print".to_string(),
-            FunctionSignature {
-                parameters: vec![],              // variadic (checked loosely)
-                return_type: VariableType::NULL, // print returns null
-                called: true,                    // never warn as unused
-            },
-        );
-    }
 
     pub fn analyze(mut self, tree: &STree) -> Result<Vec<String>, Vec<String>> {
         self.collect_function_signatures(tree);
         self.visit(tree, &mut SymbolTable::new());
 
-        for (name, sig) in &self.functions {
+        for (path, sig) in &self.functions {
             if !sig.called {
                 self.warnings.push(format!(
                     "Function '{}' is never called",
-                    name
+                    path.join(".")
                 ));
             }
         }
+
 
         if self.errors.is_empty() {
             Ok(self.warnings)
@@ -92,7 +85,7 @@ impl Analyzer {
 
                 let mut local = SymbolTable::new();
                 for (pname, ptype) in params {
-                    let _ = local.declare_variable(pname.clone(), ptype.clone());
+                    let _ = local.declare_variable(pname.clone(), ptype.clone(), false);
                 }
 
                 let (body_ty_opt, body_flow) = self.visit(body, &mut local);
@@ -106,14 +99,12 @@ impl Analyzer {
                     }
                 }
 
-                if let Some(bt) = body_ty_opt {
-                    if *return_type != VariableType::NULL
-                        && bt != *return_type
-                        && bt != VariableType::NULL
+                if let Some(body_type) = body_ty_opt {
+                    if *return_type != VariableType::NULL && self.is_assignable(body_type.clone(), return_type.clone())
                     {
                         self.errors.push(format!(
                             "Function '{}' declared return type {:?}, but body returns {:?}",
-                            name, return_type, bt
+                            name, return_type, body_type
                         ));
                     }
                 }
@@ -156,15 +147,15 @@ impl Analyzer {
                 (None, flow)
             }
 
-            STree::LET_STMT { id, var_type, expression } => {
+            STree::LET_STMT { id, var_type, mutable, expression } => {
                 self.log.info("analyze_let()");
                 self.log.indent_inc();
 
-                let inferred = if let Some(e) = expression {
+                let inferred = if let e = expression {
                     let (et_opt, _) = self.visit(e, symbols);
                     let et = et_opt.unwrap_or(VariableType::NULL);
 
-                    if *var_type != VariableType::NULL && et != *var_type && et != VariableType::NULL {
+                    if *var_type != VariableType::NULL && !self.is_assignable(et.clone(), var_type.clone()) {
                         self.errors.push(format!(
                             "VariableType mismatch for '{}': expected {:?}, found {:?}",
                             id, var_type, et
@@ -176,7 +167,7 @@ impl Analyzer {
                     var_type.clone()
                 };
 
-                if let Err(e) = symbols.declare_variable(id.clone(), inferred) {
+                if let Err(e) = symbols.declare_variable(id.clone(), inferred, mutable.clone()) {
                     self.errors.push(e);
                 }
 
@@ -193,7 +184,7 @@ impl Analyzer {
                         let (et_opt, _) = self.visit(expression, symbols);
                         let et = et_opt.unwrap_or(VariableType::NULL);
 
-                        if vt != et && vt != VariableType::NULL && et != VariableType::NULL {
+                        if !self.is_assignable(et.clone(), vt.clone()){
                             self.errors.push(format!(
                                 "Assignment type mismatch for '{}': {:?} vs {:?}",
                                 id, vt, et
@@ -203,15 +194,14 @@ impl Analyzer {
                     Err(e) => self.errors.push(e),
                 }
 
-                self.log.indent_dec();
-                (None, Flow::CONTINUE)
-            }
-
-            STree::PRINT_STMT { expression } => {
-                self.log.info("analyze_print()");
-                self.log.indent_inc();
-
-                let _ = self.visit(expression, symbols);
+                match symbols.check_mutability(id) {
+                    Ok(mutable) => {
+                        if !mutable {
+                            self.errors.push(format!("Variable '{}' is immutable and cannot be modified", id));
+                        }
+                    }
+                    Err(e) => self.errors.push(e),
+                }
 
                 self.log.indent_dec();
                 (None, Flow::CONTINUE)
@@ -230,20 +220,111 @@ impl Analyzer {
                 (Some(ty), Flow::STOP)
             }
 
+            STree::DEFER_STMT { body } => {
+                self.log.info("analyze_defer()");
+                self.log.indent_inc();
+
+                self.defer_depth += 1;
+
+                match body.as_ref() {
+                    STree::BLOCK { .. } => {
+                        let mut local = SymbolTable::new_child(symbols);
+                        self.visit(body, &mut local);
+                    }
+                    _ => {
+                        self.visit(body, symbols);
+                    }
+                }
+
+                self.defer_depth -= 1;
+
+                self.log.indent_dec();
+                (None, Flow::CONTINUE)
+            }
+
+            STree::MATCH_STMT { expression, arms } => {
+                self.log.info("analyze_match()");
+                self.log.indent_inc();
+
+                let scrutinee_ty = self.visit(expression, symbols).0
+                    .unwrap_or(VariableType::NULL);
+
+                let mut arm_return_type: Option<VariableType> = None;
+                let mut all_stop = true;
+
+                let mut seen_default = false;
+                let mut default_count: usize = 0;
+
+                for arm in arms {
+                    let STree::MATCH_ARM { expression: pattern, body } = arm else {
+                        unreachable!();
+                    };
+
+                    if seen_default {
+                        self.warnings.push(format!(
+                            "Unreachable match arm '{:?}': all arms after default are unreachable",
+                            pattern
+                        ));
+                    }
+
+                    if matches!(pattern.as_ref(), STree::DEFAULT) {
+                        default_count += 1;
+                        seen_default = true;
+                    }
+
+
+                    let mut arm_scope = SymbolTable::new_child(symbols);
+
+                    self.analyze_match_pattern(pattern, scrutinee_ty.clone(), &mut arm_scope);
+
+                    let (result, flow) = self.visit(body, &mut arm_scope);
+
+                    if let Some(body_type) = result {
+                        match &arm_return_type {
+                            None => arm_return_type = Some(body_type),
+                            Some(prev) if *prev == body_type => {}
+                            Some(_) => {
+                                self.errors.push(
+                                    "Match arms return incompatible types".to_string()
+                                );
+                                arm_return_type = Some(VariableType::NULL);
+                            }
+                        }
+                    }
+
+                    if flow != Flow::STOP {
+                        all_stop = false;
+                    }
+                }
+
+                if default_count > 1 {
+                    self.errors.push(format!("Match can have one default arm at most, currently {}", default_count));
+                }
+
+                self.log.indent_dec();
+
+                (
+                    arm_return_type,
+                    if all_stop { Flow::STOP } else { Flow::CONTINUE }
+                )
+            }
+
+
+            STree::MATCH_ARM { expression: _, body: _ } => {
+                self.errors.push("MATCH_ARM must be analyzed inside MATCH_STMT".to_string());
+                (None, Flow::CONTINUE)
+            }
+
+            STree::DEFAULT => {
+                self.log.info("analyze_default()");
+                (Some(VariableType::NULL), Flow::CONTINUE)
+            }
 
             STree::IF_EXPR { condition, then_block, else_block } => {
                 self.log.info("analyze_if()");
                 self.log.indent_inc();
 
-                let (ct_opt, _) = self.visit(condition, symbols);
-                let ct = ct_opt.unwrap_or(VariableType::NULL);
-
-                if ct != VariableType::BOOLEAN && ct != VariableType::NULL {
-                    self.errors.push(format!(
-                        "If condition must be Bool, found {:?}",
-                        ct
-                    ));
-                }
+                self.visit(condition, symbols);
 
                 let mut then_scope = SymbolTable::new_child(symbols);
                 let (_, then_flow) = self.visit(then_block, &mut then_scope);
@@ -269,15 +350,7 @@ impl Analyzer {
                 self.log.info("analyze_while()");
                 self.log.indent_inc();
 
-                let (ct_opt, _) = self.visit(condition, symbols);
-                let ct = ct_opt.unwrap_or(VariableType::NULL);
-
-                if ct != VariableType::BOOLEAN && ct != VariableType::NULL {
-                    self.errors.push(format!(
-                        "While condition must be Bool, found {:?}",
-                        ct
-                    ));
-                }
+                self.visit(condition, symbols);
 
                 self.loop_depth += 1;
                 let mut local = SymbolTable::new_child(symbols);
@@ -374,7 +447,7 @@ impl Analyzer {
                 };
 
                 let mut local = SymbolTable::new_child(symbols);
-                if let Err(e) = local.declare_variable(variable.clone(), element_type) {
+                if let Err(e) = local.declare_variable(variable.clone(), element_type, false) {
                     self.errors.push(e);
                 }
 
@@ -490,35 +563,40 @@ impl Analyzer {
                 (Some(out), Flow::CONTINUE)
             }
 
-            STree::CALL { name, arguments } => {
+            STree::CALL { path, arguments } => {
                 self.log.info("analyze_function_call()");
 
-                let arg_types: Vec<_> = arguments
+                let arg_types: Vec<VariableType> = arguments
                     .iter()
-                    .map(|a| self.visit(a, symbols).0)
+                    .map(|a| self.visit(a, symbols).0.unwrap_or(VariableType::NULL))
                     .collect();
 
-                if let Some(sig) = self.functions.get_mut(name) {
+                if let Some(sig) = self.functions.get_mut(path) {
                     sig.called = true;
 
                     if !sig.parameters.is_empty() && sig.parameters.len() != arg_types.len() {
                         self.errors.push(format!(
-                            "Function '{}' expects {} args but {} provided",
-                            name,
+                            "Function '{}': expects {} args but {} provided",
+                            path.join("."),
                             sig.parameters.len(),
                             arg_types.len()
                         ));
                     }
 
-                    (Some(sig.return_type.clone()), Flow::CONTINUE)
-                } else {
-                    self.errors.push(format!(
-                        "Call to unknown function '{}'",
-                        name
-                    ));
-                    (None, Flow::CONTINUE)
+                    if path.join(".") == "System.exit" {
+                        return (Some(sig.return_type.clone()), Flow::STOP);
+                    }
+
+                    return (Some(sig.return_type.clone()), Flow::CONTINUE);
                 }
+
+                self.errors.push(format!(
+                    "Call to unknown function '{}'",
+                    path.join(".")
+                ));
+                (None, Flow::CONTINUE)
             }
+
 
 
             STree::ID { name } => {
@@ -537,6 +615,9 @@ impl Analyzer {
             STree::LIT_BOOL { .. } => (Some(VariableType::BOOLEAN), Flow::CONTINUE),
             STree::LIT_CHAR { .. } => (Some(VariableType::CHAR), Flow::CONTINUE),
             STree::LIT_STRING { .. } => (Some(VariableType::STRING), Flow::CONTINUE),
+            STree::NULL { .. } => (Some(VariableType::NULL), Flow::CONTINUE),
+
+            STree::BLANK_STMT => (None, Flow::CONTINUE)
         }
     }
 }
@@ -553,9 +634,10 @@ impl Analyzer {
                         .map(|(_, t)| t.clone())
                         .collect();
 
-                    let called = name == "main"; 
+                    let key = vec![name.clone()];
+                    let called = name == "main";
 
-                    match self.functions.entry(name.clone()) {
+                    match self.functions.entry(key) {
                         Entry::Occupied(_) => {
                             self.errors.push(format!(
                                 "Function '{}' already declared",
@@ -592,9 +674,20 @@ impl Analyzer {
     }
 
     fn type_binary_operator(&mut self, operator: &Operator, left: VariableType, right: VariableType) -> VariableType {
+
+
+        if matches!(operator, Operator::EQUAL | Operator::NOT_EQUAL) {
+            return VariableType::BOOLEAN;
+        }
+
         if left == VariableType::NULL || right == VariableType::NULL {
+            self.errors.push(format!(
+                "Possible null operand for {:?}: {:?} and {:?}",
+                operator, left, right
+            ));
             return VariableType::NULL;
         }
+
 
         match operator {
             Operator::ADD | Operator::SUBTRACT | Operator::MULTIPLY | Operator::DIVIDE
@@ -612,15 +705,6 @@ impl Analyzer {
                         "Invalid operands for {:?}: {:?} and {:?}",
                         operator, left, right
                     ));
-                    VariableType::NULL
-                }
-            }
-
-            Operator::EQUAL | Operator::NOT_EQUAL => {
-                if left == right {
-                    VariableType::BOOLEAN
-                } else {
-                    self.errors.push(format!("Cannot compare {:?} with {:?}", left, right));
                     VariableType::NULL
                 }
             }
@@ -648,6 +732,7 @@ impl Analyzer {
 
             _ => VariableType::NULL,
         }
+
     }
 
     fn require_loop(&mut self, keyword: &str) {
@@ -655,4 +740,34 @@ impl Analyzer {
             self.errors.push(format!("'{}' used outside of a loop", keyword));
         }
     }
+
+    fn is_assignable(&self, from: VariableType, to: VariableType) -> bool {
+        if from == VariableType::NULL {
+            return true;
+        }
+        from == to
+    }
+
+    fn analyze_match_pattern(&mut self, pattern: &STree, scrutinee_type: VariableType, scope: &mut SymbolTable) {
+        match pattern {
+            STree::ID { name } => {
+                scope.declare_variable(name.clone(), scrutinee_type, false).ok();
+            }
+
+            STree::LIT_INT { .. } if scrutinee_type == VariableType::INT => {}
+            STree::LIT_FLOAT { .. } if scrutinee_type == VariableType::FLOAT => {}
+            STree::LIT_BOOL { .. } if scrutinee_type == VariableType::BOOLEAN => {}
+            STree::LIT_CHAR { .. } if scrutinee_type == VariableType::CHAR => {}
+            STree::LIT_STRING { .. } if scrutinee_type == VariableType::STRING => {}
+            STree::NULL => {},
+            STree::DEFAULT  => {}
+
+
+            _ => self.errors.push(format!(
+                "Pattern {:?} does not match type {:?}",
+                pattern, scrutinee_type
+            )),
+        }
+    }
+
 }

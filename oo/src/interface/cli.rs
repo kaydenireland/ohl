@@ -1,5 +1,3 @@
-use std::process::exit;
-
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 
@@ -152,7 +150,7 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     let stree = match result {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("{}: Semantic Conversion Failed \n{}/n", "ERROR".red(), e.red());
+            eprintln!("{}: Semantic Conversion Failed \n{}\n", "ERROR".red(), e.red());
             std::process::exit(0)
         }
     };
@@ -200,7 +198,7 @@ pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
     let mut folder: ConstantFolder = ConstantFolder::new(_debug);
     folder.run(&mut stree);
 
-    println!("\n{} {}\n", "Running".to_string().green(), &path.white());
+    println!("\n\n{} {}", "Running".to_string().green(), &path.white());
 
     let mut interpreter = Interpreter::new();
 
@@ -224,10 +222,12 @@ pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
     if let Some(start) = start {
         let elapsed = start.elapsed();
         println!(
-            "\n{} execution in {:.6}s",
+            "\n\n{} execution in {:.6}s",
             "Completed".green(),
             elapsed.as_secs_f64().to_string().cyan()
         );
+    } else {
+        println!("\n");
     }
-    println!();
+    
 }

@@ -44,10 +44,22 @@ impl Value {
         }
     }
 
+    pub fn is_null(&self) -> bool {
+        matches!(self, Value::NULL)
+    }
+
     pub fn is_numeric(&self) -> bool {
         match self {
             Value::INT(..) | Value::FLOAT(..) => true,
             _ => false
+        }
+    }
+
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Value::NULL => false,
+            Value::BOOLEAN(b) => *b,
+            _ => true,
         }
     }
 }

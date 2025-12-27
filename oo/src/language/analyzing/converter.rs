@@ -131,7 +131,7 @@ impl Converter {
             }
 
             // Expected Variable Declaration Children
-            // [ ID(name), VARIABLE_TYPE, Option<Expression> ]
+            // [ ID(name), VARIABLE_TYPE, MUTABLE/IMMUTABLE, Option<Expression> ]
             Token::VAR_DECL => {
                 self.log.info("convert_let_statement()");
                 self.log.indent_inc();
@@ -152,15 +152,19 @@ impl Converter {
                     _ => return Err("Unexpected Variable Type".into()),
                 };
 
-                let mut expression: Option<Box<STree>> = None;
-                if node.children.len() >= 3 {
-                    let expression_node = &node.children[2];
-                    expression = Some(Box::new(self.convert_tree(expression_node)?));
+                let mutable = node.children[2].token == Token::MUTABLE;
+
+                let expression: Box<STree>;
+                if node.children.len() >= 4 {
+                    let expression_node = &node.children[3];
+                    expression = Box::new(self.convert_tree(expression_node)?);
+                } else {
+                    expression = Box::new(STree::NULL)
                 }
 
                 self.log.indent_dec();
 
-                Ok(STree::LET_STMT { id, var_type: variable_type, expression })
+                Ok(STree::LET_STMT { id, var_type: variable_type, mutable, expression })
             }
 
             // Expected Assignment Children
@@ -225,13 +229,18 @@ impl Converter {
                 self.log.info("convert_return()");
                 self.log.indent_inc();
 
-                // TODO: Empty returns (return;)
-                let expression_node = node.children.get(0).ok_or("Return Statement Missing Expression")?;
-                let expression = self.convert_tree(expression_node)?;
-
-                self.log.indent_dec();
-
-                Ok(STree::RETURN_STMT { expression: Some(Box::new(expression)) })
+                let expression_node = node.children.get(0);
+                match expression_node {
+                    Some(_) => {
+                        let expression = self.convert_tree(expression_node.unwrap())?;
+                        self.log.indent_dec();
+                        Ok(STree::RETURN_STMT { expression: Some(Box::new(expression)) })
+                    },
+                    None => {
+                        self.log.indent_dec();
+                        Ok(STree::RETURN_STMT { expression: None })
+                    }
+                }
             }
 
             // Expected For-Loop Children
@@ -379,18 +388,70 @@ impl Converter {
                 })
             } 
 
-            // Expected Print Children
-            // [ Expression ]
-            Token::PRINT =>  {
-                self.log.info("convert_print()");
+            // Expected Match Children
+            // [Expression, Vec<Arm>]
+            Token::MATCH => {
+                self.log.info("convert_match()");
                 self.log.indent_inc();
 
-                let expression_node = node.children.get(0).ok_or("Print missing expression")?;
+                let expression_node = node.children.get(0).ok_or("Invalid expression for MATCH".to_string())?;
                 let expression = self.convert_tree(expression_node)?;
 
-                self.log.indent_dec();
+                let mut arms: Vec<STree> = Vec::new();
+                for child in node.children.iter().skip(1) {
+                    match child.token {
+                        Token::MATCH_ARM => arms.push(self.convert_tree(child)?),
+                        _ => return Err(format!("Match child expected MATCH_ARM, got {:?}", child.token))
+                    }
+                }
 
-                Ok(STree::PRINT_STMT { expression: Box::new(expression) })
+                self.log.indent_dec();
+                Ok(STree::MATCH_STMT { expression: Box::new(expression), arms })
+            }
+
+            // Expected Match Arm Children
+            // [Expression, Expression/Block]
+            Token::MATCH_ARM => {
+                self.log.info("convert_match_arm()");
+                self.log.indent_inc();
+
+                let pattern_node = node.children.get(0)
+                    .ok_or("MATCH_ARM missing pattern".to_string())?;
+
+                let body_node = node.children.get(1)
+                    .ok_or("MATCH_ARM missing body".to_string())?;
+
+                if node.children.len() != 2 {
+                    return Err(format!(
+                        "MATCH_ARM expects 2 children, got {}",
+                        node.children.len()
+                    ));
+                }
+
+                let pattern = self.convert_tree(pattern_node)?;
+                let body = self.convert_tree(body_node)?;
+
+                self.log.indent_dec();
+                Ok(STree::MATCH_ARM {
+                    expression: Box::new(pattern),
+                    body: Box::new(body),
+                })
+            }
+
+            Token::DEFAULT => Ok(STree::DEFAULT),
+
+
+            // Expected Defer Children
+            // [Block/Expression]
+            Token::DEFER => {
+                self.log.info("convert_defer()");
+                self.log.indent_inc();
+
+                let body_node = node.children.get(0).ok_or("Defer must have a body".to_string())?;
+                let body = self.convert_tree(body_node)?;
+
+                self.log.indent_dec();
+                Ok(STree::DEFER_STMT { body: Box::new(body) })
             }
 
             // Unary Prefix Operators 
@@ -484,24 +545,40 @@ impl Converter {
                 }
             }
 
+            // Function/Module Calls
+            Token::CALL => {
+                self.log.info("convert_call()");
+                self.log.indent_inc();
+
+                if node.children.is_empty() {
+                    return Err("CALL node missing callee".into());
+                }
+
+                let callee_node = &node.children[0];
+
+                let mut arguments = Vec::new();
+                for arg_node in node.children.iter().skip(1) {
+                    arguments.push(self.convert_tree(arg_node)?);
+                }
+
+                let mut path = Vec::new();
+                self.extract_path(callee_node, &mut path)?;
+
+                self.log.indent_dec();
+                Ok(STree::CALL { path, arguments })
+            }
+
+            // Periods
+            Token::POINT => Err("Member access is only allowed as a call target".into()),
+
+
             // Identifier
             Token::ID { name } => {
                 self.log.info("convert_identifier()");
-                self.log.indent_inc();
-
-                if node.children.len() > 0 {
-                    let mut args = Vec::new();
-                    for argument_node in &node.children {
-                        args.push(self.convert_tree(argument_node)?);
-                    }
-                    self.log.indent_dec();
-                    Ok(STree::CALL { name: name.clone(), arguments: args })
-                } else {
-                    self.log.indent_dec();
-                    Ok(STree::ID { name: name.clone() })
-                }
-
+                Ok(STree::ID { name: name.clone() })
             }
+
+
 
 
             Token::LIT_INT { value } => Ok(STree::LIT_INT { value: *value }),
@@ -509,7 +586,9 @@ impl Converter {
             Token::LIT_BOOL { value } => Ok(STree::LIT_BOOL { value: *value }),
             Token::LIT_CHAR { value } => Ok(STree::LIT_CHAR { value: *value }),
             Token::LIT_STRING { value } => Ok(STree::LIT_STRING { value: value.clone() }),
+            Token::NULL => Ok(STree::NULL),
 
+            Token::BLANK_STMT => Ok(STree::BLANK_STMT),
 
             other => {
                 self.log.indent_dec();
@@ -517,4 +596,26 @@ impl Converter {
             }
         }
     }
+}
+
+// Helpers
+impl Converter {
+    fn extract_path(&self, node: &MTree, out: &mut Vec<String>) -> Result<(), String> {
+        match &node.token {
+            Token::ID { name } => {
+                out.push(name.clone());
+                Ok(())
+            }
+            Token::POINT => {
+                if node.children.len() != 2 {
+                    return Err("POINT must have exactly 2 children".into());
+                }
+                self.extract_path(&node.children[0], out)?;
+                self.extract_path(&node.children[1], out)?;
+                Ok(())
+            }
+            _ => Err(format!("Expected ID or POINT in qualified name, got {:?}", node.token)),
+        }
+    }
+
 }

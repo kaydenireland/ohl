@@ -1,0 +1,11 @@
+public null main() {
+
+    let y: int;
+    System.println(y);
+
+    match (y) {
+        1 => System.println(1);
+        null => System.println(null);
+        default => System.println("def");
+    }
+}

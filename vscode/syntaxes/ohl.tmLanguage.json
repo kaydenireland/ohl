@@ -62,7 +62,7 @@
       "patterns": [
         {
           "name": "keyword.control.ohl",
-          "match": "\\b(if|else|for|each|loop|while|return|break|continue|repeat)\\b"
+          "match": "\\b(if|else|for|each|in|defer|loop|while|return|break|continue|repeat|default)\\b"
         },
         {
           "name": "keyword.declaration.ohl",
@@ -75,7 +75,7 @@
       "patterns": [
         {
           "name": "storage.type.ohl",
-          "match": "\\b(int|float|boolean|string|null)\\b"
+          "match": "\\b(int|float|boolean|string|char|null)\\b"
         }
       ]
     },
@@ -114,7 +114,7 @@
 			},
 			{
 			"name": "keyword.operator.assignment.ohl",
-			"match": "(=|\\+=|-=|\\*=|/=|%=|\\^=|\\^/=)"
+			"match": "(=|:=|\\+=|-=|\\*=|/=|%=|\\^=|\\^/=)"
 			}
 		]
 		},

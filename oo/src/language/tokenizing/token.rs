@@ -77,6 +77,7 @@ pub enum Token {
     REPEAT,
     PRINT,
     RETURN,
+    DEFER,
     MATCH,
     DEFAULT,
 
@@ -87,6 +88,7 @@ pub enum Token {
 
     // Identifiers
     ID { name: String },
+    CALL,
 
     // Basic Types
     INT,
@@ -115,11 +117,14 @@ pub enum Token {
     PARAM_LIST,
     PARAM,
     BLOCK,
+    BLANK_STMT,
     IF_STMT,
     VAR_DECL,
     RTRN_STMT,
     EXPR,
     MATCH_ARM,
+    MUTABLE,
+    IMMUTABLE
 }
 
 impl Token {
