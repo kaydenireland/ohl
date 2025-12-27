@@ -680,6 +680,25 @@ impl Analyzer {
             return VariableType::BOOLEAN;
         }
 
+        if *operator == Operator::NULL_COAL {
+            if left == VariableType::NULL {
+                return right;
+            }
+
+            if right == VariableType::NULL {
+                return left;
+            }
+
+            if left == right {
+                return left;
+            }
+
+            self.errors.push(format!(
+                "Null coalescing requires compatible types, found {:?} ?? {:?}",
+                left, right
+    ));
+        }
+
         if left == VariableType::NULL || right == VariableType::NULL {
             self.errors.push(format!(
                 "Possible null operand for {:?}: {:?} and {:?}",

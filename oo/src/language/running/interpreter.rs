@@ -487,10 +487,41 @@ impl Interpreter {
 
 
             STree::EXPR { left, operator, right } => {
-                let lhs = self.evaluate_expression(left)?;
-                let rhs = self.evaluate_expression(right)?;
-                self.evaluate_binary_expression(lhs, rhs, operator.clone())
+                match operator {
+                    Operator::NULL_COAL => {
+                        let lhs = self.evaluate_expression(left)?;
+                        if !lhs.is_null() {
+                            return Ok(lhs);
+                        }
+                        self.evaluate_expression(right)
+                    }
+
+                    Operator::AND => {
+                        let lhs = self.evaluate_expression(left)?;
+                        if !lhs.as_boolean()? {
+                            return Ok(Value::BOOLEAN(false));
+                        }
+                        let rhs = self.evaluate_expression(right)?;
+                        Ok(Value::BOOLEAN(rhs.as_boolean()?))
+                    }
+
+                    Operator::OR => {
+                        let lhs = self.evaluate_expression(left)?;
+                        if lhs.as_boolean()? {
+                            return Ok(Value::BOOLEAN(true));
+                        }
+                        let rhs = self.evaluate_expression(right)?;
+                        Ok(Value::BOOLEAN(rhs.as_boolean()?))
+                    }
+
+                    _ => {
+                        let lhs = self.evaluate_expression(left)?;
+                        let rhs = self.evaluate_expression(right)?;
+                        self.evaluate_binary_expression(lhs, rhs, operator.clone())
+                    }
+                }
             }
+
 
             STree::ASSIGN_STMT { id, expression } => {
                 let value = self.evaluate_expression(expression)?;
@@ -613,6 +644,11 @@ impl Interpreter {
                 (Value::INT(a), Value::INT(b)) => Ok(Value::BOOLEAN(a >= b)),
                 (Value::FLOAT(a), Value::FLOAT(b)) => Ok(Value::BOOLEAN(a >= b)),
                 _ => Err("Invalid operands for '>='".to_string()),
+            },
+
+            Operator::NULL_COAL => match (lhs, rhs) {
+                (Value::NULL, other) => Ok(other),
+                (other, _) => Ok(other)
             },
 
             _ => Err(format!("Expected binary operator, got {:?}", operator))

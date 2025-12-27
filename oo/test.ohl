@@ -1,11 +1,6 @@
 public null main() {
 
-    let y: int;
-    System.println(y);
+    let x: int = null ?? 5;
 
-    match (y) {
-        1 => System.println(1);
-        null => System.println(null);
-        default => System.println("def");
-    }
+    System.print(x);
 }

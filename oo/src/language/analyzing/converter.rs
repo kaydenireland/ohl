@@ -496,7 +496,7 @@ impl Converter {
             // Binary Operators
             Token::ADD | Token::SUB | Token::MULT | Token::DIV | Token::REM | Token::POWER | Token::ROOT 
             | Token::EQUAL | Token::NEQ | Token::LT | Token::GT | Token::NLT | Token::NGT 
-            | Token::AND | Token::OR | Token::XOR => {
+            | Token::AND | Token::OR | Token::XOR | Token::NULL_COAL => {
                 // Check for Unary
                 if node.children.len() == 1 {
                     self.log.info("convert_unary_op()");
@@ -535,6 +535,7 @@ impl Converter {
                         Token::AND => Operator::AND,
                         Token::OR => Operator::OR,
                         Token::XOR => Operator::XOR,
+                        Token::NULL_COAL => Operator::NULL_COAL,
                         _ => return Err("Invalid Binary Operator".into())
                     };
 

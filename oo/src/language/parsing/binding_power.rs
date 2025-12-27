@@ -31,6 +31,7 @@ impl Token {
             Token::POWER_ASSIGN |
             Token::ROOT_ASSIGN => BindingPower { left: 5, right: 4, unary: 0 },
 
+            Token::NULL_COAL => BindingPower { left: 10, right: 9, unary: 0 },
 
             Token::OR | Token::XOR => BindingPower { left: 15, right: 16, unary: 0 },
             Token::AND => BindingPower { left: 20, right: 21, unary: 0 },

@@ -38,8 +38,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Blank statements from extra semicolons
 - Basic match statements
 - Null values
+- Null coalescing
 
 ### Changed
 
 - For-Each variables are now immutable
 - If/While accept any variable type, non bool variable are true when not null
+- Lazy and, or interpretation

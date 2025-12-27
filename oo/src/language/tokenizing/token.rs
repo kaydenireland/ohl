@@ -54,6 +54,10 @@ pub enum Token {
     OR,  // '||' or keyword or
     XOR, // '^^' or keyword xor
 
+    // Conditional Operators
+    QUESTION,
+    NULL_COAL,
+
     // Assignment
     ASSIGN, // '='
 

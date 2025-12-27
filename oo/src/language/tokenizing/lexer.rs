@@ -30,6 +30,7 @@ enum LexerState {
     AMPERSAND,
 
     EXCLAIM,
+    QUESTION,
 
     COMMENTS,
     BLOCK_COMMENT,
@@ -102,6 +103,7 @@ impl Lexer {
                     LexerState::CARET => self.current_token = Token::POWER,
                     LexerState::ROOT => self.current_token = Token::ROOT,
                     LexerState::EXCLAIM => self.current_token = Token::NOT,
+                    LexerState::QUESTION => self.current_token = Token::QUESTION,
                     LexerState::PERIOD => self.current_token = Token::POINT,
                     _ => self.current_token = Token::EOI,
                 }
@@ -179,6 +181,7 @@ impl Lexer {
                     '%' => self.state = LexerState::PERCENT,
                     '^' => self.state = LexerState::CARET,
                     '!' => self.state = LexerState::EXCLAIM,
+                    '?' => self.state = LexerState::QUESTION,
                     '|' => self.state = LexerState::PIPE,
                     '&' => self.state = LexerState::AMPERSAND,
 
@@ -465,6 +468,19 @@ impl Lexer {
                     _ => {
                         self.state = LexerState::START;
                         self.current_token = Token::NOT;
+                        self.position -= 1;
+                        break;
+                    }
+                },
+                LexerState::QUESTION => match current_char {
+                    '?' => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::NULL_COAL;
+                        break;
+                    }
+                    _ => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::QUESTION;
                         self.position -= 1;
                         break;
                     }

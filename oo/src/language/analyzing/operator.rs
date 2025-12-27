@@ -22,6 +22,8 @@ pub enum Operator {
     OR,
     XOR,
 
+    NULL_COAL,
+
     EQUAL,
     LESS_THAN,
     NOT_GREATER_THAN,
