@@ -574,6 +574,9 @@ impl Interpreter {
                 (Value::FLOAT(a), Value::FLOAT(b)) => Ok(Value::BOOLEAN(a == b)),
                 (Value::BOOLEAN(a), Value::BOOLEAN(b)) => Ok(Value::BOOLEAN(a == b)),
                 (Value::CHAR(a), Value::CHAR(b)) => Ok(Value::BOOLEAN(a == b)),
+                (Value::NULL, Value::NULL) => Ok(Value::BOOLEAN(true)),
+                (other, Value::NULL) => Ok(Value::BOOLEAN(other.is_null())),
+                (Value::NULL, other) => Ok(Value::BOOLEAN(other.is_null())),
                 _ => Err("Invalid operands for '=='".to_string()),
             },
 
@@ -582,6 +585,9 @@ impl Interpreter {
                 (Value::FLOAT(a), Value::FLOAT(b)) => Ok(Value::BOOLEAN(a != b)),
                 (Value::BOOLEAN(a), Value::BOOLEAN(b)) => Ok(Value::BOOLEAN(a != b)),
                 (Value::CHAR(a), Value::CHAR(b)) => Ok(Value::BOOLEAN(a != b)),
+                (Value::NULL, Value::NULL) => Ok(Value::BOOLEAN(false)),
+                (other, Value::NULL) => Ok(Value::BOOLEAN(!other.is_null())),
+                (Value::NULL, other) => Ok(Value::BOOLEAN(!other.is_null())),
                 _ => Err("Invalid operands for '!='".to_string()),
             },
 
@@ -636,6 +642,10 @@ impl Interpreter {
         Ok(match pattern {
             // default
             STree::DEFAULT => Some(None),
+            STree::NULL => match scrutinee {
+                Value::NULL => Some(None),
+                _ => None,
+            },
 
             // binding pattern
             STree::ID { name } => Some(Some((name.clone(), scrutinee.clone()))),

@@ -44,6 +44,10 @@ impl Value {
         }
     }
 
+    pub fn is_null(&self) -> bool {
+        matches!(self, Value::NULL)
+    }
+
     pub fn is_numeric(&self) -> bool {
         match self {
             Value::INT(..) | Value::FLOAT(..) => true,

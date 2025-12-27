@@ -759,6 +759,7 @@ impl Analyzer {
             STree::LIT_BOOL { .. } if scrutinee_type == VariableType::BOOLEAN => {}
             STree::LIT_CHAR { .. } if scrutinee_type == VariableType::CHAR => {}
             STree::LIT_STRING { .. } if scrutinee_type == VariableType::STRING => {}
+            STree::NULL => {},
             STree::DEFAULT  => {}
 
 

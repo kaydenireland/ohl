@@ -1,17 +1,11 @@
 public null main() {
 
-    let x: int := null;
     let y: int;
-    y = 5;
-    System.println(x, " ", y);
+    System.println(y);
 
-    if(y > 0) {
-        y = null;
+    match (y) {
+        1 => System.println(1);
+        null => System.println(null);
+        default => System.println("def");
     }
-
-    if (y) {
-        System.println(y, " is not null");
-    }
-
-
 }

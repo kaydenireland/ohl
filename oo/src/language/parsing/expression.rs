@@ -51,20 +51,6 @@ impl Parser {
         MTree::new(atom)
     }
 
-
-    // pub fn parse_call_expression(&mut self, token: Token) -> MTree {
-    //     let mut child = MTree::new(token);
-    //     self.expect(Token::PAREN_L);
-    //     if ! self.is(Token::PAREN_R) {
-    //         child.children.push(self.parse_expression());
-    //         while self.accept(Token::COMMA) {
-    //             child.children.push(self.parse_expression());
-    //         }
-    //     }
-    //     self.expect(Token::PAREN_R);
-    //     child
-    // }
-
     pub fn parse_call_expression_from_tree(&mut self, callee: MTree) -> MTree {
         let mut node = MTree::new(Token::CALL);
 
