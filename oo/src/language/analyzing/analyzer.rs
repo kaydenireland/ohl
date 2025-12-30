@@ -432,17 +432,21 @@ impl Analyzer {
                 self.log.info("analyze_for_each()");
                 self.log.indent_inc();
 
-                let (it_opt, _) = self.visit(iterable, symbols);
-                let it_type = it_opt.unwrap_or(VariableType::NULL);
+                let element_type = match iterable.as_ref() {
+                    STree::RANGE { .. } => {
+                        let (it_opt, _) = self.visit(iterable, symbols);
+                        it_opt.unwrap_or(VariableType::NULL)
+                    }
 
-                let element_type = match it_type {
-                    VariableType::STRING => VariableType::CHAR,
                     _ => {
-                        self.errors.push(format!(
-                            "Cannot iterate over type {:?}",
-                            it_type
-                        ));
-                        VariableType::NULL
+                        let (it_opt, _) = self.visit(iterable, symbols);
+                        match it_opt.unwrap_or(VariableType::NULL) {
+                            VariableType::STRING => VariableType::CHAR,
+                            other => {
+                                self.errors.push(format!("Cannot iterate over type {:?}", other));
+                                VariableType::NULL
+                            }
+                        }
                     }
                 };
 
@@ -458,6 +462,7 @@ impl Analyzer {
                 self.log.indent_dec();
                 (None, Flow::CONTINUE)
             }
+
 
             STree::BREAK => {
                 self.log.info("analyze_break()");
@@ -477,9 +482,33 @@ impl Analyzer {
                 (None, Flow::STOP)
             }
 
+            STree::RANGE { start, end, inclusive: _ } => {
+                self.log.info("analyze_range()");
+                self.log.indent_inc();
+
+                let (start_type_opt, _) = self.visit(start, symbols);
+                let (end_type_opt, _ ) = self.visit(end, symbols);
+                let start_type = start_type_opt.unwrap_or(VariableType::NULL);
+                let end_type = end_type_opt.unwrap_or(VariableType::NULL);
+
+                if start_type != end_type {
+                    self.errors.push(format!("Range bounds must have same types, currently {:?} and {:?}", start_type, end_type));
+                }
+
+                match start_type {
+                    VariableType::CHAR
+                    | VariableType::INT | VariableType::FLOAT => {},
+                    _ => self.errors.push(format!("Range bounds must be char or numeric, currently {:?}", start_type)),
+                }
+
+                self.log.indent_dec();
+                (Some(start_type), Flow::CONTINUE)
+            }
+
 
             STree::EXPR { left, operator, right } => {
                 self.log.info("analyze_expression()");
+                self.log.indent_inc();
 
                 let (lt_opt, _) = self.visit(left, symbols);
                 let (rt_opt, _) = self.visit(right, symbols);
@@ -487,6 +516,7 @@ impl Analyzer {
                 let rt = rt_opt.unwrap_or(VariableType::NULL);
 
                 let out = self.type_binary_operator(operator, lt, rt);
+                self.log.indent_dec();
                 (Some(out), Flow::CONTINUE)
             }
 
@@ -779,6 +809,24 @@ impl Analyzer {
             STree::LIT_CHAR { .. } if scrutinee_type == VariableType::CHAR => {}
             STree::LIT_STRING { .. } if scrutinee_type == VariableType::STRING => {}
             STree::NULL => {},
+            STree::RANGE { start, end, .. } => {
+                let (st_opt, _) = self.visit(start, scope);
+                let (et_opt, _) = self.visit(end, scope);
+                let st = st_opt.unwrap_or(VariableType::NULL);
+                let et = et_opt.unwrap_or(VariableType::NULL);
+
+                if st != scrutinee_type || et != scrutinee_type {
+                    self.errors.push(format!("Range pattern bounds must match scrutinee type {:?}",scrutinee_type));
+                }
+
+                match scrutinee_type {
+                    VariableType::INT | VariableType::FLOAT | VariableType::CHAR => {}
+                    _ => self.errors.push(format!(
+                        "Range patterns only valid for INT, FLOAT, or CHAR; got {:?}",
+                        scrutinee_type
+                    )),
+                }
+            },
             STree::DEFAULT  => {}
 
 

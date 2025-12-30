@@ -1,6 +1,7 @@
 public null main() {
+    let x: int := 5;
 
-    let x: int = null ?? 5;
-
-    System.print(x);
+    for each i in ('A'..='z') {
+        System.println(i);
+    }
 }

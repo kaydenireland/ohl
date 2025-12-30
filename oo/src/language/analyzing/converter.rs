@@ -189,6 +189,24 @@ impl Converter {
                 Ok(STree::ASSIGN_STMT { id, expression: Box::new(right) })
             }
 
+            Token::RANGE_INCL | Token::RANGE_EXCL => {
+                self.log.info("convert_range()");
+                self.log.indent_inc();
+
+                if node.children.len() != 2 {
+                    return Err("Assignment must have left and right side".into());
+                }
+
+                let inclusive = node.token == Token::RANGE_INCL;
+
+                let start = self.convert_tree(&node.children[0])?;
+                let end = self.convert_tree(&node.children[1])?;
+
+                self.log.indent_dec();
+
+                Ok(STree::RANGE { start: Box::new(start), end: Box::new(end), inclusive })
+            }
+
 
             Token::ADD_ASSIGN | Token::SUB_ASSIGN | Token::MULT_ASSIGN |Token::DIV_ASSIGN
             | Token::REM_ASSIGN | Token::POWER_ASSIGN | Token::ROOT_ASSIGN => {

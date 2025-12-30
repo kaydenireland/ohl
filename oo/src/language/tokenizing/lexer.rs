@@ -9,10 +9,11 @@ enum LexerState {
     READ_CHAR,
     READ_STRING,
     NUMBERS,
-    NUM_POINT,
+    AFTER_DOT,
     DECIMALS,
 
     PERIOD,
+    RANGE,
 
     EQUAL,
     GREATER,
@@ -84,7 +85,7 @@ impl Lexer {
         loop {
             if self.position == self.input_string.len() {
                 match self.state {
-                    LexerState::NUM_POINT => {
+                    LexerState::AFTER_DOT => {
                         let value: f32 = self.buffer_string.parse().unwrap();
                         self.state = LexerState::START;
                         self.current_token = Token::LIT_FLOAT { value };
@@ -208,7 +209,7 @@ impl Lexer {
                     }
 
                     '.' => {
-                        self.state = LexerState::NUM_POINT;
+                        self.state = LexerState::AFTER_DOT;
                     }
 
                     _ => {
@@ -221,11 +222,20 @@ impl Lexer {
                         break;
                     }
                 },
-                LexerState::NUM_POINT => match current_char {
+                LexerState::AFTER_DOT => match current_char {
                     '0'..='9' => {
                         self.state = LexerState::DECIMALS;
                         self.buffer_string.push('.');
                         self.buffer_string.push(current_char);
+                    }
+
+                    '.' => {
+                        self.state = LexerState::RANGE;
+
+                        let value: i32 = self.buffer_string.parse().unwrap();
+                        self.current_token = Token::LIT_INT { value };
+                        self.buffer_string = String::new();
+                        break;
                     }
 
                     _ => {
@@ -288,6 +298,8 @@ impl Lexer {
                         self.state = LexerState::DECIMALS
                     }
 
+                    '.' => self.state = LexerState::RANGE,
+
                     _ => {
                         self.current_token = Token::POINT;
                         self.position -= 1;
@@ -295,6 +307,20 @@ impl Lexer {
                         break;
                     }
                 },
+                LexerState::RANGE => match current_char {
+                    '=' => {
+                        self.current_token = Token::RANGE_INCL;
+                        self.state = LexerState::START;
+                        break;
+                    }
+
+                    _ => {
+                        self.current_token = Token::RANGE_EXCL;
+                        self.position -= 1;
+                        self.state = LexerState::START;
+                        break;
+                    }
+                }
                 LexerState::EQUAL => match current_char {
                     '>' => {
                         self.state = LexerState::START;

@@ -1,6 +1,6 @@
 #![warn(non_camel_case_types)]
 
-use std::collections::HashMap;
+use std::{clone, collections::HashMap};
 
 
 use crate::language::analyzing::{operator::Operator, stree::STree, types::{FunctionType, VariableType}};
@@ -311,28 +311,130 @@ impl Interpreter {
 
             // For-each
             STree::FOR_EACH { variable, iterable, body } => {
-                let iterable_val = self.evaluate_expression(iterable)?;
-
-                let elements: Vec<Value> = match iterable_val {
-                    Value::STRING(s) => s.chars().map(Value::CHAR).collect(),
-                    _ => return Err("for-each iterable must be a string".to_string()),
-                };
-
                 self.env.push_scope();
-                self.env.declare(variable.clone(), Value::NULL, true);
 
-                for v in elements {
-                    self.env.set(variable, v)?;
+                match iterable.as_ref() {
 
-                    let flow = self.execute_block(body)?;
+                    // ---------- RANGE ----------
+                    STree::RANGE { start, end, inclusive } => {
+                        let start_val = self.evaluate_expression(start)?;
+                        let end_val   = self.evaluate_expression(end)?;
 
-                    match flow {
-                        ControlFlow::NORMAL => {}
-                        ControlFlow::CONTINUE | ControlFlow::REPEAT => continue,
-                        ControlFlow::BREAK => break,
-                        ControlFlow::RETURN(val) => {
-                            self.pop_scope()?; // pop loop scope
-                            return Ok(ControlFlow::RETURN(val));
+                        match (start_val, end_val) {
+
+                            // INT RANGE
+                            (Value::INT(a), Value::INT(b)) => {
+                                self.env.declare(variable.clone(), Value::INT(a), true);
+
+                                let end_cmp = if *inclusive { b + 1 } else { b };
+                                let step = if a <= b { 1 } else { -1 };
+
+                                let mut i = a;
+                                while (step > 0 && i < end_cmp) || (step < 0 && i > end_cmp) {
+                                    self.env.set(variable, Value::INT(i))?;
+
+                                    let flow = self.execute_block(body)?;
+                                    match flow {
+                                        ControlFlow::NORMAL => {}
+                                        ControlFlow::CONTINUE | ControlFlow::REPEAT => {}
+                                        ControlFlow::BREAK => break,
+                                        ControlFlow::RETURN(v) => {
+                                            self.pop_scope()?;
+                                            return Ok(ControlFlow::RETURN(v));
+                                        }
+                                    }
+
+                                    i += step;
+                                }
+                            }
+
+                            // FLOAT RANGE
+                            (Value::FLOAT(a), Value::FLOAT(b)) => {
+                                let step = if a <= b { 1.0 } else { -1.0 };
+                                let limit = if *inclusive { b + step } else { b };
+
+                                self.env.declare(variable.clone(), Value::FLOAT(a), true);
+
+                                let mut f = a;
+                                while (step > 0.0 && f < limit) || (step < 0.0 && f > limit) {
+                                    self.env.set(variable, Value::FLOAT(f))?;
+
+                                    let flow = self.execute_block(body)?;
+                                    match flow {
+                                        ControlFlow::NORMAL => {}
+                                        ControlFlow::CONTINUE | ControlFlow::REPEAT => {}
+                                        ControlFlow::BREAK => break,
+                                        ControlFlow::RETURN(v) => {
+                                            self.pop_scope()?;
+                                            return Ok(ControlFlow::RETURN(v));
+                                        }
+                                    }
+
+                                    f += step;
+                                }
+                            }
+
+                            // CHAR RANGE
+                            (Value::CHAR(a), Value::CHAR(b)) => {
+                                let mut c = a as u32;
+                                let end = b as u32;
+                                let step: i32 = if c <= end { 1 } else { -1 };
+                                let limit = if *inclusive { end + step as u32 } else { end };
+
+                                self.env.declare(variable.clone(), Value::CHAR(a), true);
+
+                                while (step > 0 && c < limit) || (step < 0 && c > limit) {
+                                    self.env.set(variable, Value::CHAR(char::from_u32(c).unwrap()))?;
+
+                                    let flow = self.execute_block(body)?;
+                                    match flow {
+                                        ControlFlow::NORMAL => {}
+                                        ControlFlow::CONTINUE | ControlFlow::REPEAT => {}
+                                        ControlFlow::BREAK => break,
+                                        ControlFlow::RETURN(v) => {
+                                            self.pop_scope()?;
+                                            return Ok(ControlFlow::RETURN(v));
+                                        }
+                                    }
+
+                                    c = ((c as i32) + step) as u32;
+                                }
+                            }
+
+                            _ => {
+                                self.pop_scope()?;
+                                return Err("Invalid range bounds for for-each".to_string());
+                            }
+                        }
+                    }
+
+                    // ---------- STRING ----------
+                    _ => {
+                        let iterable_val = self.evaluate_expression(iterable)?;
+
+                        let chars = match iterable_val {
+                            Value::STRING(s) => s.chars().collect::<Vec<_>>(),
+                            _ => {
+                                self.pop_scope()?;
+                                return Err("for-each iterable must be a range or string".to_string());
+                            }
+                        };
+
+                        self.env.declare(variable.clone(), Value::NULL, true);
+
+                        for ch in chars {
+                            self.env.set(variable, Value::CHAR(ch))?;
+
+                            let flow = self.execute_block(body)?;
+                            match flow {
+                                ControlFlow::NORMAL => {}
+                                ControlFlow::CONTINUE | ControlFlow::REPEAT => {}
+                                ControlFlow::BREAK => break,
+                                ControlFlow::RETURN(v) => {
+                                    self.pop_scope()?;
+                                    return Ok(ControlFlow::RETURN(v));
+                                }
+                            }
                         }
                     }
                 }
@@ -340,6 +442,7 @@ impl Interpreter {
                 self.pop_scope()?;
                 Ok(ControlFlow::NORMAL)
             }
+
 
             // Match Statement
             STree::MATCH_STMT { expression, arms } => {
@@ -370,6 +473,12 @@ impl Interpreter {
 
                 // No arm matched
                 Ok(ControlFlow::NORMAL)
+            }
+
+
+            // Range
+            STree::RANGE { .. } => {
+                Err("Range expressions cannot be evaluated as values".to_string())
             }
 
 
@@ -712,8 +821,51 @@ impl Interpreter {
                 _ => None,
             },
 
+            STree::RANGE { start, end, inclusive } => {
+                let start_v = Self::literal_value(start.as_ref())?;
+                let end_v   = Self::literal_value(end.as_ref())?;
+
+                match (scrutinee, start_v, end_v) {
+                    (Value::INT(x), Value::INT(a), Value::INT(b)) => {
+                        let ok = if *inclusive { *x >= a && *x <= b } else { *x >= a && *x < b };
+                        if ok { Some(None) } else { None }
+                    }
+
+                    (Value::FLOAT(x), Value::FLOAT(a), Value::FLOAT(b)) => {
+                        let ok = if *inclusive { *x >= a && *x <= b } else { *x >= a && *x < b };
+                        if ok { Some(None) } else { None }
+                    }
+
+                    (Value::CHAR(x), Value::CHAR(a), Value::CHAR(b)) => {
+                        let x = *x as u32;
+                        let a = a as u32;
+                        let b = b as u32;
+
+                        let ok = if *inclusive { x >= a && x <= b } else { x >= a && x < b };
+                        if ok { Some(None) } else { None }
+                    }
+
+                    _ => None,
+                }
+            }
+
+
+
             _ => return Err(format!("Invalid match pattern: {:?}", pattern)),
         })
+    }
+
+    pub fn literal_value(pattern: &STree) -> Result<Value, String> {
+        match pattern {
+            STree::LIT_INT { value }    => Ok(Value::INT(*value)),
+            STree::LIT_FLOAT { value }  => Ok(Value::FLOAT(*value)),
+            STree::LIT_CHAR { value }   => Ok(Value::CHAR(*value)),
+            STree::LIT_BOOL { value }   => Ok(Value::BOOLEAN(*value)),
+            STree::LIT_STRING { value } => Ok(Value::STRING(value.clone())),
+            STree::NULL => Ok(Value::NULL),
+
+            _ => Err("Non-literal used in match pattern".to_string()),
+        }
     }
 
 

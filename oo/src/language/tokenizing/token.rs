@@ -103,6 +103,9 @@ pub enum Token {
     NULL,
     // FUNCTION,
 
+    RANGE_EXCL,
+    RANGE_INCL,
+
     // Literals
     LIT_INT { value: i32 },
     LIT_FLOAT { value: f32 },

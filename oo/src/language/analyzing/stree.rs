@@ -21,6 +21,7 @@ pub enum STree {
     MATCH_STMT { expression: Box<STree>, arms: Vec<STree> },
     MATCH_ARM { expression: Box<STree>, body: Box<STree> },
     DEFAULT,
+    RANGE { start: Box<STree>, end: Box<STree>, inclusive: bool },
     EXPR { left: Box<STree>, operator: Operator, right: Box<STree> },
     PRFX_EXPR { operator: Operator, right: Box<STree> },
     PTFX_EXPR { left: Box<STree>, operator: Operator },

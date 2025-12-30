@@ -39,9 +39,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Basic match statements
 - Null values
 - Null coalescing
+- Ranges
 
 ### Changed
 
 - For-Each variables are now immutable
 - If/While accept any variable type, non bool variable are true when not null
 - Lazy and, or interpretation
+- Match Patterns, For-Each allows ranges

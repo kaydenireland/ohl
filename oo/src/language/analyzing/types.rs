@@ -13,6 +13,7 @@ pub enum VariableType {
     CHAR,
     STRING,
     NULL,
+    RANGE,
 }
 
 impl VariableType {

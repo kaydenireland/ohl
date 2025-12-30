@@ -39,10 +39,10 @@ impl Token {
             Token::EQUAL | Token::NEQ => BindingPower { left: 30, right: 31, unary: 0 },
 
 
-            Token::LT |
-            Token::GT |
-            Token::NLT |
-            Token::NGT =>  BindingPower { left: 32, right: 33, unary: 0 },
+            Token::LT | Token::GT |
+            Token::NLT | Token::NGT =>  BindingPower { left: 32, right: 33, unary: 0 },
+
+            Token::RANGE_EXCL | Token::RANGE_INCL => BindingPower { left: 35, right: 36, unary: 0 },
 
             Token::ADD => BindingPower { left: 40, right: 41, unary: 0 },
             Token::SUB => BindingPower { left: 40, right: 41, unary: 70 },
