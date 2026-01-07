@@ -1,7 +1,9 @@
 public null main() {
-    let x: int := 5;
+    let x: int = 5;
 
-    for each i in ('A'..='z') {
-        System.println(i);
-    }
+    do {
+        x++;
+        System.println(x);
+    } while (x < 10);
+
 }

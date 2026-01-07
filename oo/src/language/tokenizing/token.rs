@@ -74,6 +74,7 @@ pub enum Token {
     FOR,
     EACH,
     IN,
+    DO,
     WHILE,
     LOOP,
     CONTINUE,

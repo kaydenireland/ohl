@@ -3,6 +3,8 @@ use crate::language::analyzing::types::VariableType;
 use crate::language::running::interpreter::{Interpreter, RuntimeFunction};
 use crate::language::running::value::Value;
 
+use std::io::{self, Write};
+
 
 impl Analyzer {
     pub fn register_system_functions(&mut self) {
@@ -41,6 +43,33 @@ impl Analyzer {
                 called: true,
             },
         );
+
+        self.functions.insert(
+            vec!["System".to_string(), "flush".to_string()],
+            FunctionSignature {
+                parameters: vec![],
+                return_type: VariableType::NULL,
+                called: true,
+            },
+        );
+
+        self.functions.insert(
+            vec!["System".to_string(), "clear".to_string()],
+            FunctionSignature {
+                parameters: vec![],
+                return_type: VariableType::NULL,
+                called: true,
+            },
+        );
+
+        self.functions.insert(
+            vec!["System".to_string(), "wait".to_string()],
+            FunctionSignature {
+                parameters: vec![VariableType::INT],
+                return_type: VariableType::NULL,
+                called: true,
+            },
+        );
     }
 }
 
@@ -65,6 +94,21 @@ impl Interpreter {
         self.functions.insert(
             vec!["System".to_string(), "exit".to_string()],
             RuntimeFunction::Native(Self::exit),
+        );
+
+        self.functions.insert(
+            vec!["System".to_string(), "flush".to_string()],
+            RuntimeFunction::Native(Self::flush),
+        );
+
+        self.functions.insert(
+            vec!["System".to_string(), "clear".to_string()],
+            RuntimeFunction::Native(Self::clear),
+        );
+
+        self.functions.insert(
+            vec!["System".to_string(), "wait".to_string()],
+            RuntimeFunction::Native(Self::wait),
         );
     }
 }
@@ -97,8 +141,6 @@ impl Interpreter {
         if !args.is_empty() {
             return Err("System.in takes no arguments".to_string());
         }
-
-        use std::io::{self, Write};
 
         io::stdout().flush().map_err(|e| e.to_string())?;
 
@@ -138,6 +180,44 @@ impl Interpreter {
         }
 
         std::process::exit(0);
+    }
+
+    fn flush(args: Vec<Value>) -> Result<Value, String> {
+
+        if !args.is_empty() {
+            return Err("System.flush takes no arguments".to_string());
+        }
+
+        io::stdout().flush().map_err(|e| e.to_string())?;
+        Ok(Value::NULL)
+    }
+
+    fn clear(args: Vec<Value>) -> Result<Value, String> {
+
+        if !args.is_empty() {
+            return Err("System.clear takes no arguments".to_string());
+        }
+
+        print!("\x1B[2J\x1B[1;1H");
+        io::stdout().flush().map_err(|e| e.to_string())?;
+        Ok(Value::NULL)
+    }
+
+    fn wait(args: Vec<Value>) -> Result<Value, String> {
+
+        if args.len() != 1 {
+            return Err("System.wait expects exactly one argument".to_string());
+        }
+
+        use std::{thread, time::Duration};
+
+        let wait = match args[0] {
+            Value::INT(i) => i,
+            _ => return Err("System.wait expects an int".to_string()),
+        };
+
+        thread::sleep(Duration::from_secs(wait as u64));
+        Ok(Value::NULL)
     }
 
 }

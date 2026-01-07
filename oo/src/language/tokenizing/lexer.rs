@@ -566,6 +566,7 @@ impl Lexer {
             "for" => Token::FOR,
             "each" => Token::EACH,
             "in" => Token::IN,
+            "do" => Token::DO,
             "while" => Token::WHILE,
             "loop" => Token::LOOP,
             "continue" => Token::CONTINUE,

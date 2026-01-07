@@ -47,3 +47,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - If/While accept any variable type, non bool variable are true when not null
 - Lazy and, or interpretation
 - Match Patterns, For-Each allows ranges
+
+
+## [1.0.3]
+
+### Added
+
+- Do-While Loops
+- System flush, clear, wait methods

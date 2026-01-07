@@ -236,6 +236,42 @@ impl Interpreter {
                 Ok(ControlFlow::NORMAL)
             }
 
+            // Do-While 
+            STree::DO_WHILE { body, condition } => {
+                self.env.push_scope();
+
+                let mut first = true;
+
+                loop {
+                    let flow = self.execute_block(body)?;
+
+                    match flow {
+                        ControlFlow::NORMAL => {}
+                        ControlFlow::CONTINUE | ControlFlow::REPEAT => {}
+                        ControlFlow::BREAK => break,
+                        ControlFlow::RETURN(v) => {
+                            self.pop_scope()?;
+                            return Ok(ControlFlow::RETURN(v));
+                        }
+                    }
+
+                    let cond = if first {
+                        first = false;
+                        self.evaluate_expression(condition)?.is_truthy()
+                    } else {
+                        self.evaluate_expression(condition)?.is_truthy()
+                    };
+
+                    if !cond {
+                        break;
+                    }
+                }
+
+                self.pop_scope()?;
+                Ok(ControlFlow::NORMAL)
+            }
+
+
 
             // Loop 
             STree::LOOP_EXPR { condition, body } => {

@@ -346,6 +346,23 @@ impl Converter {
                 Ok(STree::WHILE_EXPR { condition: Box::new(condition), body: Box::new(body) })
             }
 
+            // Expected Do-While Children
+            // [ Body, Expression ]
+            Token::DO => {
+                self.log.info("convert_do_while()");
+                self.log.indent_inc();
+
+                let condition_node = node.children.get(1).ok_or("Do-While missing condition")?;
+                let condition = self.convert_tree(condition_node)?;
+
+                let body_node = node.children.get(0).ok_or("Do-While missing body")?;
+                let body = self.convert_tree(body_node)?;
+
+                self.log.indent_dec();
+
+                Ok(STree::DO_WHILE { body: Box::new(body), condition: Box::new(condition) })
+            }
+
             // Expected Loop Children
             // [ Expression, Body ]
             Token::LOOP => {

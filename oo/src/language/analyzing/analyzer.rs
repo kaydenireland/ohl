@@ -362,6 +362,22 @@ impl Analyzer {
                 (None, Flow::CONTINUE)
             }
 
+            STree::DO_WHILE { body, condition } => {
+                self.log.info("analyze_do_while()");
+                self.log.indent_inc();
+
+                self.visit(condition, symbols);
+
+                self.loop_depth += 1;
+                let mut local = SymbolTable::new_child(symbols);
+                let _ = self.visit(body, &mut local);
+                self.loop_depth -= 1;
+
+                self.log.indent_dec();
+
+                (None, Flow::CONTINUE)
+            }
+
             STree::LOOP_EXPR { condition, body } => {
                 self.log.info("analyze_loop()");
                 self.log.indent_inc();

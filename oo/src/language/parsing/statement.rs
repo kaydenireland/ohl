@@ -15,6 +15,7 @@ impl Parser {
 
         match self.current() {
             Token::FOR => child = self.parse_for(),
+            Token::DO => child = self.parse_do_while(),
             Token::WHILE => child = self.parse_while(),
             Token::LOOP => child = self.parse_loop(),
 
@@ -142,6 +143,25 @@ impl Parser {
 
         self.log.indent_dec();
 
+        child
+    }
+
+    pub fn parse_do_while(&mut self) -> MTree {
+        self.log.info("parse_do_while()");
+        self.log.indent_inc();
+
+        let mut child = MTree::new(Token::DO);
+
+        self.expect(Token::DO);
+        child._push(self.parse_block_nest());
+
+        self.expect(Token::WHILE);
+        self.expect(Token::PAREN_L);
+        child._push(self.parse_expression());
+        self.expect(Token::PAREN_R);
+        self.expect(Token::SEMICOLON);
+
+        self.log.indent_dec();
         child
     }
 

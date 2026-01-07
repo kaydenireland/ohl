@@ -16,6 +16,7 @@ pub enum STree {
     IF_EXPR { condition: Box<STree>, then_block: Box<STree>, else_block: Option<Box<STree>> },
     DEFER_STMT { body: Box<STree> },
     WHILE_EXPR { condition: Box<STree>, body: Box<STree> },
+    DO_WHILE { body: Box<STree>, condition: Box<STree> },
     LOOP_EXPR { condition: Box<STree>, body: Box<STree> },
     RETURN_STMT { expression: Option<Box<STree>>},
     MATCH_STMT { expression: Box<STree>, arms: Vec<STree> },
