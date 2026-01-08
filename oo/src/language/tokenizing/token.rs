@@ -102,7 +102,7 @@ pub enum Token {
     STRING,
     BOOLEAN,
     NULL,
-    // FUNCTION,
+    FUNC,
 
     RANGE_EXCL,
     RANGE_INCL,

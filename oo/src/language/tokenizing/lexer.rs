@@ -580,7 +580,7 @@ impl Lexer {
             "or" => Token::OR,
             "xor" => Token::XOR,
             "class" => Token::CLASS,
-            "impl" => Token::IMPL,
+            "implement" => Token::IMPL,
             "enum" => Token::ENUM,
             "extends" => Token::EXTENDS,
             "int" => Token::INT,
@@ -588,6 +588,7 @@ impl Lexer {
             "char" => Token::CHAR,
             "string" => Token::STRING,
             "boolean" => Token::BOOLEAN,
+            "function" => Token::FUNC,
             "let" => Token::LET,
             "true" | "false" => {
                 let value: bool = string == "true";

@@ -55,3 +55,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Do-While Loops
 - System flush, clear, wait methods
+- Random module for generating random values
