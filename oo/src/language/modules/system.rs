@@ -62,14 +62,6 @@ impl Analyzer {
             },
         );
 
-        self.functions.insert(
-            vec!["System".to_string(), "wait".to_string()],
-            FunctionSignature {
-                parameters: vec![VariableType::INT],
-                return_type: VariableType::NULL,
-                called: true,
-            },
-        );
     }
 }
 
@@ -104,11 +96,6 @@ impl Interpreter {
         self.functions.insert(
             vec!["System".to_string(), "clear".to_string()],
             RuntimeFunction::Native(Self::clear),
-        );
-
-        self.functions.insert(
-            vec!["System".to_string(), "wait".to_string()],
-            RuntimeFunction::Native(Self::wait),
         );
     }
 }
@@ -149,7 +136,6 @@ impl Interpreter {
             .read_line(&mut input)
             .map_err(|e| e.to_string())?;
 
-        // trim trailing newline
         if input.ends_with('\n') {
             input.pop();
             if input.ends_with('\r') {
@@ -203,21 +189,5 @@ impl Interpreter {
         Ok(Value::NULL)
     }
 
-    fn wait(args: Vec<Value>) -> Result<Value, String> {
-
-        if args.len() != 1 {
-            return Err("System.wait expects exactly one argument".to_string());
-        }
-
-        use std::{thread, time::Duration};
-
-        let wait = match args[0] {
-            Value::INT(i) => i,
-            _ => return Err("System.wait expects an int".to_string()),
-        };
-
-        thread::sleep(Duration::from_secs(wait as u64));
-        Ok(Value::NULL)
-    }
 
 }

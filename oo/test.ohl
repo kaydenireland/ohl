@@ -1,7 +1,11 @@
 public null main() {
-    loop(5){
-        let x: boolean = Random.anyBoolean();
+    System.println(Time.hour());
+    System.println(Time.minute());
+    System.println(Time.second());
+    System.println(Time.millisecond());
 
-        System.println(x);
-    }
+    System.println(Time.now());
+    System.println(Time.short());
+    System.println(Time.long());
+
 }

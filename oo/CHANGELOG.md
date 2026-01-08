@@ -54,5 +54,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Do-While Loops
-- System flush, clear, wait methods
+- System flush and clear methods
 - Random module for generating random values
+- Time module
