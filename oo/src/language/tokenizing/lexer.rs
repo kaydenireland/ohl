@@ -189,7 +189,7 @@ impl Lexer {
                     _ => {}
                 },
                 LexerState::CHARS => match current_char {
-                    'A'..'Z' | '_' | 'a'..'z' | '0'..'9' => {
+                    'A'..='Z' | '_' | 'a'..='z' | '0'..='9' => {
                         // TODO: Explore dashes without messing up expressions
                         self.buffer_string.push(current_char);
                     }

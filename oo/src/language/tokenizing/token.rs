@@ -113,6 +113,7 @@ pub enum Token {
     LIT_CHAR { value: char },
     LIT_STRING { value: String },
     LIT_BOOL { value: bool },
+    // TODO Migrate to i64, f64
 
     // End of Input, Error
     ERROR { msg: String },

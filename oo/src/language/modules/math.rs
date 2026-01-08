@@ -9,7 +9,7 @@ impl Analyzer {
         self.functions.insert(
             vec!["Math".to_string(), "abs".to_string()],
             FunctionSignature {
-                parameters: vec![VariableType::NULL],              
+                parameters: vec![],              
                 return_type: VariableType::NULL, 
                 called: true
             },
@@ -27,7 +27,7 @@ impl Analyzer {
         self.functions.insert(
             vec!["Math".to_string(), "signum".to_string()],
             FunctionSignature {
-                parameters: vec![VariableType::NULL],              
+                parameters: vec![],              
                 return_type: VariableType::INT, 
                 called: true
             },

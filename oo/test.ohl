@@ -1,11 +1,3 @@
 public null main() {
-    System.println(Time.hour());
-    System.println(Time.minute());
-    System.println(Time.second());
-    System.println(Time.millisecond());
-
-    System.println(Time.now());
-    System.println(Time.short());
-    System.println(Time.long());
-
+    System.print(IO.lines("test2.ohl"));
 }
