@@ -3,6 +3,10 @@
   "displayName": "Ohl",
   "description": "An extension to allow support for the Ohl language, allowing syntax checking and running ohl files from VSCode.",
   "version": "1.0.0",
+  "publisher": "kaydenireland",
+  "icon": "ohl.png",
+  "repository": "https://github.com/kaydenireland/ohl",
+  "license": "MIT",
   "main": "./out/extension.js",
   "engines": {
     "vscode": "^1.107.0"
