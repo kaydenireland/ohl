@@ -58,3 +58,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Random module for generating random values
 - Time module
 - IO Module for file editing
+
+## [1.?.?]
+
+### Added
+
+- Variable Type Casting

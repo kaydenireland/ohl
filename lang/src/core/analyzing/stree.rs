@@ -27,6 +27,7 @@ pub enum STree {
     PRFX_EXPR { operator: Operator, right: Box<STree> },
     PTFX_EXPR { left: Box<STree>, operator: Operator },
     CALL { path: Vec<String>, arguments: Vec<STree> },
+    CAST { expression: Box<STree>, target: VariableType},
     ID { name: String },
     BREAK,
     CONTINUE,

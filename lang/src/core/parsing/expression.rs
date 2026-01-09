@@ -106,10 +106,42 @@ impl Parser {
             }
 
             self.advance();
+
+            if current == Token::AS {
+                let ty = self.parse_type(); 
+                left = MTree {
+                    token: Token::AS,
+                    children: vec![left, ty],
+                };
+                continue;
+            }
+
+
             let right = self.parse_expression_token(current.binding_power().right);
             left = MTree { token: current, children: vec![left, right] };
         }
     }
 
+    pub fn parse_type(&mut self) -> MTree {
+        self.log.info("parse_type()");
+        self.log.indent_inc();
+
+        let node = match self.current() {
+            t if t.is_type() => {
+                let var_type = self.current();
+                self.advance();
+                MTree::new(var_type)
+            }
+
+            _ => {
+                MTree::new(Token::ERROR {
+                    msg: "Invalid type".into(),
+                })
+            }
+        };
+
+        self.log.indent_dec();
+        node
+    }
 
 }

@@ -1,6 +1,6 @@
 #![warn(non_camel_case_types)]
 
-use std::{clone, collections::HashMap};
+use std::{collections::HashMap};
 
 
 use crate::core::analyzing::{operator::Operator, stree::STree, types::{FunctionType, VariableType}};
@@ -567,7 +567,11 @@ impl Interpreter {
                 self.call_function(path, argument_values)
             }
 
-
+            // Cast
+            STree::CAST { expression, target } => {
+                let value = self.evaluate_expression(expression)?;
+                self.evaluate_cast(value, target.clone())
+            }
 
             STree::PRFX_EXPR { operator, right } => {
                 let value = self.evaluate_expression(right)?;
@@ -903,6 +907,49 @@ impl Interpreter {
             _ => Err("Non-literal used in match pattern".to_string()),
         }
     }
+
+    fn evaluate_cast(&self, value: Value, target: VariableType) -> Result<Value, String> {
+
+        match (value, target.clone()) {
+
+            // Identity
+            (v, t) if v.variable_type() == t => Ok(v),
+
+            // INT ↔ FLOAT
+            (Value::INT(i), VariableType::FLOAT) => Ok(Value::FLOAT(i as f32)),
+            (Value::FLOAT(f), VariableType::INT) => Ok(Value::INT(f as i32)), // truncation
+
+            // BOOL ↔ numeric (if allowed)
+            (Value::BOOLEAN(b), VariableType::INT) => Ok(Value::INT(if b { 1 } else { 0 })),
+            (Value::BOOLEAN(b), VariableType::FLOAT) => Ok(Value::FLOAT(if b { 1.0 } else { 0.0 })),
+
+            (Value::INT(i), VariableType::BOOLEAN) => Ok(Value::BOOLEAN(i != 0)),
+            (Value::FLOAT(f), VariableType::BOOLEAN) => Ok(Value::BOOLEAN(f != 0.0)),
+
+            // CHAR ↔ INT
+            (Value::CHAR(c), VariableType::INT) => Ok(Value::INT(c as i32)),
+            (Value::INT(i), VariableType::CHAR) => match char::from_u32(i as u32) {
+                Some(c) => Ok(Value::CHAR(c)),
+                None => Err(format!("Invalid char code {}", i)),
+            },
+
+            // NULL
+            (Value::NULL, _) => Err(format!("Cannot cast NULL to {:?}", target)),
+
+            // STRING (explicitly forbidden)
+            (Value::STRING(_), _) | (_, VariableType::STRING) => Err(format!(
+                "Casting involving STRING is not allowed"
+            )),
+
+            // Everything else
+            (v, t) => Err(format!(
+                "Illegal cast from {:?} to {:?}",
+                v.variable_type(),
+                t
+            )),
+        }
+    }
+
 
 
 }

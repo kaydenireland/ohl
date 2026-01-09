@@ -604,6 +604,33 @@ impl Converter {
                 Ok(STree::CALL { path, arguments })
             }
 
+            // Casting
+            Token::AS => {
+                self.log.info("convert_cast()");
+                self.log.indent_inc();
+
+                if node.children.len() != 2 {
+                    return Err("Cast must have expression and target type".into());
+                }
+
+                let expr = self.convert_tree(&node.children[0])?;
+
+                let target = match &node.children[1].token {
+                    Token::INT => VariableType::INT,
+                    Token::FLOAT => VariableType::FLOAT,
+                    Token::BOOLEAN => VariableType::BOOLEAN,
+                    Token::CHAR => VariableType::CHAR,
+                    Token::STRING => VariableType::STRING,
+                    Token::NULL => VariableType::NULL,
+                    _ => return Err("Invalid cast target type".into()),
+                };
+
+                self.log.indent_dec();
+
+                Ok(STree::CAST { expression: Box::new(expr), target })
+            }
+
+
             // Periods
             Token::POINT => Err("Member access is only allowed as a call target".into()),
 

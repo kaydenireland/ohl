@@ -1,3 +1,7 @@
+use crate::core::analyzing::types::VariableType;
+
+
+
 #[derive(Debug, Clone)]
 pub enum Value {
     INT(i32),
@@ -62,6 +66,18 @@ impl Value {
             _ => true,
         }
     }
+
+    pub fn variable_type(&self) -> VariableType {
+        match self {
+            Value::INT(_) => VariableType::INT,
+            Value::FLOAT(_) => VariableType::FLOAT,
+            Value::BOOLEAN(_) => VariableType::BOOLEAN,
+            Value::CHAR(_) => VariableType::CHAR,
+            Value::STRING(_) => VariableType::STRING,
+            Value::NULL => VariableType::NULL,
+        }
+    }
+
 }
 
 #[derive(Clone)]

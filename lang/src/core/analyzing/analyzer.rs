@@ -643,6 +643,19 @@ impl Analyzer {
                 (None, Flow::CONTINUE)
             }
 
+            STree::CAST { expression, target } => {
+                self.log.info("analyze_cast()");
+                self.log.indent_inc();
+
+                let (src_opt, _) = self.visit(expression, symbols);
+                let src = src_opt.unwrap_or(VariableType::NULL);
+
+                let out = self.analyze_cast(src, target.clone());
+
+                self.log.indent_dec();
+                (Some(out), Flow::CONTINUE)
+            }
+
 
 
             STree::ID { name } => {
@@ -852,5 +865,56 @@ impl Analyzer {
             )),
         }
     }
+
+    fn analyze_cast(&mut self, from: VariableType, to: VariableType) -> VariableType {
+
+        // Identity cast
+        if from == to {
+            return to;
+        }
+
+        // Null handling (decide policy)
+        if from == VariableType::NULL {
+            self.errors.push(format!(
+                "Cannot cast NULL to {:?}",
+                to
+            ));
+            return VariableType::NULL;
+        }
+
+        match (from.clone(), to.clone()) {
+            // Numeric casts
+            (VariableType::INT, VariableType::FLOAT) => VariableType::FLOAT,
+            (VariableType::FLOAT, VariableType::INT) => VariableType::INT,
+
+            (VariableType::BOOLEAN, VariableType::INT) => VariableType::INT,
+            (VariableType::BOOLEAN, VariableType::FLOAT) => VariableType::FLOAT,
+
+            (VariableType::INT, VariableType::BOOLEAN) => VariableType::BOOLEAN,
+            (VariableType::FLOAT, VariableType::BOOLEAN) => VariableType::BOOLEAN,
+
+            (VariableType::CHAR, VariableType::INT) => VariableType::INT,
+            (VariableType::INT, VariableType::CHAR) => VariableType::CHAR,
+
+            // String casts (very strict)
+            (_, VariableType::STRING) | (VariableType::STRING, _) => {
+                self.errors.push(format!(
+                    "Casting between STRING and {:?} is not allowed",
+                    from
+                ));
+                VariableType::NULL
+            }
+
+            // Everything else
+            _ => {
+                self.errors.push(format!(
+                    "Illegal cast from {:?} to {:?}",
+                    from, to
+                ));
+                VariableType::NULL
+            }
+        }
+    }
+
 
 }
