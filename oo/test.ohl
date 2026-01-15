@@ -1,3 +1,0 @@
-public null main() {
-    System.print(IO.lines("test2.ohl"));
-}

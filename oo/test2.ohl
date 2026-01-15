@@ -1,9 +1,0 @@
-public null main() {
-    let content: string = IO.readFile("test.ohl");
-    System.print(content);
-    IO.writeFile("test2.ohl", content);
-}public null main() {
-    let content: string = IO.readFile("test.ohl");
-    System.print(content);
-    IO.appendFile("test2.ohl", content);
-}
