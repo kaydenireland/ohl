@@ -1,4 +1,5 @@
 use std::collections::{HashMap, hash_map::Entry};
+use std::env::var;
 use crate::core::analyzing::operator::Operator;
 use crate::core::analyzing::stree::STree;
 use crate::core::logger::Logger;
@@ -675,6 +676,7 @@ impl Analyzer {
             STree::LIT_CHAR { .. } => (Some(VariableType::CHAR), Flow::CONTINUE),
             STree::LIT_STRING { .. } => (Some(VariableType::STRING), Flow::CONTINUE),
             STree::NULL { .. } => (Some(VariableType::NULL), Flow::CONTINUE),
+            STree::TYPE { var_type } => (Some(var_type.clone()), Flow::CONTINUE),
 
             STree::BLANK_STMT => (None, Flow::CONTINUE)
         }
@@ -738,6 +740,25 @@ impl Analyzer {
         if matches!(operator, Operator::EQUAL | Operator::NOT_EQUAL) {
             return VariableType::BOOLEAN;
         }
+
+        if *operator == Operator::EQUAL_TYPE {
+            if left != right {
+                self.warnings.push(format!(
+                    "Type comparison is always false: {:?} T= {:?}",
+                    left, right
+                ));
+            }
+
+            if left == VariableType::NULL || right == VariableType::NULL {
+                self.errors.push(
+                    "Type comparison with NULL is not allowed".to_string()
+                );
+                return VariableType::NULL;
+            }
+
+            return VariableType::BOOLEAN;
+        }
+
 
         if *operator == Operator::NULL_COAL {
             if left == VariableType::NULL {

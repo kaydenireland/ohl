@@ -308,7 +308,7 @@ impl Converter {
                 let modifier_node = node.children.get(2).ok_or("For loop missing increment expression")?;
 
                 let modifier = match modifier_node.token {
-                    Token::INCREMENT | Token::DECREMENT | Token::SQUARE | Token::ASSIGN => {
+                    Token::INCREMENT | Token::DECREMENT | Token::ASSIGN => {
                         Some(Box::new(self.convert_tree(modifier_node)?))
                     }
                     _ => return Err("Invalid increment section in for-loop".into()),
@@ -506,7 +506,7 @@ impl Converter {
             }
 
             // Unary Postfix Operators 
-            Token::INCREMENT | Token::DECREMENT | Token::SQUARE => {
+            Token::INCREMENT | Token::DECREMENT => {
                 self.log.info("convert_unary_op()");
                 self.log.indent_inc();
 
@@ -519,7 +519,6 @@ impl Converter {
                 let operator = match &node.token {
                     Token::INCREMENT => Operator::INCREMENT,
                     Token::DECREMENT => Operator::DECREMENT,
-                    Token::SQUARE => Operator::SQUARE,
                     _ => return Err("Invalid Unary Postfix Operator".into())
                 };
 
@@ -530,7 +529,7 @@ impl Converter {
 
             // Binary Operators
             Token::ADD | Token::SUB | Token::MULT | Token::DIV | Token::REM | Token::POWER | Token::ROOT 
-            | Token::EQUAL | Token::NEQ | Token::LT | Token::GT | Token::NLT | Token::NGT 
+            | Token::EQUAL | Token::NEQ | Token::EQT | Token::LT | Token::GT | Token::NLT | Token::NGT 
             | Token::AND | Token::OR | Token::XOR | Token::NULL_COAL => {
                 // Check for Unary
                 if node.children.len() == 1 {
@@ -563,6 +562,7 @@ impl Converter {
                         Token::ROOT => Operator::ROOT,
                         Token::EQUAL => Operator::EQUAL,
                         Token::NEQ => Operator::NOT_EQUAL,
+                        Token::EQT => Operator::EQUAL_TYPE,
                         Token::LT => Operator::LESS_THAN,
                         Token::GT => Operator::GREATER_THAN,
                         Token::NLT => Operator::NOT_LESS_THAN,
@@ -652,6 +652,23 @@ impl Converter {
             Token::NULL => Ok(STree::NULL),
 
             Token::BLANK_STMT => Ok(STree::BLANK_STMT),
+
+            Token::INT | Token::FLOAT
+            | Token::BOOLEAN
+            | Token::CHAR | Token::STRING => {
+                let var_type = match node.token {
+                    Token::INT => VariableType::INT,
+                    Token::FLOAT => VariableType::FLOAT,
+                    Token::BOOLEAN => VariableType::BOOLEAN,
+                    Token::CHAR => VariableType::CHAR,
+                    Token::STRING => VariableType::STRING,
+                    Token::NULL => VariableType::NULL,
+                    _ => unreachable!(),
+                };
+
+                Ok(STree::TYPE { var_type })
+            }
+
 
             other => {
                 self.log.indent_dec();

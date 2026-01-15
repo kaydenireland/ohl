@@ -23,7 +23,7 @@ impl Parser {
         } else if token == Token::PAREN_L {
             let tree_parens = self.parse_parenthesis_expression();
             self.parse_infix_expression(tree_parens, rbl)
-        } else if token.is_identifier() || token.is_literal() {
+        } else if token.is_identifier() || token.is_literal() || token.is_type() {
             let tree_atom = self.parse_atom_expression();
             self.parse_infix_expression(tree_atom, rbl)
         } else {

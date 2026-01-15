@@ -26,7 +26,6 @@ pub enum Token {
     SUB,       // -
     DECREMENT, // --
     MULT,      // '*'
-    SQUARE,    // '**'
     DIV,       // /
     REM,       // %
     POWER,     // ^
@@ -47,6 +46,7 @@ pub enum Token {
     NGT,   // Not Greater Than (<=)
     GT,    // Greater Than (>)
     NLT,   // Not Less Than (>=)
+    EQT,   // Equal Type (T=)
 
     // Logical Operators
     NOT, // '!' or keyword not

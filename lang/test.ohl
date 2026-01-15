@@ -1,5 +1,9 @@
 public null main() {
     let x: int := 5;
-    let y: float := 5.4;
-    System.print(y as int);
+    let y: float = 5.4;
+    ++y;
+    System.println(x T= y);
+    System.println(x T= int);
+    System.println(boolean);
+    System.println(y);
 }

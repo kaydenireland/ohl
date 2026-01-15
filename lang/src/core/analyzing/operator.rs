@@ -15,7 +15,6 @@ pub enum Operator {
 
     INCREMENT,
     DECREMENT,
-    SQUARE,
 
     NOT,
     AND,
@@ -30,4 +29,5 @@ pub enum Operator {
     GREATER_THAN,
     NOT_LESS_THAN,
     NOT_EQUAL,
+    EQUAL_TYPE
 }

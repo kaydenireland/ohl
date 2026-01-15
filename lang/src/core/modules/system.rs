@@ -112,6 +112,7 @@ impl Interpreter {
                 Value::CHAR(v) => print!("{}", v),
                 Value::STRING(v) => print!("{}", v),
                 Value::NULL => print!("null"),
+                Value::TYPE(ty) => print!("{:?}", ty)
             }
         }
 

@@ -37,6 +37,7 @@ pub enum STree {
     LIT_BOOL { value: bool },
     LIT_CHAR { value: char },
     LIT_STRING { value: String },
+    TYPE { var_type: VariableType },
     NULL,
     BLANK_STMT
 }

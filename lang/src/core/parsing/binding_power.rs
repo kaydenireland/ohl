@@ -8,11 +8,11 @@ pub struct BindingPower {
 
 impl Token {
     pub fn is_prefix_operator(&self) -> bool {
-        matches!(self, Token::SUB | Token::DIV | Token::NOT)
+        matches!(self, Token::SUB | Token::DIV | Token::NOT | Token::INCREMENT | Token::DECREMENT)
     }
 
     pub fn is_postfix_operator(&self) -> bool {
-        matches!(self, Token::INCREMENT | Token::DECREMENT | Token::SQUARE)
+        matches!(self, Token::INCREMENT | Token::DECREMENT)
     }
 
     pub fn is_identifier(&self) -> bool {
@@ -38,7 +38,7 @@ impl Token {
             Token::OR | Token::XOR => BindingPower { left: 15, right: 16, unary: 0 },
             Token::AND => BindingPower { left: 20, right: 21, unary: 0 },
 
-            Token::EQUAL | Token::NEQ => BindingPower { left: 30, right: 31, unary: 0 },
+            Token::EQUAL | Token::NEQ | Token::EQT => BindingPower { left: 30, right: 31, unary: 0 },
 
 
             Token::LT | Token::GT |
@@ -55,7 +55,7 @@ impl Token {
 
             Token::NOT => BindingPower { left: 0, right: 0, unary: 70 },
 
-            Token::INCREMENT | Token::DECREMENT | Token::SQUARE => BindingPower { left: 80, right: 0, unary: 0 },
+            Token::INCREMENT | Token::DECREMENT => BindingPower { left: 80, right: 0, unary: 90 },
 
 
             Token::ID { .. } |

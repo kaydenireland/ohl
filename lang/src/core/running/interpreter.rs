@@ -617,12 +617,6 @@ impl Interpreter {
                                 _ => return Err("-- requires numeric variable".to_string()),
                             },
 
-                            Operator::SQUARE => match current {
-                                Value::INT(i) => Value::INT(i * i),
-                                Value::FLOAT(f) => Value::FLOAT(f * f),
-                                _ => return Err("** requires numeric variable".to_string()),
-                            },
-
                             _ => return Err("Invalid postfix operator".to_string()),
                         };
 
@@ -677,6 +671,11 @@ impl Interpreter {
                 self.env.set(id, value.clone())?;
                 Ok(value)
             }
+
+            STree::TYPE { var_type } => {
+                Ok(Value::TYPE(var_type.clone()))
+            }
+
 
             _ => Err(format!("Cannot evaluate expression: {:?}", expression))
         }
@@ -770,6 +769,16 @@ impl Interpreter {
                 (Value::NULL, other) => Ok(Value::BOOLEAN(!other.is_null())),
                 _ => Err("Invalid operands for '!='".to_string()),
             },
+
+            Operator::EQUAL_TYPE => {
+                let left_type = lhs.variable_type();
+                let right_type = match rhs {
+                    Value::TYPE(t) => t,
+                    other => other.variable_type(),
+                };
+
+                Ok(Value::BOOLEAN(left_type == right_type))
+            }
 
             Operator::LESS_THAN => match (lhs, rhs) {
                 (Value::INT(a), Value::INT(b)) => Ok(Value::BOOLEAN(a < b)),

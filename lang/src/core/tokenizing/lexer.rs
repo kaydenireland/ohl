@@ -194,6 +194,13 @@ impl Lexer {
                         self.buffer_string.push(current_char);
                     }
 
+                    '=' if self.buffer_string == "T" => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::EQT;
+                        self.buffer_string.clear();
+                        break;
+                    }
+
                     _ => {
                         self.state = LexerState::START;
                         self.current_token = self.match_buffer_string();
@@ -407,11 +414,6 @@ impl Lexer {
                     }
                 },
                 LexerState::ASTERISK => match current_char {
-                    '*' => {
-                        self.state = LexerState::START;
-                        self.current_token = Token::SQUARE;
-                        break;
-                    }
                     '=' => {
                         self.state = LexerState::START;
                         self.current_token = Token::MULT_ASSIGN;

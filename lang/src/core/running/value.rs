@@ -9,7 +9,8 @@ pub enum Value {
     CHAR(char),
     STRING(String),
     BOOLEAN(bool),
-    NULL
+    NULL,
+    TYPE(VariableType)
 }
 
 impl Value {
@@ -75,6 +76,7 @@ impl Value {
             Value::CHAR(_) => VariableType::CHAR,
             Value::STRING(_) => VariableType::STRING,
             Value::NULL => VariableType::NULL,
+            Value::TYPE(var_type) => var_type.clone(),
         }
     }
 

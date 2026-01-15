@@ -59,8 +59,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Time module
 - IO Module for file editing
 
-## [1.?.?]
+## [1.0.4]
 
 ### Added
 
 - Variable Type Casting
+- Increment/Decrement as Prefix Op (Functionality Not Yet Added)
+- Added T= operator, which returns true when the variable types of both sides match
+
+### Changed
+
+- System.print allows variable types as input
+
+### Removed
+
+- ** Operator
