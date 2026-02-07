@@ -60,6 +60,7 @@ pub enum Token {
 
     // Assignment
     ASSIGN, // '='
+    IMMUTABLE_ASSIGN, // ':='
 
     // Keywords
     IMPORT,
@@ -68,6 +69,8 @@ pub enum Token {
     PUBLIC,
     PRIVATE,
     PROTECTED,
+    SHARED,
+    FINAL,
     LET,
     IF,
     ELSE,

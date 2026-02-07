@@ -1,6 +1,6 @@
-use crate::core::parsing::mtree::MTree;
-use crate::core::parsing::parser::Parser;
-use crate::core::tokenizing::token::Token;
+use crate::core::parser::mtree::MTree;
+use crate::core::parser::parser::Parser;
+use crate::core::tokenizer::token::Token;
 
 // Pratt Expression Parser
 

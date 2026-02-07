@@ -1,14 +1,9 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 
-use crate::core::analyzing::analyzer::Analyzer;
-use crate::core::analyzing::folder::ConstantFolder;
-use crate::core::running::interpreter::Interpreter;
-use crate::core::tokenizing::lexer::Lexer;
-use crate::core::parsing::mtree::MTree;
-use crate::core::parsing::parser::Parser as OhlParser;
-use crate::core::analyzing::converter::Converter;
-use crate::core::analyzing::stree::STree;
+use crate::core::tokenizer::lexer::Lexer;
+use crate::core::parser::mtree::MTree;
+use crate::core::parser::parser::Parser as OhlParser;
 
 
 #[derive(Parser)]
@@ -36,25 +31,6 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
     },
-    Convert {
-        filepath: String,
-        #[arg(short, long)]
-        debug: bool,
-    },
-    Analyze {
-        filepath: String,
-        #[arg(short, long)]
-        debug: bool,
-    },
-    Run {
-        filepath: String,
-        #[arg(short, long)]
-        debug: bool,
-        #[arg(short, long)]
-        warnings: bool,
-        #[arg(short, long)]
-        time: bool
-    },
 }
 
 pub fn handle(cli: Cli) {
@@ -63,9 +39,6 @@ pub fn handle(cli: Cli) {
         Command::Size { filepath } => size(filepath),
         Command::Tokenize { filepath } => tokenize(filepath),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
-        Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
-        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug, true),
-        Command::Run { filepath, debug: _debug, warnings, time: _time } => run(filepath, _debug, warnings, _time),
     }
 }
 
@@ -142,92 +115,3 @@ pub fn parse(path: String, _debug: bool, print_tree: bool) -> MTree {
     tree
 }
 
-
-pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
-    let mtree: MTree = parse(path, _debug, _debug);
-    let mut converter: Converter = Converter::new(_debug);
-    let result: Result<STree, String> = converter.convert_tree(&mtree);
-    let stree = match result {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("{}: Semantic Conversion Failed \n{}\n", "ERROR".red(), e.red());
-            std::process::exit(0)
-        }
-    };
-
-    if print_tree {
-        println!("\n\nSemantic Tree:\n{:#?}", stree);
-    }
-
-    stree
-}
-
-pub fn analyze(path: String, _debug: bool, show: bool) -> STree {
-    let mut stree: STree = convert(path, _debug, _debug);
-
-    let mut folder: ConstantFolder = ConstantFolder::new(_debug);
-    folder.run(&mut stree);
-
-    let analyzer = Analyzer::new(_debug);
-    let result = analyzer.analyze(&stree);
-    match result {
-        Ok(warnings) => {
-            if !warnings.is_empty() && show {
-                println!("Analysis completed with {} {}:", warnings.len().to_string().yellow(), "warnings(s)".yellow());
-                for (i, warning) in warnings.iter().enumerate() {
-                    println!("  {}. {}", i + 1, warning);
-                }
-            }
-        },
-        Err(errors) => {
-            println!("Analysis completed with {} {}:", errors.len().to_string().yellow(), "error(s)".red());
-            for (i, error) in errors.iter().enumerate() {
-                println!("  {}. {}", i + 1, error);
-            }
-            std::process::exit(0);
-        }
-    };
-    
-    stree
-}
-
-pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
-    use std::time::Instant;
-
-    let mut stree = analyze(path.clone(), _debug, !hide_warnings);
-    let mut folder: ConstantFolder = ConstantFolder::new(_debug);
-    folder.run(&mut stree);
-
-    println!("\n\n{} {}", "Running".to_string().green(), &path.white());
-
-    let mut interpreter = Interpreter::new();
-
-    let start = if _time {
-        Some(Instant::now())
-    } else {
-        None
-    };
-
-
-    let result = interpreter.execute(stree);
-
-    match result {
-        Ok(_) => {}
-        Err(err) => {
-            println!("{}: {}", "\nRuntime Error".red(), err);
-            std::process::exit(0);
-        }
-    }
-
-    if let Some(start) = start {
-        let elapsed = start.elapsed();
-        println!(
-            "\n\n{} execution in {:.6}s",
-            "Completed".green(),
-            elapsed.as_secs_f64().to_string().cyan()
-        );
-    } else {
-        println!("\n");
-    }
-    
-}

@@ -1,4 +1,4 @@
-use crate::core::tokenizing::token::Token;
+use crate::core::tokenizer::token::Token;
 
 pub struct BindingPower {
     pub left: u8,
@@ -23,6 +23,7 @@ impl Token {
         match self {
 
             Token::ASSIGN |
+            Token::IMMUTABLE_ASSIGN |
             Token::ADD_ASSIGN |
             Token::SUB_ASSIGN |
             Token::MULT_ASSIGN |

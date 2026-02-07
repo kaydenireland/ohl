@@ -1,7 +1,7 @@
-use crate::core::tokenizing::lexer::Lexer;
+use crate::core::tokenizer::lexer::Lexer;
 use crate::core::logger::Logger;
-use crate::core::parsing::mtree::MTree;
-use crate::core::tokenizing::token::Token;
+use crate::core::parser::mtree::MTree;
+use crate::core::tokenizer::token::Token;
 
 
 pub struct Parser {

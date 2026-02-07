@@ -1,4 +1,4 @@
-use crate::core::tokenizing::token::Token;
+use crate::core::tokenizer::token::Token;
 #[allow(non_camel_case_types)]
 
 enum LexerState {
@@ -14,6 +14,7 @@ enum LexerState {
 
     PERIOD,
     RANGE,
+    COLON,
 
     EQUAL,
     GREATER,
@@ -106,6 +107,7 @@ impl Lexer {
                     LexerState::EXCLAIM => self.current_token = Token::NOT,
                     LexerState::QUESTION => self.current_token = Token::QUESTION,
                     LexerState::PERIOD => self.current_token = Token::POINT,
+                    LexerState::COLON => self.current_token = Token::COLON,
                     _ => self.current_token = Token::EOI,
                 }
 
@@ -134,8 +136,7 @@ impl Lexer {
                         self.buffer_string.push(current_char);
                     }
                     ':' => {
-                        self.current_token = Token::COLON;
-                        break;
+                        self.state = LexerState::COLON;
                     }
                     ';' => {
                         self.current_token = Token::SEMICOLON;
@@ -298,6 +299,20 @@ impl Lexer {
                         self.buffer_string.push(current_char);
                     }
                 },
+                LexerState::COLON => match current_char {
+                    '=' => {
+                        self.state = LexerState::START;
+                        self.current_token = Token::IMMUTABLE_ASSIGN;
+                        break;
+                    }
+
+                    _ => {
+                        self.current_token = Token::COLON;
+                        self.state = LexerState::START;
+                        self.position -= 1;
+                        break;
+                    }
+                }
                 LexerState::PERIOD => match current_char {
                     '0'..='9' => {
                         self.buffer_string.push('.');
@@ -562,6 +577,8 @@ impl Lexer {
             "public" => Token::PUBLIC,
             "protected" => Token::PROTECTED,
             "private" => Token::PRIVATE,
+            "shared" => Token::SHARED,
+            "final" => Token::FINAL,
             "if" => Token::IF,
             "else" => Token::ELSE,
             "return" => Token::RETURN,
@@ -592,6 +609,7 @@ impl Lexer {
             "boolean" => Token::BOOLEAN,
             "function" => Token::FUNC,
             "let" => Token::LET,
+            "istype" => Token::EQT,
             "true" | "false" => {
                 let value: bool = string == "true";
                 Token::LIT_BOOL { value }

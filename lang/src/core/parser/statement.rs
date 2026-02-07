@@ -1,11 +1,11 @@
-use crate::core::parsing::parser::Parser;
-use crate::core::parsing::mtree::MTree;
-use crate::core::tokenizing::token::Token;
+use crate::core::parser::parser::Parser;
+use crate::core::parser::mtree::MTree;
+use crate::core::tokenizer::token::Token;
 
 // Statement Parsing
 impl Parser {
 
-    // TODO: Match, Imports
+    // TODO: Imports
 
     pub fn parse_statement(&mut self) -> MTree {
         self.log.info("parse_statement()");
@@ -64,8 +64,7 @@ impl Parser {
         if self.accept(Token::ASSIGN) {
             child._push(MTree::new(Token::MUTABLE));
             child._push(self.parse_expression());
-        } else if self.accept(Token::COLON) {
-            self.expect(Token::ASSIGN);
+        } else if self.accept(Token::IMMUTABLE_ASSIGN) {
             child._push(MTree::new(Token::IMMUTABLE));
             child._push(self.parse_expression());
         } else {
