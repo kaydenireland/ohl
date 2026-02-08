@@ -3,6 +3,8 @@ pub struct Logger{
     _debug: bool
 }
 
+// TODO: Simpleton
+
 impl Logger {
     const INDENT: usize = 2;
 
