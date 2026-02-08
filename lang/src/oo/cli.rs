@@ -1,11 +1,12 @@
 use std::io::Write;
 
-use clap::{Parser, Subcommand};
+use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
+use crate::core::parser::parser::Parser;
 use crate::core::util::error::Error;
 use crate::core::lexer::lexer::Lexer;
 
-#[derive(Parser)]
+#[derive(ClapParser)]
 #[command(name = "oo", version)]
 pub struct Cli {
     #[command(subcommand)]
@@ -126,14 +127,13 @@ pub fn tokenize(path: String, _debug: bool) {
 pub fn parse(path: String, _debug: bool, print_tree: bool) {
     validate_ohl_file(path.clone());
     let contents = std::fs::read_to_string(path).unwrap();
-    /* let lexer = Lexer::new(contents);
-    let mut parser = OhlParser::new(lexer, _debug);
+    let lexer = Lexer::new(contents);
+    let mut parser = Parser::new(lexer, _debug);
     let tree = parser.analyze();
     if print_tree {
         println!("\n\nParse Tree:\n");
         tree.print();
         println!();
     }
-    tree */
 }
 

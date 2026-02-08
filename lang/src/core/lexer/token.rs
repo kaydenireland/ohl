@@ -1,10 +1,10 @@
 use crate::core::lexer::token_type::TokenType;
 use crate::core::util::location::Location;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Token {
-    pub(crate) token_type: TokenType,
-    pub(crate) location: Location,
+    pub token_type: TokenType,
+    pub location: Location,
 }
 
 impl Token {
