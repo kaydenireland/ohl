@@ -1,5 +1,9 @@
+use std::io::Write;
+
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+use crate::core::util::error::Error;
+use crate::core::lexer::lexer::Lexer;
 
 #[derive(Parser)]
 #[command(name = "oo", version)]
@@ -18,6 +22,10 @@ pub enum Command {
     Size {
         filepath: String,
     },
+    Repl {
+        #[arg(short, long)]
+        debug: bool,
+    },
     Tokenize {
         filepath: String,
     },
@@ -32,7 +40,8 @@ pub fn handle(cli: Cli) {
     match cli.command {
         Command::Print { filepath, numbered } => print(filepath, numbered),
         Command::Size { filepath } => size(filepath),
-        Command::Tokenize { filepath } => tokenize(filepath),
+        Command::Repl { debug: _debug } => repl(_debug),
+        Command::Tokenize { filepath } => tokenize(filepath, true),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
     }
 }
@@ -71,8 +80,9 @@ pub fn validate_ohl_file(path: String) {
     let p = Path::new(&path);
 
     if p.is_dir() {
-        eprintln!("Expected a file, got a directory");
-        std::process::exit(0);
+        let mut e = Error::new(0, 0, "Expected file, got directory.".to_string());
+        e.disable_location();
+        e.report();
     }
 
 
@@ -89,11 +99,28 @@ pub fn validate_ohl_file(path: String) {
     }
 }
 
-pub fn tokenize(path: String) {
+pub fn repl(_debug: bool) {
+    let mut input: String = String::new();
+    loop {
+        print!("ohl >>> ");
+        std::io::stdout().flush();
+        std::io::stdin().read_line(&mut input).expect("Failed to read line.");
+
+        if input.is_empty() {
+            break;
+        }
+
+        println!("{}", input);
+    }
+}
+
+pub fn tokenize(path: String, _debug: bool) {
     validate_ohl_file(path.clone());
     let contents = std::fs::read_to_string(path).unwrap();
-    // let mut lexer = Lexer::new(contents);
-    // lexer.print_tokens();
+    let mut lexer = Lexer::new(contents);
+    if _debug {
+        lexer.print_tokens();
+    }
 }
 
 pub fn parse(path: String, _debug: bool, print_tree: bool) {
