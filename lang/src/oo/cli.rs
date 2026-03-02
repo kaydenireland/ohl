@@ -1,10 +1,12 @@
-use std::io::Write;
+use std::fs::File;
+use std::io::{Write, Result};
 
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
 use inkwell::context::Context;
 use crate::core::converter::converter::Converter;
 use crate::core::converter::stree::STree;
+use crate::core::ir::codegen::CodeGen;
 use crate::core::parser::mtree::MTree;
 use crate::core::parser::parser::Parser;
 use crate::core::util::error::Error;
@@ -24,6 +26,11 @@ pub enum Command {
         #[arg(short, long)]
         numbered: bool,
     },
+    Write {
+        filepath: String,
+        extension: String,
+        content: String,
+    },
     Size {
         filepath: String,
     },
@@ -31,7 +38,7 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
     },
-    Tokenize {
+    Token {
         filepath: String,
     },
     Parse {
@@ -43,17 +50,26 @@ pub enum Command {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
+    },
+    Ir {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool,
+        #[arg(short, long)]
+        output: bool,
     }
 }
 
 pub fn handle(cli: Cli) {
     match cli.command {
         Command::Print { filepath, numbered } => print(filepath, numbered),
+        Command::Write { filepath, content, extension } => _ = write_to_file(filepath, extension, content),
         Command::Size { filepath } => size(filepath),
         Command::Repl { debug: _debug } => repl(_debug),
-        Command::Tokenize { filepath } => tokenize(filepath, true),
-        Command::Parse { filepath, debug: _debug } => parse(filepath, _debug, true),
-        Command::Convert { filepath, debug: _debug } => convert(filepath, _debug, true),
+        Command::Token { filepath } => _ = tokenize(filepath, true),
+        Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
+        Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
+        Command::Ir { filepath, debug: _debug, output } => codegen(filepath, _debug, output)
     }
 }
 
@@ -73,6 +89,13 @@ pub fn print(path: String, numbered: bool) {
     } else {
         println!("{}", contents);
     }
+}
+
+pub fn write_to_file(filename: String, extension: String, content: String) -> Result<()> {
+    let full_name = format!("{}.{}", filename, extension);
+    let mut file = File::create(full_name)?;
+    file.write_all(content.as_bytes())?;
+    Ok(())
 }
 
 pub fn size(path: String) {
@@ -119,7 +142,7 @@ pub fn repl(_debug: bool) {
 
     loop {
         print!("ohl >>> ");
-        std::io::stdout().flush();
+        let _ = std::io::stdout().flush();
         std::io::stdin().read_line(&mut input).expect("Failed to read line.");
 
         lexer.set_input(input.clone());
@@ -145,19 +168,20 @@ pub fn repl(_debug: bool) {
     }
 }
 
-pub fn tokenize(path: String, _debug: bool) {
+pub fn tokenize(path: String, _debug: bool) -> Lexer {
     validate_ohl_file(path.clone());
     let contents = std::fs::read_to_string(path).unwrap();
     let mut lexer = Lexer::new(contents);
     if _debug {
         lexer.print_tokens();
+        lexer.reset();
     }
+
+    lexer
 }
 
-pub fn parse(path: String, _debug: bool, print_tree: bool) {
-    validate_ohl_file(path.clone());
-    let contents = std::fs::read_to_string(path).unwrap();
-    let lexer = Lexer::new(contents);
+pub fn parse(path: String, _debug: bool, print_tree: bool) -> MTree {
+    let lexer = tokenize(path, _debug);
     let mut parser = Parser::new(lexer, _debug);
     let tree = parser.analyze();
     if print_tree {
@@ -165,15 +189,12 @@ pub fn parse(path: String, _debug: bool, print_tree: bool) {
         tree.print();
         println!();
     }
+
+    tree
 }
 
-pub fn convert(path: String, _debug: bool, print_tree: bool) {
-
-    validate_ohl_file(path.clone());
-    let contents = std::fs::read_to_string(path).unwrap();
-    let lexer = Lexer::new(contents);
-    let mut parser = Parser::new(lexer, _debug);
-    let mtree = parser.analyze();
+pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
+    let mtree = parse(path, _debug, _debug);
     
     let mut converter: Converter = Converter::new(_debug);
     let stree = match converter.convert_tree(&mtree) {
@@ -185,7 +206,35 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) {
     };
 
     if print_tree {
-        println!("\n\nSemantic Tree:\n{:#?}", stree);
+        println!("\n\nSemantic Tree:\n{:#?}\n", stree);
+    }
+
+    stree
+}
+
+pub fn codegen(path: String, _debug: bool, output: bool) {
+    let stree = convert(path.clone(), _debug, _debug);
+
+    let context = Context::create();
+    let mut codegen = CodeGen::new(&context, "ohl", _debug);
+    
+    match codegen.compile(&stree) {
+        Ok(_) => println!("Compilation Complete"),
+        Err(e) => println!("Compilation Error: {:?}", e)
+    }
+
+    let content = codegen.print_ir();
+
+    if _debug {
+        println!("{:?}, ", content);
+    }
+
+    if output {
+        match write_to_file(path.clone(), ".ll".into(), content) {
+            Ok(_) => println!("\nIR Written to {}.ll", path.clone()),
+            Err(e) => println!("\nError writing IR to {}.ll: {}", path.clone(), e)
+        }
     }
 
 }
+

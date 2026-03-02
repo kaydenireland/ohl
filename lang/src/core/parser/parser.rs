@@ -94,6 +94,8 @@ impl Parser {
             tree._push(self.parse_function());
         }
 
+        self.log.info("");
+
         tree
     }
 

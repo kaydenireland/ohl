@@ -95,7 +95,7 @@ impl Lexer {
             }
             println!("{}", self.current.to_string());
         }
-        println!("{}", self.current.to_string());
+        println!("{}\n", self.current.to_string());
     }
     
     pub fn advance(&mut self) -> Token {
