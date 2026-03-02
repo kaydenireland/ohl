@@ -17,6 +17,9 @@ pub enum TokenType {
     DASH,
     STAR,
     SLASH,
+    PERCENT,
+    POWER,
+    ROOT,
 
     // Assignment
     ASSIGN,
@@ -37,14 +40,25 @@ pub enum TokenType {
 
     // Keywords
     PRINT,
+    RETURN,
 
     // Variables
     VAR,
     NULL,
 
+    // Types
+    STRING,
+    INT, // i32
+    FLOAT, // f32
+    BOOLEAN,
+
+    // Function/Class Types
+    PUBLIC,
+
     // Literals
     ID { name: String },
     LIT_STRING { value: String },
+    LIT_INT { value: i32 },
     LIT_FLOAT { value: f32 },
     TRUE,
     FALSE,
@@ -54,10 +68,31 @@ pub enum TokenType {
     EOI,
     ERROR,
     BLOCK,
-
+    VAR_DECL,
+    FUNC_DECL,
+    PARAM,
+    PARAM_LIST
 }
 
 impl TokenType {
+
+    pub fn is_type(&self, include_var: bool) -> bool {
+        match self {
+            TokenType::STRING => true,
+            TokenType::INT => true,
+            TokenType::FLOAT => true,
+            TokenType::BOOLEAN => true,
+            TokenType::VAR => include_var,
+            _ => false
+        }
+    }
+
+    pub fn is_function_type(&self) -> bool {
+        match self {
+            TokenType::PUBLIC => true,
+            _ => false
+        }
+    }
 
     pub fn is_logical_operator(&self) -> bool {
         match self { 
@@ -75,6 +110,9 @@ impl TokenType {
             TokenType::DASH => true,
             TokenType::STAR => true,
             TokenType::SLASH => true,
+            TokenType::PERCENT => true,
+            TokenType::POWER => true,
+            TokenType::ROOT => true,
             _ => false
         }
     }
@@ -102,6 +140,7 @@ impl TokenType {
         match self {
             TokenType::DASH => true,
             TokenType::SLASH => true,
+            TokenType::NOT => true,
 
             _ => false
         }
@@ -122,6 +161,7 @@ impl TokenType {
     pub fn is_literal(&self) -> bool {
         match self {
             TokenType::LIT_STRING { .. } => true,
+            TokenType::LIT_INT { .. } => true,
             TokenType::LIT_FLOAT { .. } => true,
             TokenType::TRUE | TokenType::FALSE => true,
             TokenType::NULL => true,
@@ -161,9 +201,10 @@ impl TokenType {
             TokenType::LESS_EQUAL | TokenType::GREATER_EQUAL =>  BindingPower { left: 32, right: 33, unary: 0 },
 
             TokenType::PAREN_R => BindingPower { left: 40, right: 41, unary: 0 },
-            TokenType::DASH => BindingPower { left: 40, right: 41, unary: 70 },
-            TokenType::STAR => BindingPower { left: 50, right: 51, unary: 0 },
+            TokenType::PLUS | TokenType::DASH => BindingPower { left: 40, right: 41, unary: 70 },
+            TokenType::STAR | TokenType::PERCENT => BindingPower { left: 50, right: 51, unary: 0 },
             TokenType::SLASH => BindingPower { left: 50, right: 51, unary: 70 },
+            TokenType::POWER | TokenType::ROOT => BindingPower { left: 90, right: 89, unary: 0 },
 
             TokenType::NOT => BindingPower { left: 0, right: 0, unary: 70 },
 

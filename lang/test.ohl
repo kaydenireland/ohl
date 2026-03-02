@@ -1,13 +1,8 @@
-var a = "global";
-{
-    var a = "local a";
-    print a;
-}
-print a;
+public int add(int x, int y) {
 
-var b;
-var c = null;
-var d = 5;
-var e = 6 * e;
+    int result = x + y;
+    return result;
+
+}
 
 // Page 133

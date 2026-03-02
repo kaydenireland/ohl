@@ -15,8 +15,13 @@ impl Parser {
             TokenType::PRINT => child = self.parse_print(),
             TokenType::SEMICOLON => child = self.parse_blank(),
             TokenType::BRACE_L => child = self.parse_block(),
+            TokenType::RETURN => child = self.parse_return(),
             TokenType::VAR => {
                 child = self.parse_var();
+                self.expect(TokenType::SEMICOLON);
+            },
+            TokenType::STRING | TokenType::INT | TokenType::FLOAT => {
+                child = self.parse_variable_declaration();
                 self.expect(TokenType::SEMICOLON);
             },
             _ => {
@@ -33,7 +38,7 @@ impl Parser {
         self.log.info("parse_var()");
         self.log.indent_inc();
 
-        let mut child = MTree::new(Token::from(TokenType::VAR));
+        let mut child = MTree::new(Token::from(TokenType::VAR_DECL));
 
         self.expect(TokenType::VAR);
 
@@ -51,6 +56,29 @@ impl Parser {
 
         child
     }
+
+    pub fn parse_variable_declaration(&mut self) -> MTree {
+        self.log.info("parse_variable_declaration()");
+        self.log.indent_inc();
+
+        let mut child = MTree::new(Token::from(TokenType::VAR_DECL));
+
+        let token = self.current();
+        self.expect_type(false);
+        child._push(MTree::new(token));
+
+        let id = self.current();
+        self.expect(TokenType::id());
+        child._push(MTree::new(id));
+
+        if self.accept(TokenType::ASSIGN) {
+            child._push(self.parse_expression());
+        }
+
+        self.log.indent_dec();
+
+        child
+    }
     
     pub fn parse_print(&mut self) -> MTree {
         self.log.info("parse_print()");
@@ -63,6 +91,23 @@ impl Parser {
         self.expect(TokenType::SEMICOLON);
 
         self.log.indent_dec();
+        child
+    }
+
+    pub fn parse_return(&mut self) -> MTree {
+        self.log.info("parse_return()");
+        self.log.indent_inc();
+
+        let mut child = MTree::new(Token::from(TokenType::RETURN));
+
+        self.expect(TokenType::RETURN);
+        if !self.accept(TokenType::SEMICOLON) {
+            child._push(self.parse_expression());
+            self.expect(TokenType::SEMICOLON);
+        }
+
+        self.log.indent_dec();
+
         child
     }
 

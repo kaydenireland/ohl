@@ -2,6 +2,10 @@ use std::io::Write;
 
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
+use inkwell::context::Context;
+use crate::core::converter::converter::Converter;
+use crate::core::converter::stree::STree;
+use crate::core::parser::mtree::MTree;
 use crate::core::parser::parser::Parser;
 use crate::core::util::error::Error;
 use crate::core::lexer::lexer::Lexer;
@@ -35,6 +39,11 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
     },
+    Convert {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool,
+    }
 }
 
 pub fn handle(cli: Cli) {
@@ -43,7 +52,8 @@ pub fn handle(cli: Cli) {
         Command::Size { filepath } => size(filepath),
         Command::Repl { debug: _debug } => repl(_debug),
         Command::Tokenize { filepath } => tokenize(filepath, true),
-        Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
+        Command::Parse { filepath, debug: _debug } => parse(filepath, _debug, true),
+        Command::Convert { filepath, debug: _debug } => convert(filepath, _debug, true),
     }
 }
 
@@ -102,10 +112,30 @@ pub fn validate_ohl_file(path: String) {
 
 pub fn repl(_debug: bool) {
     let mut input: String = String::new();
+
+    let mut lexer: Lexer = Lexer::new(String::new());
+    let mut parser: Parser;
+    let mut tree: MTree;
+
     loop {
         print!("ohl >>> ");
         std::io::stdout().flush();
         std::io::stdin().read_line(&mut input).expect("Failed to read line.");
+
+        lexer.set_input(input.clone());
+
+        if _debug {
+            lexer.print_tokens();
+            lexer.reset();
+        }
+
+        parser = Parser::new(lexer.clone(), _debug);
+        tree = parser.analyze();
+        if _debug {
+            println!("\n\nParse Tree:\n");
+            tree.print();
+            println!();
+        }
 
         if input.is_empty() {
             break;
@@ -137,3 +167,25 @@ pub fn parse(path: String, _debug: bool, print_tree: bool) {
     }
 }
 
+pub fn convert(path: String, _debug: bool, print_tree: bool) {
+
+    validate_ohl_file(path.clone());
+    let contents = std::fs::read_to_string(path).unwrap();
+    let lexer = Lexer::new(contents);
+    let mut parser = Parser::new(lexer, _debug);
+    let mtree = parser.analyze();
+    
+    let mut converter: Converter = Converter::new(_debug);
+    let stree = match converter.convert_tree(&mtree) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("{}: Semantic Conversion Failed \n{}\n", "ERROR".red(), e.red());
+            std::process::exit(0)
+        }
+    };
+
+    if print_tree {
+        println!("\n\nSemantic Tree:\n{:#?}", stree);
+    }
+
+}

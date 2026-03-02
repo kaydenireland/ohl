@@ -3,6 +3,7 @@ use crate::core::lexer::token_type::TokenType;
 use crate::core::util::error::Error;
 use crate::core::util::location::Location;
 
+#[derive(Clone)]
 enum LexerState {
     START,
     END,
@@ -19,12 +20,14 @@ enum LexerState {
 
     STRING,
 
+    CARAT,
     EXCLAIM,
     EQUAL,
     GREATER,
     LESS
 }
 
+#[derive(Clone)]
 pub struct Lexer {
     input: String,
     position: usize,
@@ -56,6 +59,18 @@ impl Lexer {
     
     pub fn set_input(&mut self, input: String) {
         self.input = input;
+        self.position = 0;
+        self.state = LexerState::START;
+        self.current = Token::from(TokenType::EOI);
+        self.buffer = String::new();
+        self.line = 1;
+        self.col = 1;
+
+        self.string_line = 0;
+        self.string_line = 0;
+    }
+
+    pub fn reset(&mut self) {
         self.position = 0;
         self.state = LexerState::START;
         self.current = Token::from(TokenType::EOI);
@@ -190,6 +205,11 @@ impl Lexer {
                         break;
                     },
                     '/' => self.state = LexerState::SLASH,
+                    '%' => {
+                        self.current = self.create_token(TokenType::PERCENT);
+                        break;
+                    }
+                    '^' => self.state = LexerState::CARAT,
                     
                     // Assignment Operators
                     '=' => self.state = LexerState::EQUAL,
@@ -334,6 +354,30 @@ impl Lexer {
                         self.buffer.push(char);
                     }
                 },
+                LexerState::CARAT => match char {
+                    '/' => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token_with_location(
+                            TokenType::ROOT,
+                            self.line,
+                            self.col - 1
+                        );
+                        break;
+                    }
+
+                    _ => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token_with_location(
+                            TokenType::POWER,
+                            self.line,
+                            self.col - 1
+                        );
+
+                        self.position -= 1;
+                        self.col -= 1;
+                        break;
+                    }
+                },
                 LexerState::EXCLAIM => match char {
                     '=' => {
                         self.state = LexerState::START;
@@ -442,10 +486,19 @@ impl Lexer {
             "or" => TokenType::OR,
             "xor" => TokenType::XOR,
             
-            "var" => TokenType::VAR,
             "null" => TokenType::NULL,
             "true" => TokenType::TRUE,
             "false" => TokenType::FALSE,
+            
+            "var" => TokenType::VAR,
+            "string" => TokenType::STRING,
+            "int" => TokenType::INT,
+            "float" => TokenType::FLOAT,
+            "boolean" => TokenType::BOOLEAN,
+
+            "public" => TokenType::PUBLIC,
+
+            "return" => TokenType::RETURN,
 
             "print" => TokenType::PRINT,
             
