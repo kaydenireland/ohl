@@ -21,7 +21,8 @@ pub enum STree {
     LIT_BOOL { value: bool },
     LIT_STRING { value: String },
     NULL,
-    BLANK_STMT
+    BLANK_STMT,
+    PRINT { expression: Box<STree> }
 }
 
 impl STree {

@@ -1,8 +1,11 @@
-public int add(int x, int y) {
+public int main() {
 
-    int result = x + y;
-    return result;
+    boolean z = true;
+    boolean x = false;
 
+    print z;
+    print x;
+    print 1 == 1;
+
+    return 0;
 }
-
-// Page 133

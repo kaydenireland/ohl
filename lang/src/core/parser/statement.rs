@@ -20,7 +20,7 @@ impl Parser {
                 child = self.parse_var();
                 self.expect(TokenType::SEMICOLON);
             },
-            TokenType::STRING | TokenType::INT | TokenType::FLOAT => {
+            TokenType::STRING | TokenType::INT | TokenType::FLOAT | TokenType::BOOLEAN => {
                 child = self.parse_variable_declaration();
                 self.expect(TokenType::SEMICOLON);
             },

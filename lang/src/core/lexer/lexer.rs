@@ -246,9 +246,9 @@ impl Lexer {
                     
                     _ => {
                         self.state = LexerState::START;
-                        let value: f32 = self.buffer.parse().unwrap();
+                        let value: i32 = self.buffer.parse().unwrap();
                         self.current = self.create_token_with_location(
-                            TokenType::LIT_FLOAT { value }, 
+                            TokenType::LIT_INT { value }, 
                             self.line, 
                             self.col - self.buffer.len()
                         );

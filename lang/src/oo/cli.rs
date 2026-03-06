@@ -1,5 +1,7 @@
+use std::fmt::format;
 use std::fs::File;
 use std::io::{Write, Result};
+use std::path::Path;
 
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
@@ -56,7 +58,7 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
         #[arg(short, long)]
-        output: bool,
+        out: bool
     }
 }
 
@@ -69,7 +71,7 @@ pub fn handle(cli: Cli) {
         Command::Token { filepath } => _ = tokenize(filepath, true),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
-        Command::Ir { filepath, debug: _debug, output } => codegen(filepath, _debug, output)
+        Command::Ir { filepath, debug: _debug, out } => _ = codegen(filepath, _debug, out),
     }
 }
 
@@ -96,6 +98,23 @@ pub fn write_to_file(filename: String, extension: String, content: String) -> Re
     let mut file = File::create(full_name)?;
     file.write_all(content.as_bytes())?;
     Ok(())
+}
+
+
+pub fn split_filename(path: &str) -> (String, String) {
+    let p = Path::new(path);
+
+    let filename = p.file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_string();
+
+    let extension = p.extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_string();
+
+    (filename, extension)
 }
 
 pub fn size(path: String) {
@@ -212,7 +231,7 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     stree
 }
 
-pub fn codegen(path: String, _debug: bool, output: bool) {
+pub fn codegen(path: String, _debug: bool, out: bool) -> Result<String> {
     let stree = convert(path.clone(), _debug, _debug);
 
     let context = Context::create();
@@ -229,12 +248,10 @@ pub fn codegen(path: String, _debug: bool, output: bool) {
         println!("{:?}, ", content);
     }
 
-    if output {
-        match write_to_file(path.clone(), ".ll".into(), content) {
-            Ok(_) => println!("\nIR Written to {}.ll", path.clone()),
-            Err(e) => println!("\nError writing IR to {}.ll: {}", path.clone(), e)
-        }
+    if out {
+        let (name, _) = split_filename(&path);
+        write_to_file(name, "ll".to_string(), content.clone())?;
     }
 
+    Ok(content)
 }
-

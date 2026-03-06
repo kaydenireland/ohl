@@ -179,6 +179,19 @@ impl Converter {
                 Ok(STree::ASSIGN_STMT { id: name, expression: Box::new(combined) })
             }*/
 
+            // Expected Print Children
+            // [ Expression ]
+            TokenType::PRINT => {
+                self.log.info("convert_return()");
+                self.log.indent_inc();
+
+                let expression_node = node.children.get(0).unwrap();
+                let expression = self.convert_tree(expression_node)?;
+
+                self.log.indent_dec();
+                Ok(STree::PRINT { expression: Box::new(expression) })
+            }
+
             // Expected Return Children
             // [ Expression ]
             TokenType::RETURN => {
