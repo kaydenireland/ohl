@@ -65,7 +65,7 @@ impl Parser {
 
     pub fn expect_function_type(&mut self) {
         let current = self.current().token_type;
-        if current.is_function_type() {
+        if current.is_member_type() {
             self.log.info(&format!("expect({current:?})"));
             self.advance();
         } else {
@@ -103,7 +103,7 @@ impl Parser {
         self.log.info("parse_function()");
         self.log.indent_inc();
 
-        let mut child = MTree::new(Token::from(TokenType::FUNC_DECL));
+        let mut child = MTree::new(Token::using_location(TokenType::FUNC_DECL, self.current()));
 
         let func_type = self.current();
         self.expect_function_type();
@@ -128,7 +128,7 @@ impl Parser {
         self.log.info("parse_parameter_list()");
         self.log.indent_inc();
 
-        let mut child = MTree::new(Token::from(TokenType::PARAM_LIST));
+        let mut child = MTree::new(Token::using_location(TokenType::PARAM_LIST, self.current()));
 
         self.expect(TokenType::PAREN_L);
 
@@ -153,7 +153,7 @@ impl Parser {
         self.log.info("parse_parameter()");
         self.log.indent_inc();
 
-        let mut child = MTree::new(Token::from(TokenType::PARAM));
+        let mut child = MTree::new(Token::using_location(TokenType::PARAM, self.current()));
 
         let type_token = self.current();
         self.expect_type(false);
@@ -172,7 +172,7 @@ impl Parser {
         self.log.info("parse_block");
         self.log.indent_inc();
 
-        let mut child = MTree::new(Token::from(TokenType::BLOCK));
+        let mut child = MTree::new(Token::using_location(TokenType::BLOCK, self.current()));
 
         self.expect(TokenType::BRACE_L);
         while !self.is(TokenType::BRACE_R) {

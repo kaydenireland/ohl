@@ -31,7 +31,7 @@ impl Parser {
             self.parse_infix_expression(tree_atom, rbl)
         } else {
             Error::new(token.location.get_line(), token.location.get_col(), "Invalid Expression".to_string()).report();
-            MTree::new(Token::from(TokenType::ERROR))
+            MTree::new(Token::new(TokenType::ERROR, token.location))
         }
     }
 

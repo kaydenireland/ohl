@@ -50,9 +50,9 @@ pub enum TokenType {
     STRING,
     INT, // i32
     FLOAT, // f32
-    BOOLEAN,
+    BOOLEAN, // bool
 
-    // Function/Class Types
+    // Member Types
     PUBLIC,
 
     // Literals
@@ -62,6 +62,10 @@ pub enum TokenType {
     LIT_FLOAT { value: f32 },
     TRUE,
     FALSE,
+
+    // Control Flow
+    IF,
+    ELSE,
 
     // Meta
     START,
@@ -87,7 +91,7 @@ impl TokenType {
         }
     }
 
-    pub fn is_function_type(&self) -> bool {
+    pub fn is_member_type(&self) -> bool {
         match self {
             TokenType::PUBLIC => true,
             _ => false
@@ -200,7 +204,7 @@ impl TokenType {
             TokenType::LESS | TokenType::GREATER |
             TokenType::LESS_EQUAL | TokenType::GREATER_EQUAL =>  BindingPower { left: 32, right: 33, unary: 0 },
 
-            TokenType::PAREN_R => BindingPower { left: 40, right: 41, unary: 0 },
+            // TokenType::PAREN_R => BindingPower { left: 40, right: 41, unary: 0 },
             TokenType::PLUS | TokenType::DASH => BindingPower { left: 40, right: 41, unary: 70 },
             TokenType::STAR | TokenType::PERCENT => BindingPower { left: 50, right: 51, unary: 0 },
             TokenType::SLASH => BindingPower { left: 50, right: 51, unary: 70 },

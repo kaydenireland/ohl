@@ -500,6 +500,9 @@ impl Lexer {
 
             "return" => TokenType::RETURN,
 
+            "if" => TokenType::IF,
+            "else" => TokenType::ELSE,
+
             "print" => TokenType::PRINT,
             
             _ => {

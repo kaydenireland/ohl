@@ -264,7 +264,7 @@ impl<'ctx> CodeGen<'ctx> {
                     TokenType::NOT  => match val {
                         BasicValueEnum::IntValue(i) => Ok(self.builder.build_not(i,"not").unwrap().into()),
 
-                        _ => Err("Unsuported Type for Not, must be Int/Bool".to_string())
+                        _ => Err("Unsupported Type for Not, must be Int/Bool".to_string())
                     } ,
                     _ => Err("Unsupported prefix op".into())
                 }
@@ -291,12 +291,11 @@ impl<'ctx> CodeGen<'ctx> {
 
     fn compile_int_expr(&mut self, l: IntValue<'ctx>, r: IntValue<'ctx>, op: &TokenType) -> Result<BasicValueEnum<'ctx>, String> {
 
-        let l = if l.get_type() == self.context.bool_type() {
-            self.builder.build_int_z_extend(l, self.context.i32_type(), "bext").unwrap()
-        } else { l };
-        let r = if r.get_type() == self.context.bool_type() {
-            self.builder.build_int_z_extend(r, self.context.i32_type(), "bext").unwrap()
-        } else { r };
+        if l.get_type() == self.context.bool_type() || r.get_type() == self.context.bool_type() {
+        return Err(format!(
+            "Type error: boolean value cannot be used in arithmetic expression '{:?}'", op
+        ));
+    }
 
         match op {
             TokenType::PLUS    => Ok(self.builder.build_int_add(l, r, "add").unwrap().into()),
@@ -317,6 +316,7 @@ impl<'ctx> CodeGen<'ctx> {
     }
 
     fn compile_float_expr(&mut self, l: FloatValue<'ctx>, r: FloatValue<'ctx>, op: &TokenType) -> Result<BasicValueEnum<'ctx>, String> {
+
         match op {
             TokenType::PLUS  => Ok(self.builder.build_float_add(l, r, "fadd").unwrap().into()),
             TokenType::DASH  => Ok(self.builder.build_float_sub(l, r, "fsub").unwrap().into()),

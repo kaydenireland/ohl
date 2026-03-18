@@ -1,4 +1,3 @@
-use std::fmt::format;
 use std::fs::File;
 use std::io::{Write, Result};
 use std::path::Path;
@@ -175,7 +174,7 @@ pub fn repl(_debug: bool) {
         tree = parser.analyze();
         if _debug {
             println!("\n\nParse Tree:\n");
-            tree.print();
+            tree.print(_debug);
             println!();
         }
 
@@ -205,7 +204,7 @@ pub fn parse(path: String, _debug: bool, print_tree: bool) -> MTree {
     let tree = parser.analyze();
     if print_tree {
         println!("\n\nParse Tree:\n");
-        tree.print();
+        tree.print(_debug);
         println!();
     }
 

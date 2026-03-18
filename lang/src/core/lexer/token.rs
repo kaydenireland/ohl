@@ -22,6 +22,13 @@ impl Token {
         }
     }
 
+    pub fn using_location(token_type: TokenType, token: Token) -> Token {
+        Token {
+            token_type,
+            location: token.location
+        }
+    }
+
     pub fn id(name: &str, location: Location) -> Token {
         Token {
             token_type: TokenType::ID { name: String::from(name) },

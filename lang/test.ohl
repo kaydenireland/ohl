@@ -1,11 +1,8 @@
 public int main() {
 
-    boolean z = true;
-    boolean x = false;
-
-    print z;
+    int x = (4 + 9);
     print x;
-    print 1 == 1;
+    (2 - 6);
 
     return 0;
 }

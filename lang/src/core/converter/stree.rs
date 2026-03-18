@@ -9,17 +9,24 @@ pub enum STree {
     FUNCTION { function_type: TokenType, return_type: TokenType, name: String, params: Vec<(String, TokenType)>, body: Box<STree> },
     BLOCK { statements: Vec<STree> },
     VAR_TYPE { var_type: TokenType },
-    VAR_STMT { id: String, var_type: TokenType, mutable: bool, expression: Box<STree> },
-    ASSIGN_STMT { id: String, expression: Box<STree> },
-    RETURN_STMT { expression: Option<Box<STree>>},
+
+    // Expressions
     EXPR { left: Box<STree>, operator: TokenType, right: Box<STree> },
     PRFX_EXPR { operator: TokenType, right: Box<STree> },
     PTFX_EXPR { left: Box<STree>, operator: TokenType },
+
+    // Literals
     ID { name: String },
     LIT_INT { value: i32 },
     LIT_FLOAT { value: f32 },
     LIT_BOOL { value: bool },
     LIT_STRING { value: String },
+
+    // Statements
+    VAR_STMT { id: String, var_type: TokenType, mutable: bool, expression: Box<STree> },
+    ASSIGN_STMT { id: String, expression: Box<STree> },
+    RETURN_STMT { expression: Option<Box<STree>>},
+    IF_STMT { condition: Box<STree>, then_block: Box<STree>, else_block: Option<Box<STree>> },
     NULL,
     BLANK_STMT,
     PRINT { expression: Box<STree> }
