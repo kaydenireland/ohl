@@ -492,6 +492,7 @@ impl Lexer {
             
             "var" => TokenType::VAR,
             "string" => TokenType::STRING,
+            "char" => TokenType::CHAR,
             "int" => TokenType::INT,
             "float" => TokenType::FLOAT,
             "boolean" => TokenType::BOOLEAN,

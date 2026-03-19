@@ -1,8 +1,7 @@
 public int main() {
 
-    int x = (4 + 9);
-    print x;
-    (2 - 6);
+    string x = "hello world!";
+    print(x);
 
     return 0;
 }

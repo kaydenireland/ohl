@@ -48,6 +48,7 @@ pub enum TokenType {
 
     // Types
     STRING,
+    CHAR,
     INT, // i32
     FLOAT, // f32
     BOOLEAN, // bool
@@ -58,6 +59,7 @@ pub enum TokenType {
     // Literals
     ID { name: String },
     LIT_STRING { value: String },
+    LIT_CHAR { value: char },
     LIT_INT { value: i32 },
     LIT_FLOAT { value: f32 },
     TRUE,
@@ -83,6 +85,7 @@ impl TokenType {
     pub fn is_type(&self, include_var: bool) -> bool {
         match self {
             TokenType::STRING => true,
+            TokenType::CHAR => true,
             TokenType::INT => true,
             TokenType::FLOAT => true,
             TokenType::BOOLEAN => true,
@@ -165,6 +168,7 @@ impl TokenType {
     pub fn is_literal(&self) -> bool {
         match self {
             TokenType::LIT_STRING { .. } => true,
+            TokenType::LIT_CHAR { .. } => true,
             TokenType::LIT_INT { .. } => true,
             TokenType::LIT_FLOAT { .. } => true,
             TokenType::TRUE | TokenType::FALSE => true,
@@ -211,12 +215,6 @@ impl TokenType {
             TokenType::POWER | TokenType::ROOT => BindingPower { left: 90, right: 89, unary: 0 },
 
             TokenType::NOT => BindingPower { left: 0, right: 0, unary: 70 },
-
-            TokenType::ID { .. } |
-            TokenType::LIT_FLOAT { .. } |
-            TokenType::TRUE |
-            TokenType::FALSE |
-            TokenType::LIT_STRING { .. } => BindingPower { left: 0, right: 0, unary: 0 },
 
             TokenType::PAREN_L => BindingPower { left: 100, right: 0, unary: 0 },
             TokenType::DOT => BindingPower { left: 100, right: 99, unary: 0 },

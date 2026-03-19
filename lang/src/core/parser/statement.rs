@@ -91,7 +91,11 @@ impl Parser {
         let mut child = MTree::new(self.current());
         self.expect(TokenType::PRINT);
 
+        self.expect(TokenType::PAREN_L);
+
         child._push(self.parse_expression());
+
+        self.expect(TokenType::PAREN_R);
         self.expect(TokenType::SEMICOLON);
 
         self.log.indent_dec();

@@ -28,8 +28,10 @@ impl<'ctx> CodeGen<'ctx> {
                         continue;
                     }
                     "%d\n\0"
-            },
+                },
                 BasicValueEnum::FloatValue(_) => "%f\n\0",
+                BasicValueEnum::PointerValue(_) => "%s\n\0",
+
                 _                             => return Err("Unsupported print type".into()),
             };
 

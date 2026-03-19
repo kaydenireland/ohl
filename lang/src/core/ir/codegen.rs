@@ -151,194 +151,15 @@ impl<'ctx> CodeGen<'ctx> {
         Ok(())
     }
 
-    fn compile_statement(&mut self, node: &STree) -> Result<Option<BasicValueEnum<'ctx>>, String> {
-        self.logger.info("compile_statement()");
-        self.logger.indent_inc();
 
-        match node {
 
-            STree::RETURN_STMT { expression } => {
-                let val = if let Some(expr) = expression {
-                    self.compile_expression(expr)?
-                } else {
-                    BasicValueEnum::IntValue(self.context.i32_type().const_int(0, false))
-                };
-                self.builder.build_return(Some(&val)).unwrap();
-                self.logger.indent_dec();
-                Ok(Some(val))
-            },
 
-            STree::VAR_STMT { id, expression, var_type, .. } => {
-                let val = self.compile_expression(expression)?;
-                let func = self.current_fn.unwrap();
 
-                let llvm_type = self.llvm_type(var_type)?;
-                let alloca = self.create_entry_block_alloca(func, id, llvm_type);
-
-                self.builder.build_store(alloca, val).unwrap();
-                self.variables.insert(id.clone(), (alloca, llvm_type));
-                self.logger.indent_dec();
-                Ok(Some(val))
-            },
-
-            STree::ASSIGN_STMT { id, expression } => {
-                let val = self.compile_expression(expression)?;
-                let (ptr, expected_typ) = self.variables.get(id).ok_or(format!("Undefined var {}", id))?;
-
-                let store_val = match (val, expected_typ) {
-                    (BasicValueEnum::IntValue(i), inkwell::types::BasicTypeEnum::IntType(t)) 
-                        if *t == self.context.bool_type() => {
-                            self.builder
-                                .build_int_truncate(i, self.context.bool_type(), "to_bool")
-                                .unwrap()
-                                .into()
-                    },
-                    _ => val,
-                };
-
-                self.builder.build_store(*ptr, store_val).unwrap();
-                self.logger.indent_dec();
-                Ok(Some(val))
-            },
-
-            STree::BLOCK { statements } => {
-                let mut last = None;
-                for s in statements {
-                    last = self.compile_statement(s)?;
-                }
-                self.logger.indent_dec();
-                Ok(last)
-            },
-
-            STree::VAR_TYPE { .. } => Ok(None),
-            STree::BLANK_STMT => Ok(None),
-            STree::NULL => Ok(None),
-
-            STree::PRINT { expression } => {
-                let val = self.compile_expression(expression)?;
-                self.build_print(&[val])?;
-                Ok(None)
-            },
-            STree::LIT_INT { .. }
-            | STree::LIT_FLOAT { .. }
-            | STree::LIT_BOOL { .. }
-            | STree::ID { .. }
-            | STree::EXPR { .. }
-            | STree::PRFX_EXPR { .. } => {
-                let v = self.compile_expression(node)?;
-                Ok(Some(v))
-            }
-
-            _ => {
-                self.logger.indent_dec();
-                Err(format!("Invalid statement node: {:?}", node))
-            }
-        }
-    }
-
-    fn compile_expression(&mut self, node: &STree) -> Result<BasicValueEnum<'ctx>, String> {
-        self.logger.info("compile_expression()");
-        self.logger.info(&format!("compile_expression node = {:?}", node));
-
-        match node {
-            STree::LIT_INT { value } => Ok(BasicValueEnum::IntValue(self.context.i32_type().const_int(*value as u64, false))),
-            STree::LIT_FLOAT { value } => Ok(BasicValueEnum::FloatValue(self.context.f32_type().const_float(*value as f64))),
-
-            STree::LIT_BOOL { value } => Ok(BasicValueEnum::IntValue(self.context.bool_type().const_int(*value as u64, false))),
-
-            STree::ID { name } => {
-                let (ptr, ty) = self.variables.get(name).ok_or(format!("Undefined var {}", name))?;
-                let v = self.builder.build_load(*ty, *ptr, name).unwrap();
-                Ok(v)
-            },
-
-            STree::PRFX_EXPR { operator, right } => {
-                let val = self.compile_expression(right)?;
-                match operator {
-                    TokenType::DASH => match val {
-                        BasicValueEnum::IntValue(i) => Ok(self.builder.build_int_neg(i,"neg").unwrap().into()),
-                        BasicValueEnum::FloatValue(f) => Ok(self.builder.build_float_neg(f, "neg").unwrap().into()),
-
-                        _ => Err("Unsuported Type for Negation".to_string())
-                    },
-                    TokenType::NOT  => match val {
-                        BasicValueEnum::IntValue(i) => Ok(self.builder.build_not(i,"not").unwrap().into()),
-
-                        _ => Err("Unsupported Type for Not, must be Int/Bool".to_string())
-                    } ,
-                    _ => Err("Unsupported prefix op".into())
-                }
-            },
-
-            STree::EXPR { left, operator, right } => {
-                let lhs = self.compile_expression(left)?;
-                let rhs = self.compile_expression(right)?;
-
-                match (lhs, rhs) {
-                    (BasicValueEnum::IntValue(l), BasicValueEnum::IntValue(r)) => {
-                        self.compile_int_expr(l, r, operator)
-                    },
-                    (BasicValueEnum::FloatValue(l), BasicValueEnum::FloatValue(r)) => {
-                        self.compile_float_expr(l, r, operator)
-                    },
-                    _ => Err(format!("Type mismatch in expression: {:?}", operator)),
-                }
-            },
-
-            _ => Err(format!("Invalid Expression Node: {:?}", node)),
-        }
-    }
-
-    fn compile_int_expr(&mut self, l: IntValue<'ctx>, r: IntValue<'ctx>, op: &TokenType) -> Result<BasicValueEnum<'ctx>, String> {
-
-        if l.get_type() == self.context.bool_type() || r.get_type() == self.context.bool_type() {
-        return Err(format!(
-            "Type error: boolean value cannot be used in arithmetic expression '{:?}'", op
-        ));
-    }
-
-        match op {
-            TokenType::PLUS    => Ok(self.builder.build_int_add(l, r, "add").unwrap().into()),
-            TokenType::DASH    => Ok(self.builder.build_int_sub(l, r, "sub").unwrap().into()),
-            TokenType::STAR    => Ok(self.builder.build_int_mul(l, r, "mul").unwrap().into()),
-            TokenType::SLASH   => Ok(self.builder.build_int_signed_div(l, r, "div").unwrap().into()),
-            TokenType::PERCENT => Ok(self.builder.build_int_signed_rem(l, r, "mod").unwrap().into()),
-
-            TokenType::LESS           => self.int_cmp(IntPredicate::SLT, l, r, "lt"),
-            TokenType::GREATER        => self.int_cmp(IntPredicate::SGT, l, r, "gt"),
-            TokenType::LESS_EQUAL     => self.int_cmp(IntPredicate::SLE, l, r, "le"),
-            TokenType::GREATER_EQUAL  => self.int_cmp(IntPredicate::SGE, l, r, "ge"),
-            TokenType::EQUAL          => self.int_cmp(IntPredicate::EQ,  l, r, "eq"),
-            TokenType::NOT_EQUAL      => self.int_cmp(IntPredicate::NE,  l, r, "ne"),
-
-            _ => Err(format!("Unsupported int operator: {:?}", op)),
-        }
-    }
-
-    fn compile_float_expr(&mut self, l: FloatValue<'ctx>, r: FloatValue<'ctx>, op: &TokenType) -> Result<BasicValueEnum<'ctx>, String> {
-
-        match op {
-            TokenType::PLUS  => Ok(self.builder.build_float_add(l, r, "fadd").unwrap().into()),
-            TokenType::DASH  => Ok(self.builder.build_float_sub(l, r, "fsub").unwrap().into()),
-            TokenType::STAR  => Ok(self.builder.build_float_mul(l, r, "fmul").unwrap().into()),
-            TokenType::SLASH => Ok(self.builder.build_float_div(l, r, "fdiv").unwrap().into()),
-
-            TokenType::LESS          => self.float_cmp(FloatPredicate::OLT, l, r, "flt"),
-            TokenType::GREATER       => self.float_cmp(FloatPredicate::OGT, l, r, "fgt"),
-            TokenType::LESS_EQUAL    => self.float_cmp(FloatPredicate::OLE, l, r, "fle"),
-            TokenType::GREATER_EQUAL => self.float_cmp(FloatPredicate::OGE, l, r, "fge"),
-            TokenType::EQUAL         => self.float_cmp(FloatPredicate::OEQ, l, r, "feq"),
-            TokenType::NOT_EQUAL     => self.float_cmp(FloatPredicate::ONE, l, r, "fne"),
-
-            _ => Err(format!("Unsupported float operator: {:?}", op)),
-        }
-    }
-
-    fn llvm_type(&self, ty: &TokenType) -> Result<inkwell::types::BasicTypeEnum<'ctx>, String> {
+    pub fn llvm_type(&self, ty: &TokenType) -> Result<inkwell::types::BasicTypeEnum<'ctx>, String> {
         match ty {
-            TokenType::INT   => Ok(self.context.i32_type().into()),
+            TokenType::INT => Ok(self.context.i32_type().into()),
             TokenType::FLOAT => Ok(self.context.f32_type().into()),
-            TokenType::BOOLEAN  => Ok(self.context.bool_type().into()),
+            TokenType::BOOLEAN => Ok(self.context.bool_type().into()),
             TokenType::STRING => Ok(self.context.i8_type().ptr_type(inkwell::AddressSpace::default()).into()),
 
             // TokenType::NULL => Ok(self.context.void_type().into()),
@@ -347,17 +168,7 @@ impl<'ctx> CodeGen<'ctx> {
         }
     }
 
-    fn int_cmp(&mut self, pred: IntPredicate, l: IntValue<'ctx>, r: IntValue<'ctx>, name: &str) -> Result<BasicValueEnum<'ctx>, String> {
-        let cmp = self.builder.build_int_compare(pred, l, r, name).unwrap();
-        Ok(cmp.into())
-    }
-
-    fn float_cmp(&mut self, pred: FloatPredicate, l: FloatValue<'ctx>, r: FloatValue<'ctx>, name: &str) -> Result<BasicValueEnum<'ctx>, String> {
-        let cmp = self.builder.build_float_compare(pred, l, r, name).unwrap();
-        Ok(cmp.into())
-    }
-
-    fn create_entry_block_alloca(&self, function: FunctionValue<'ctx>, name: &str, ty: BasicTypeEnum<'ctx>) -> PointerValue<'ctx> {
+    pub fn create_entry_block_alloca(&self, function: FunctionValue<'ctx>, name: &str, ty: BasicTypeEnum<'ctx>) -> PointerValue<'ctx> {
 
         let builder = self.context.create_builder();
         let entry = function.get_first_basic_block().unwrap();
