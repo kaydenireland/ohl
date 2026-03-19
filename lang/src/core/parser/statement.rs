@@ -18,6 +18,14 @@ impl Parser {
             TokenType::BRACE_L => child = self.parse_block(),
             TokenType::RETURN => child = self.parse_return(),
             TokenType::IF => child = self.parse_if(),
+            TokenType::WHILE => child = self.parse_while(),
+            TokenType::DO => child = self.parse_do_while(),
+            TokenType::LOOP => child = self.parse_loop(),
+            TokenType::BREAK | TokenType::CONTINUE | TokenType::REPEAT => {
+                self.expect(token_type.clone());
+                child = MTree::new(Token::using_location(token_type.clone(), self.current()));
+                self.expect(TokenType::SEMICOLON);
+            }
             _ => {
                 if token_type.is_type(true) {
                     child = self.parse_variable_declaration();
@@ -112,6 +120,62 @@ impl Parser {
                 child._push(self.parse_optional_block());
             }
         }
+
+        self.log.indent_dec();
+
+        child
+    }
+
+    pub fn parse_while(&mut self) -> MTree {
+        self.log.info("parse_while()");
+        self.log.indent_inc();
+
+        let mut child = MTree::new(self.current());
+
+        self.expect(TokenType::WHILE);
+
+        self.expect(TokenType::PAREN_L);
+        child._push(self.parse_expression());
+        self.expect(TokenType::PAREN_R);
+
+        child._push(self.parse_optional_block());
+
+        self.log.indent_dec();
+
+        child
+    }
+
+    pub fn parse_do_while(&mut self) -> MTree {
+        self.log.info("parse_do_while()");
+        self.log.indent_inc();
+
+        let mut child = MTree::new(self.current());
+
+        self.expect(TokenType::DO);
+        child._push(self.parse_optional_block());
+
+        self.expect(TokenType::WHILE);
+
+        self.expect(TokenType::PAREN_L);
+        child._push(self.parse_expression());
+        self.expect(TokenType::PAREN_R);
+        self.expect(TokenType::SEMICOLON);
+
+        self.log.indent_dec();
+
+        child
+    }
+
+    pub fn parse_loop(&mut self) -> MTree {
+        self.log.info("parse_loop()");
+        self.log.indent_inc();
+
+        let mut child = MTree::new(Token::using_location(TokenType::WHILE, self.current()));
+
+        self.expect(TokenType::LOOP);
+        child._push(MTree::new(Token::using_location(TokenType::TRUE, self.current())));
+
+        child._push(self.parse_block());
 
         self.log.indent_dec();
 

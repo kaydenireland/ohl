@@ -69,6 +69,12 @@ pub enum TokenType {
     // Control Flow
     IF,
     ELSE,
+    DO,
+    WHILE,
+    LOOP,
+    BREAK,
+    CONTINUE,
+    REPEAT,
 
     // Meta
     START,

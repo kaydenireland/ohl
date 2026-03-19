@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use inkwell::basic_block::BasicBlock;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
@@ -21,6 +22,8 @@ pub struct CodeGen<'ctx> {
     pub functions: HashMap<String, FunctionValue<'ctx>>,
     // Current function being compiled
     pub current_fn: Option<FunctionValue<'ctx>>,
+    // (break target, continue target)
+    pub loop_stack: Vec<(BasicBlock<'ctx>, BasicBlock<'ctx>, BasicBlock<'ctx>)>
 }
 
 impl<'ctx> CodeGen<'ctx> {
@@ -37,6 +40,7 @@ impl<'ctx> CodeGen<'ctx> {
             variables: HashMap::new(),
             functions: HashMap::new(),
             current_fn: None,
+            loop_stack: Vec::new()
         }
     }
     

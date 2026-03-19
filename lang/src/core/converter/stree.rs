@@ -28,6 +28,12 @@ pub enum STree {
     ASSIGN_STMT { id: String, expression: Box<STree> },
     RETURN_STMT { expression: Option<Box<STree>>},
     IF_STMT { condition: Box<STree>, then_block: Box<STree>, else_block: Option<Box<STree>> },
+    WHILE_STMT { condition: Box<STree>, body: Box<STree> },
+    DO_WHILE_STMT { condition: Box<STree>, body: Box<STree> },
+    BREAK,
+    CONTINUE,
+    REPEAT,
+
     NULL,
     BLANK_STMT,
     PRINT { expression: Box<STree> }

@@ -103,9 +103,15 @@ impl Converter {
                 self.log.info("convert_var_statement()");
                 self.log.indent_inc();
 
+                let mut mutable = true;
+
                 let type_token = node.children[0].token.token_type.clone();
                 let variable_type = match type_token {
-                    TokenType::VAR | TokenType::CONST => self.infer_type(&node.children[2].token.token_type)?,
+                    TokenType::VAR => self.infer_type(&node.children[2].token.token_type)?,
+                    TokenType::CONST => {
+                        mutable = false;
+                        self.infer_type(&node.children[2].token.token_type)?
+                    }
                     _ => type_token
                 }; 
 
@@ -116,7 +122,6 @@ impl Converter {
                     _ => return Err("Unexpected ID in Variable".into()),
                 };
 
-                let mutable = true;
 
                 let expression: Box<STree>;
                 if node.children.len() >= 3 {
@@ -292,6 +297,44 @@ impl Converter {
                     else_block,
                 })
             },
+
+            // Expected While Children
+            // [ Expression, Body ]
+            TokenType::WHILE => {
+                self.log.info("convert_while()");
+                self.log.indent_inc();
+
+                let condition_node = node.children.get(0).ok_or("While missing condition")?;
+                let condition = self.convert_tree(condition_node)?;
+
+                let body_node = node.children.get(1).ok_or("While missing body")?;
+                let body = self.convert_tree(body_node)?;
+
+                self.log.indent_dec();
+
+                Ok(STree::WHILE_STMT { condition: Box::new(condition), body: Box::new(body) })
+            },
+
+            // Expected Do-While Children
+            // [ Body, Expression ]
+            TokenType::DO => {
+                self.log.info("convert_while()");
+                self.log.indent_inc();
+
+                let condition_node = node.children.get(1).ok_or("While missing condition")?;
+                let condition = self.convert_tree(condition_node)?;
+
+                let body_node = node.children.get(0).ok_or("While missing body")?;
+                let body = self.convert_tree(body_node)?;
+
+                self.log.indent_dec();
+
+                Ok(STree::DO_WHILE_STMT { condition: Box::new(condition), body: Box::new(body) })
+            },
+
+            TokenType::BREAK => Ok(STree::BREAK),
+            TokenType::CONTINUE => Ok(STree::CONTINUE),
+            TokenType::REPEAT => Ok(STree::REPEAT),
 
             // Identifier
             TokenType::ID { name } => {

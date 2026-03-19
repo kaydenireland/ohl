@@ -547,6 +547,12 @@ impl Lexer {
 
             "if" => TokenType::IF,
             "else" => TokenType::ELSE,
+            "do" => TokenType::DO,
+            "while" => TokenType::WHILE,
+            "loop" => TokenType::LOOP,
+            "break" => TokenType::BREAK,
+            "continue" => TokenType::CONTINUE,
+            "repeat" => TokenType::REPEAT,
 
             "print" => TokenType::PRINT,
             
