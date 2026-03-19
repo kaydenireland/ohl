@@ -1,7 +1,7 @@
 public int main() {
 
     char x = 't';
-    print(x);
+    print(x < 'z');
 
     return 0;
 }

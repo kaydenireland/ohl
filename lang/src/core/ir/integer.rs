@@ -18,6 +18,9 @@ impl<'ctx> CodeGen<'ctx> {
             ));
         }
 
+        let l = self.promote_int(l);
+        let r = self.promote_int(r);
+
         match op {
             TokenType::PLUS    => Ok(self.builder.build_int_add(l, r, "add").unwrap().into()),
             TokenType::DASH    => Ok(self.builder.build_int_sub(l, r, "sub").unwrap().into()),
@@ -33,6 +36,17 @@ impl<'ctx> CodeGen<'ctx> {
             TokenType::NOT_EQUAL      => self.int_cmp(IntPredicate::NE,  l, r, "ne"),
 
             _ => Err(format!("Unsupported int operator: {:?}", op)),
+        }
+    }
+
+    fn promote_int(&self, v: IntValue<'ctx>) -> IntValue<'ctx> {
+        if v.get_type() == self.context.i8_type() {
+            // char to int
+            self.builder
+                .build_int_z_extend(v, self.context.i32_type(), "char_promote")
+                .unwrap()
+        } else {
+            v
         }
     }
     
