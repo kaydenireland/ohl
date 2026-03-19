@@ -17,13 +17,9 @@ impl Parser {
             TokenType::SEMICOLON => child = self.parse_blank(),
             TokenType::BRACE_L => child = self.parse_block(),
             TokenType::RETURN => child = self.parse_return(),
-            TokenType::VAR => {
-                child = self.parse_var();
-                self.expect(TokenType::SEMICOLON);
-            },
             TokenType::IF => child = self.parse_if(),
             _ => {
-                if token_type.is_type(false) {
+                if token_type.is_type(true) {
                     child = self.parse_variable_declaration();
                     self.expect(TokenType::SEMICOLON)
                 } else {
@@ -37,29 +33,6 @@ impl Parser {
         child
     }
 
-    pub fn parse_var(&mut self) -> MTree {
-        self.log.info("parse_var()");
-        self.log.indent_inc();
-
-        let mut child = MTree::new(Token::using_location(TokenType::VAR_DECL, self.current()));
-
-        self.expect(TokenType::VAR);
-
-        let id = self.current();
-        self.expect(TokenType::id());
-        child._push(MTree::new(id));
-
-        if self.accept(TokenType::ASSIGN) {
-            child._push(self.parse_expression());
-        }
-        
-        // Semicolons handled outside of parse_var
-
-        self.log.indent_dec();
-
-        child
-    }
-
     pub fn parse_variable_declaration(&mut self) -> MTree {
         self.log.info("parse_variable_declaration()");
         self.log.indent_inc();
@@ -67,7 +40,7 @@ impl Parser {
         let mut child = MTree::new(Token::using_location(TokenType::VAR_DECL, self.current()));
 
         let token = self.current();
-        self.expect_type(false);
+        self.expect_type(false, true);
         child._push(MTree::new(token));
 
         let id = self.current();

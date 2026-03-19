@@ -48,9 +48,9 @@ impl Parser {
         }
     }
 
-    pub fn expect_type(&mut self, allow_null: bool) {
+    pub fn expect_type(&mut self, allow_null: bool, implicit: bool) {
         let current = self.current().token_type;
-        if current.is_type(false) {
+        if current.is_type(implicit) {
             self.log.info(&format!("expect({current:?})"));
             self.advance();
         } else {
@@ -110,7 +110,7 @@ impl Parser {
         child._push(MTree::new(func_type));
 
         let return_type = self.current();
-        self.expect_type(true);
+        self.expect_type(true, false);
         child._push(MTree::new(return_type));
 
         let id = self.current();
@@ -156,7 +156,7 @@ impl Parser {
         let mut child = MTree::new(Token::using_location(TokenType::PARAM, self.current()));
 
         let type_token = self.current();
-        self.expect_type(false);
+        self.expect_type(false, false);
         child._push(MTree::new(type_token));
 
         let id = self.current();

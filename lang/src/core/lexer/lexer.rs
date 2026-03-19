@@ -534,6 +534,7 @@ impl Lexer {
             "false" => TokenType::FALSE,
             
             "var" => TokenType::VAR,
+            "const" => TokenType::CONST,
             "string" => TokenType::STRING,
             "char" => TokenType::CHAR,
             "int" => TokenType::INT,

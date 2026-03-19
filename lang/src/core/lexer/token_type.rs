@@ -44,6 +44,7 @@ pub enum TokenType {
 
     // Variables
     VAR,
+    CONST,
     NULL,
 
     // Types
@@ -82,14 +83,21 @@ pub enum TokenType {
 
 impl TokenType {
 
-    pub fn is_type(&self, include_var: bool) -> bool {
+    pub fn is_type(&self, include_implicit: bool) -> bool {
         match self {
             TokenType::STRING => true,
             TokenType::CHAR => true,
             TokenType::INT => true,
             TokenType::FLOAT => true,
             TokenType::BOOLEAN => true,
-            TokenType::VAR => include_var,
+            TokenType::VAR | TokenType::CONST => include_implicit,
+            _ => false
+        }
+    }
+
+    pub fn is_implicit_variable_type(&mut self) -> bool {
+        match self {
+            TokenType::VAR | TokenType::CONST => true,
             _ => false
         }
     }

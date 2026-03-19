@@ -105,7 +105,7 @@ impl Converter {
 
                 let type_token = node.children[0].token.token_type.clone();
                 let variable_type = match type_token {
-                    TokenType::VAR => self.infer_type(&node.children[2].token.token_type)?,
+                    TokenType::VAR | TokenType::CONST => self.infer_type(&node.children[2].token.token_type)?,
                     _ => type_token
                 }; 
 
@@ -312,9 +312,9 @@ impl Converter {
 
             TokenType::INT | TokenType::FLOAT
             | TokenType::BOOLEAN
-            // | TokenType::CHAR 
+            | TokenType::CHAR 
             | TokenType::STRING => {
-                
+            
 
                 Ok(STree::VAR_TYPE { var_type: node.token.token_type.clone() })
             }
@@ -334,9 +334,14 @@ impl Converter {
     pub fn infer_type(&self, literal: &TokenType) -> Result<TokenType, String> {
         match literal {
             TokenType::LIT_STRING { .. } => Ok(TokenType::STRING),
+            TokenType::CHAR { .. } => Ok(TokenType::CHAR),
             TokenType::LIT_INT { .. } => Ok(TokenType::INT),
             TokenType::LIT_FLOAT { .. } => Ok(TokenType::FLOAT),
             TokenType::TRUE | TokenType::FALSE => Ok(TokenType::BOOLEAN),
+
+            TokenType::EQUAL | TokenType::NOT_EQUAL 
+            | TokenType::LESS | TokenType::LESS_EQUAL
+            | TokenType::GREATER | TokenType::GREATER_EQUAL => Ok(TokenType::BOOLEAN),
 
             _ => Err("Invalid Type to Infer".to_string())
         }
