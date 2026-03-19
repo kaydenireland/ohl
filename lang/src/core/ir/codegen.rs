@@ -91,7 +91,7 @@ impl<'ctx> CodeGen<'ctx> {
 
             //TokenType::NULL => Ok(self.context.void_type().into()),
 
-            _ => Err(format!("Unsupported type in codegen: {:?}", ty)),
+            _ => Err(format!("Unsupported type in ir: {:?}", ty)),
         }
     }
 

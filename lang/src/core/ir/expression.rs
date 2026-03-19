@@ -60,6 +60,8 @@ impl<'ctx> CodeGen<'ctx> {
                 }
             },
 
+            STree::FUNCTION_CALL { callee, args } => self.compile_function_call(callee, args),
+
             _ => Err(format!("Invalid Expression Node: {:?}", node)),
         }
     }

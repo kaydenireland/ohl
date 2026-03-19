@@ -20,7 +20,6 @@ impl<'ctx> CodeGen<'ctx> {
             .ok_or("printf not declared")?;
 
         for val in values {
-            // Choose format string based on type
             let fmt_str = match val {
                 BasicValueEnum::IntValue(i)   => {
                     if i.get_type() == self.context.bool_type() {

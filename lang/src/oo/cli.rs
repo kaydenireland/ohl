@@ -70,7 +70,7 @@ pub fn handle(cli: Cli) {
         Command::Token { filepath } => _ = tokenize(filepath, true),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
-        Command::Ir { filepath, debug: _debug, out } => _ = codegen(filepath, _debug, out),
+        Command::Ir { filepath, debug: _debug, out } => _ = ir(filepath, _debug, out),
     }
 }
 
@@ -230,7 +230,7 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     stree
 }
 
-pub fn codegen(path: String, _debug: bool, out: bool) -> Result<String> {
+pub fn ir(path: String, _debug: bool, out: bool) -> Result<String> {
     let stree = convert(path.clone(), _debug, _debug);
 
     let context = Context::create();

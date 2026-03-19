@@ -1,11 +1,15 @@
 public int main() {
 
-    int x = 0;
-
-    do {
-        print(x);
-        x = x + 1;
-    } while(x > 5);
-
+    int x = 4;
+    boolean even = isEven(true);
+    print(even);
     return 0;
+}
+
+
+public boolean isEven(int x) {
+    int rem = x % 2;
+    if (rem == 0) return true;
+    
+    return false;
 }

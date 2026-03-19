@@ -16,7 +16,7 @@ impl Parser {
         child
     }
 
-    pub fn parse_expression_token(&mut self, rbl: u8) -> MTree {
+    fn parse_expression_token(&mut self, rbl: u8) -> MTree {
         let token = self.current();
         let token_type = token.token_type;
 
@@ -35,21 +35,21 @@ impl Parser {
         }
     }
 
-    pub fn parse_prefix_expression(&mut self) -> MTree {
+    fn parse_prefix_expression(&mut self) -> MTree {
         let token = self.current();
         self.advance();
         let child = self.parse_expression_token(token.token_type.binding_power().unary);
         MTree{ token, children: vec![child]}
     }
 
-    pub fn parse_parenthesis_expression(&mut self) -> MTree {
+    fn parse_parenthesis_expression(&mut self) -> MTree {
         self.expect(TokenType::PAREN_L);
         let child = self.parse_expression();
         self.expect(TokenType::PAREN_R);
         child
     }
 
-    pub fn parse_atom_expression(&mut self) -> MTree {
+    fn parse_atom_expression(&mut self) -> MTree {
         let atom = self.current();
         self.advance();
         MTree::new(atom)
@@ -57,9 +57,28 @@ impl Parser {
 
 
 
-    pub fn parse_infix_expression(&mut self, mut left: MTree, rbl: u8) -> MTree {
+    fn parse_infix_expression(&mut self, mut left: MTree, rbl: u8) -> MTree {
         loop {
             let current = self.current();
+
+            // call
+            if current.token_type == TokenType::PAREN_L {
+                left = self.parse_call_expression(left);
+                continue;
+            }
+
+            // member access
+            if current.token_type == TokenType::PERIOD {
+                self.advance();
+                let id = self.current();
+                self.expect(TokenType::id());
+
+                left = MTree {
+                    token: Token::using_location(TokenType::PERIOD, current),
+                    children: vec![left, MTree::new(id)],
+                };
+                continue;
+            }
 
             // postfix ops
             if current.token_type.is_postfix_operator() {
@@ -79,6 +98,19 @@ impl Parser {
             let right = self.parse_expression_token(current.token_type.binding_power().right);
             left = MTree { token: current, children: vec![left, right] };
         }
+    }
+
+    fn parse_call_expression(&mut self, callee: MTree) -> MTree {
+        let mut node = MTree::new(Token::using_location(TokenType::CALL, callee.token.clone()));
+
+        node.children.push(callee);
+
+        self.expect(TokenType::PAREN_L);
+
+        node._push(self.parse_argument_list());
+
+        self.expect(TokenType::PAREN_R);
+        node
     }
 
 }

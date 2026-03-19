@@ -168,6 +168,24 @@ impl Parser {
         child
     }
 
+    pub fn parse_argument_list(&mut self) -> MTree {
+        self.log.info("parse_argument_list()");
+        self.log.indent_inc();
+
+        let mut child = MTree::new(Token::using_location(TokenType::ARG_LIST, self.current()));
+
+        if !self.is(TokenType::PAREN_R) {
+            child.children.push(self.parse_expression());
+            while self.accept(TokenType::COMMA) {
+                child.children.push(self.parse_expression());
+            }
+        }
+
+        self.log.indent_dec();
+
+        child
+    }
+
     pub fn parse_block(&mut self) -> MTree {
         self.log.info("parse_block");
         self.log.indent_inc();

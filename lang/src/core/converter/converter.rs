@@ -336,6 +336,55 @@ impl Converter {
             TokenType::CONTINUE => Ok(STree::CONTINUE),
             TokenType::REPEAT => Ok(STree::REPEAT),
 
+            // Expected Call Children
+            // [ Id/Dot, Arg_List ]
+            TokenType::CALL => {
+                self.log.info("convert_call()");
+                self.log.indent_inc();
+
+                
+                let callee_node = node.children.get(0).ok_or("Call missing callee")?;
+                let callee = self.convert_tree(callee_node)?;
+
+                // Remaining children are args (depends on your parser shape)
+                let mut args = Vec::new();
+
+                if node.children.len() > 1 {
+                    let args_node = &node.children[1];
+
+                    for arg_node in &args_node.children {
+                        args.push(self.convert_tree(arg_node)?);
+                    }
+                }
+
+                self.log.indent_dec();
+
+                Ok(STree::FUNCTION_CALL {
+                    callee: Box::new(callee),
+                    args,
+                })
+            },
+
+            TokenType::PERIOD => {
+                self.log.info("convert_dot()");
+                self.log.indent_inc();
+
+                let left = self.convert_tree(&node.children[0])?;
+
+                let right_node = &node.children[1];
+                let member = match &right_node.token.token_type {
+                    TokenType::ID { name } => name.clone(),
+                    _ => return Err("Right side of '.' must be an identifier".into()),
+                };
+
+                self.log.indent_dec();
+
+                Ok(STree::MEMBER_CALL {
+                    object: Box::new(left),
+                    member,
+                })
+            }
+
             // Identifier
             TokenType::ID { name } => {
                 self.log.info("convert_identifier()");

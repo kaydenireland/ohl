@@ -1,5 +1,5 @@
 use inkwell::types::{BasicMetadataTypeEnum, BasicType};
-use inkwell::values::FunctionValue;
+use inkwell::values::{BasicValueEnum, FunctionValue};
 use crate::core::converter::stree::STree;
 use crate::core::ir::codegen::CodeGen;
 use crate::core::lexer::token_type::TokenType;
@@ -77,6 +77,49 @@ impl<'ctx> CodeGen<'ctx> {
         self.logger.indent_dec();
 
         Ok(())
+    }
+
+    pub fn compile_function_call(&mut self, callee: &Box<STree>, args: &Vec<STree>) -> Result<BasicValueEnum<'ctx>, String> {
+
+        let func_name = match callee.as_ref() {
+            STree::ID { name } => name,
+            _ => return Err("Only simple function calls supported (no methods yet)".into()),
+        };
+
+        let function = *self.functions
+            .get(func_name)
+            .ok_or(format!("Undefined function '{}'", func_name))?;
+
+        // Compile arguments
+        let mut compiled_args = Vec::new();
+
+        for arg in args {
+            let val = self.compile_expression(arg)?;
+            compiled_args.push(val.into());
+        }
+
+        // Build call
+        let call = self.builder
+            .build_call(function, &compiled_args, "calltmp")
+            .unwrap();
+
+        match function.get_type().get_return_type() {
+            Some(_) => {
+                let call_site = self.builder
+                    .build_call(function, &compiled_args, "calltmp")
+                    .unwrap();
+
+                let value = match call_site.try_as_basic_value() {
+                    inkwell::values::ValueKind::Basic(v) => v,
+                    inkwell::values::ValueKind::Instruction(_) => {
+                        return Err("Expected function to return a value".into())
+                    }
+                };
+
+                Ok(value)
+            }
+            None => Err("Void functions not supported in expressions yet".into()),
+        }
     }
     
 }

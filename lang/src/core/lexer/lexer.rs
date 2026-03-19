@@ -185,7 +185,7 @@ impl Lexer {
                         break;
                     },
                     '.' => {
-                        self.current = self.create_token(TokenType::DOT);
+                        self.current = self.create_token(TokenType::PERIOD);
                         break;
                     },
                     ',' => {

@@ -34,6 +34,10 @@ pub enum STree {
     CONTINUE,
     REPEAT,
 
+    // Calls
+    FUNCTION_CALL { callee: Box<STree>, args: Vec<STree> },
+    MEMBER_CALL { object: Box<STree>, member: String },
+
     NULL,
     BLANK_STMT,
     PRINT { expression: Box<STree> }

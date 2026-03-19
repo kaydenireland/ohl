@@ -9,7 +9,7 @@ pub enum TokenType {
 
     // Separators
     COMMA,
-    DOT,
+    PERIOD,
     SEMICOLON,
 
     // Arithmetic Symbols
@@ -84,7 +84,9 @@ pub enum TokenType {
     VAR_DECL,
     FUNC_DECL,
     PARAM,
-    PARAM_LIST
+    PARAM_LIST,
+    ARG_LIST,
+    CALL
 }
 
 impl TokenType {
@@ -231,7 +233,7 @@ impl TokenType {
             TokenType::NOT => BindingPower { left: 0, right: 0, unary: 70 },
 
             TokenType::PAREN_L => BindingPower { left: 100, right: 0, unary: 0 },
-            TokenType::DOT => BindingPower { left: 100, right: 99, unary: 0 },
+            TokenType::PERIOD => BindingPower { left: 100, right: 99, unary: 0 },
 
 
             _ => BindingPower { left: 0, right: 0, unary: 0 },
