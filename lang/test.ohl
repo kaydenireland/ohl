@@ -1,9 +1,16 @@
 public int main() {
-
-    int x = 4;
-    boolean even = isEven(true);
-    print(even);
+    string s = null;
+    print(s);
+    char c = null;
+    print(c);
+    foo();
     return 0;
+}
+
+public null foo() {
+    int x = 4;
+    boolean even = isEven(x);
+    print(even);
 }
 
 

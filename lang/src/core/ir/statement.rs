@@ -12,15 +12,30 @@ impl<'ctx> CodeGen<'ctx> {
         match node {
 
             STree::RETURN_STMT { expression } => {
-                let val = if let Some(expr) = expression {
-                    self.compile_expression(expr)?
-                } else {
-                    BasicValueEnum::IntValue(self.context.i32_type().const_int(0, false))
-                };
-                self.builder.build_return(Some(&val)).unwrap();
-                self.logger.indent_dec();
-                Ok(Some(val))
-            },
+                let func = self.current_fn.unwrap();
+                let ret_type = func.get_type().get_return_type();
+
+                match (ret_type, expression) {
+                    (None, Some(_)) => {
+                        Err("Cannot return a value from a null (void) function".into())
+                    }
+
+                    (None, None) => {
+                        self.builder.build_return(None).unwrap();
+                        Ok(None)
+                    }
+
+                    (Some(_), Some(expr)) => {
+                        let val = self.compile_expression(expr)?;
+                        self.builder.build_return(Some(&val)).unwrap();
+                        Ok(Some(val))
+                    }
+
+                    (Some(_), None) => {
+                        Err("Return value required for non-null function".into())
+                    }
+                }
+            }
 
             STree::VAR_STMT { id, expression, var_type, .. } => {
                 let val = self.compile_expression(expression)?;
@@ -135,7 +150,7 @@ impl<'ctx> CodeGen<'ctx> {
                     _ => return Err("While condition must be boolean".into()),
                 };
                 self.builder
-                    .build_conditional_branch(cond_bool, body_bb, end_bb)
+                    .build_conditional_branch(cond_bool, body_bb, body_bb)
                     .unwrap();
 
                 // Body
@@ -246,6 +261,11 @@ impl<'ctx> CodeGen<'ctx> {
                     .build_unconditional_branch(*repeat_target)
                     .unwrap();
 
+                Ok(None)
+            },
+
+            STree::FUNCTION_CALL { callee, args } => {
+                self.compile_function_call(callee, args)?; // ignore result
                 Ok(None)
             },
 

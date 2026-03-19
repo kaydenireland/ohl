@@ -10,14 +10,17 @@ impl<'ctx> CodeGen<'ctx> {
         self.logger.info("declare_function()");
         self.logger.indent_inc();
 
-        let ret_type = self.llvm_type(return_type)?;
-
         let param_types: Vec<BasicMetadataTypeEnum> = params
             .iter()
             .map(|(_, t)| self.llvm_type(t).unwrap().into())
             .collect();
 
-        let fn_type = ret_type.fn_type(&param_types, false);
+        let fn_type = if *return_type == TokenType::NULL {
+            self.context.void_type().fn_type(&param_types, false)
+        } else {
+            self.llvm_type(return_type)?.fn_type(&param_types, false)
+        };
+
         let function = self.module.add_function(name, fn_type, None);
 
         // Set parameter names
@@ -68,10 +71,17 @@ impl<'ctx> CodeGen<'ctx> {
             self.compile_statement(stmt)?;
         }
 
-        // implicit return 0 if none
         if self.builder.get_insert_block().unwrap().get_terminator().is_none() {
-            let zero = self.context.i32_type().const_int(0, false);
-            self.builder.build_return(Some(&zero)).unwrap();
+            let function = self.current_fn.unwrap();
+
+            if function.get_type().get_return_type().is_none() {
+                // void (null) function
+                self.builder.build_return(None).unwrap();
+            } else {
+                // non-void function
+                let zero = self.context.i32_type().const_int(0, false);
+                self.builder.build_return(Some(&zero)).unwrap();
+            }
         }
 
         self.logger.indent_dec();
@@ -79,46 +89,37 @@ impl<'ctx> CodeGen<'ctx> {
         Ok(())
     }
 
-    pub fn compile_function_call(&mut self, callee: &Box<STree>, args: &Vec<STree>) -> Result<BasicValueEnum<'ctx>, String> {
+    pub fn compile_function_call(&mut self, callee: &Box<STree>, args: &Vec<STree>) -> Result<Option<BasicValueEnum<'ctx>>, String> {
 
         let func_name = match callee.as_ref() {
             STree::ID { name } => name,
-            _ => return Err("Only simple function calls supported (no methods yet)".into()),
+            _ => return Err("Only simple function calls supported".into()),
         };
 
         let function = *self.functions
             .get(func_name)
             .ok_or(format!("Undefined function '{}'", func_name))?;
 
-        // Compile arguments
+        // Compile args
         let mut compiled_args = Vec::new();
-
         for arg in args {
             let val = self.compile_expression(arg)?;
             compiled_args.push(val.into());
         }
 
-        // Build call
         let call = self.builder
             .build_call(function, &compiled_args, "calltmp")
             .unwrap();
 
-        match function.get_type().get_return_type() {
-            Some(_) => {
-                let call_site = self.builder
-                    .build_call(function, &compiled_args, "calltmp")
-                    .unwrap();
+        // Check return type
+        if function.get_type().get_return_type().is_none() {
+            return Ok(None); // void
+        }
 
-                let value = match call_site.try_as_basic_value() {
-                    inkwell::values::ValueKind::Basic(v) => v,
-                    inkwell::values::ValueKind::Instruction(_) => {
-                        return Err("Expected function to return a value".into())
-                    }
-                };
-
-                Ok(value)
-            }
-            None => Err("Void functions not supported in expressions yet".into()),
+        // Extract value
+        match call.try_as_basic_value() {
+            inkwell::values::ValueKind::Basic(v) => Ok(Some(v)),
+            _ => Err("Expected return value".into()),
         }
     }
     

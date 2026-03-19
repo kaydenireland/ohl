@@ -17,9 +17,18 @@ impl<'ctx> CodeGen<'ctx> {
             STree::LIT_STRING { value } => {
                 let str_val = self.builder.build_global_string_ptr(value, "str").unwrap();
                 Ok(str_val.as_pointer_value().into())
-            }
+            },
 
             STree::LIT_BOOL { value } => Ok(BasicValueEnum::IntValue(self.context.bool_type().const_int(*value as u64, false))),
+
+            STree::NULL => {
+                let null_ptr = self.context
+                    .i8_type()
+                    .ptr_type(inkwell::AddressSpace::default())
+                    .const_null();
+
+                Ok(null_ptr.into())
+            },
 
             STree::ID { name } => {
                 let (ptr, ty) = self.variables.get(name).ok_or(format!("Undefined var {}", name))?;
@@ -60,7 +69,12 @@ impl<'ctx> CodeGen<'ctx> {
                 }
             },
 
-            STree::FUNCTION_CALL { callee, args } => self.compile_function_call(callee, args),
+            STree::FUNCTION_CALL { callee, args } => {
+                match self.compile_function_call(callee, args)? {
+                    Some(v) => Ok(v),
+                    None => Err("Void function cannot be used in expression".into()),
+                }
+            },
 
             _ => Err(format!("Invalid Expression Node: {:?}", node)),
         }
