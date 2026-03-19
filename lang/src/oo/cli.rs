@@ -237,14 +237,14 @@ pub fn codegen(path: String, _debug: bool, out: bool) -> Result<String> {
     let mut codegen = CodeGen::new(&context, "ohl", _debug);
     
     match codegen.compile(&stree) {
-        Ok(_) => println!("Compilation Complete"),
-        Err(e) => println!("Compilation Error: {:?}", e)
+        Ok(_) => println!("\nCompilation Complete"),
+        Err(e) => println!("\nCompilation Error: {:?}", e)
     }
 
     let content = codegen.print_ir();
 
     if _debug {
-        println!("{:?}, ", content);
+        println!("\nIR: \n\n{}, ", content);
     }
 
     if out {

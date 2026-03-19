@@ -39,8 +39,8 @@ impl<'ctx> CodeGen<'ctx> {
         }
     }
 
-    fn promote_int(&self, v: IntValue<'ctx>) -> IntValue<'ctx> {
-        if v.get_type() == self.context.i8_type() {
+    pub fn promote_int(&self, v: IntValue<'ctx>) -> IntValue<'ctx> {
+        if v.get_type() == self.context.i16_type() {
             // char to int
             self.builder
                 .build_int_z_extend(v, self.context.i32_type(), "char_promote")

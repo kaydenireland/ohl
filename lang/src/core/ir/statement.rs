@@ -1,6 +1,7 @@
 use inkwell::values::BasicValueEnum;
 use crate::core::converter::stree::STree;
 use crate::core::ir::codegen::CodeGen;
+use crate::core::ir::statement;
 
 impl<'ctx> CodeGen<'ctx> {
 
@@ -54,7 +55,67 @@ impl<'ctx> CodeGen<'ctx> {
                 Ok(Some(val))
             },
 
+            STree::IF_STMT { condition, then_block, else_block } => {
+                self.logger.info("compile_if()");
+                self.logger.indent_inc();
+
+                let cond_val = self.compile_expression(condition)?;
+
+                let condition_bool = match cond_val {
+                    BasicValueEnum::IntValue(i) if i.get_type() == self.context.bool_type() => i,
+                    _ => return Err("Condition must be boolean".into()),
+                };
+
+                let function = self.current_fn.unwrap();
+
+                let then_bb = self.context.append_basic_block(function, "then");
+                let merge_bb = self.context.append_basic_block(function, "merge");
+
+                let else_bb = else_block
+                    .as_ref()
+                    .map(|_| self.context.append_basic_block(function, "else"));
+
+                // Initial branch
+                match else_bb {
+                    Some(else_bb) => {
+                        self.builder
+                            .build_conditional_branch(condition_bool, then_bb, else_bb)
+                            .unwrap();
+                    }
+                    None => {
+                        self.builder
+                            .build_conditional_branch(condition_bool, then_bb, merge_bb)
+                            .unwrap();
+                    }
+                }
+
+                // Then
+                self.builder.position_at_end(then_bb);
+                self.compile_statement(then_block)?;
+                if self.builder.get_insert_block().unwrap().get_terminator().is_none() {
+                    self.builder.build_unconditional_branch(merge_bb).unwrap();
+                }
+
+                // Else
+                if let Some(else_block) = else_block {
+                    let else_bb = else_bb.unwrap();
+                    self.builder.position_at_end(else_bb);
+                    self.compile_statement(else_block)?;
+                    if self.builder.get_insert_block().unwrap().get_terminator().is_none() {
+                        self.builder.build_unconditional_branch(merge_bb).unwrap();
+                    }
+                }
+
+                // Merge
+                self.builder.position_at_end(merge_bb);
+
+                self.logger.indent_dec();
+                Ok(None)
+            },
+
             STree::BLOCK { statements } => {
+                self.logger.info("compile_block()");
+                self.logger.indent_inc();
                 let mut last = None;
                 for s in statements {
                     last = self.compile_statement(s)?;

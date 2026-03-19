@@ -83,9 +83,9 @@ impl<'ctx> CodeGen<'ctx> {
             TokenType::FLOAT => Ok(self.context.f32_type().into()),
             TokenType::BOOLEAN => Ok(self.context.bool_type().into()),
             TokenType::STRING => Ok(self.context.i8_type().ptr_type(inkwell::AddressSpace::default()).into()),
-            TokenType::CHAR => Ok(self.context.i8_type().into()),
+            TokenType::CHAR => Ok(self.context.i16_type().into()),
 
-            // TokenType::NULL => Ok(self.context.void_type().into()),
+            //TokenType::NULL => Ok(self.context.void_type().into()),
 
             _ => Err(format!("Unsupported type in codegen: {:?}", ty)),
         }

@@ -1,7 +1,10 @@
 public int main() {
 
-    char x = 't';
-    print(x < 'z');
+    int x = 99;
+
+    if (x == 5) print(true);
+    else if(x == 3) print(x);
+    else print(false);
 
     return 0;
 }

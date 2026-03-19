@@ -129,6 +129,7 @@ impl Parser {
         self.expect(TokenType::PAREN_L);
         child._push(self.parse_expression());
         self.expect(TokenType::PAREN_R);
+        // Then
         child._push(self.parse_optional_block());
 
         if self.accept(TokenType::ELSE) {

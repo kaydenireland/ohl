@@ -28,7 +28,7 @@ impl<'ctx> CodeGen<'ctx> {
                         continue;
                     }
 
-                    if i.get_type() == self.context.i8_type() {
+                    if i.get_type() == self.context.i16_type() {
                         // char
                         "%c\n"
                     } else {
@@ -53,7 +53,7 @@ impl<'ctx> CodeGen<'ctx> {
                         .into()
                 },
                 BasicValueEnum::IntValue(i) => {
-                    if i.get_type() == self.context.i8_type() {
+                    if i.get_type() == self.context.i16_type() {
                         // sign-extend char to i32
                         self.builder
                             .build_int_s_extend(*i, self.context.i32_type(), "char_ext")

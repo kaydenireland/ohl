@@ -261,7 +261,37 @@ impl Converter {
                 } else {
                     return Err("Operator must have either one or two children".into());
                 }
-            }
+            },
+
+            // Expected If Children
+            // [ Expression, Body, Else(Else if) ]
+            TokenType::IF => {
+                self.log.info("convert_if()");
+                self.log.indent_inc();
+
+                // condition
+                let condition_node = node.children.get(0).ok_or("If statement missing condition")?;
+                let condition = self.convert_tree(condition_node)?;
+
+                // then block
+                let then_node = node.children.get(1).ok_or("If statement missing then block")?;
+                let then_block = self.convert_tree(then_node)?;
+
+                // else or else-if
+                let else_block = if node.children.len() > 2 {
+                    let else_node = &node.children[2];
+                    Some(Box::new(self.convert_tree(else_node)?))
+                } else {
+                    None
+                };
+
+                self.log.indent_dec();
+                Ok(STree::IF_STMT {
+                    condition: Box::new(condition),
+                    then_block: Box::new(then_block),
+                    else_block,
+                })
+            },
 
             // Identifier
             TokenType::ID { name } => {

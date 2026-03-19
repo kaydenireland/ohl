@@ -245,6 +245,18 @@ impl Lexer {
                 LexerState::NUMBERS => match char {
                     '0'..='9' => self.buffer.push(char),
                     '.' => self.state = LexerState::NUMPOINT,
+                    'f' => {
+                        self.state = LexerState::START;
+                        let value: f32 = self.buffer.parse().unwrap();
+                        self.current = self.create_token_with_location(
+                            TokenType::LIT_FLOAT { value }, 
+                            self.line, 
+                            self.col - self.buffer.len()
+                        );                        
+                        self.buffer = String::new();
+                        
+                        break;
+                    }
                     
                     _ => {
                         self.state = LexerState::START;
@@ -285,6 +297,18 @@ impl Lexer {
                 },
                 LexerState::DECIMALS => match char {
                     '0'..='9' => self.buffer.push(char),
+                    'f' => {
+                        self.state = LexerState::START;
+                        let value: f32 = self.buffer.parse().unwrap();
+                        self.current = self.create_token_with_location(
+                            TokenType::LIT_FLOAT { value }, 
+                            self.line, 
+                            self.col - self.buffer.len()
+                        );                        
+                        self.buffer = String::new();
+                        
+                        break;
+                    }
                     
                     _ => {
                         self.state = LexerState::START;
@@ -293,7 +317,8 @@ impl Lexer {
                             TokenType::LIT_FLOAT { value }, 
                             self.line, 
                             self.col - self.buffer.len()
-                        );                        self.buffer = String::new();
+                        );                        
+                        self.buffer = String::new();
                         
                         self.position -= 1;
                         self.col -= 1;

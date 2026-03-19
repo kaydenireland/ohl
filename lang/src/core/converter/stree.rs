@@ -40,7 +40,7 @@ impl STree {
             STree::LIT_INT { .. }
             | STree::LIT_FLOAT { .. }
             | STree::LIT_BOOL { .. }
-            // | STree::LIT_CHAR { .. }
+            | STree::LIT_CHAR { .. }
             | STree::LIT_STRING { .. }
         )
     }
