@@ -13,6 +13,7 @@ impl<'ctx> CodeGen<'ctx> {
             STree::LIT_INT { value } => Ok(BasicValueEnum::IntValue(self.context.i32_type().const_int(*value as u64, false))),
             STree::LIT_FLOAT { value } => Ok(BasicValueEnum::FloatValue(self.context.f32_type().const_float(*value as f64))),
 
+            STree::LIT_CHAR { value } => Ok(BasicValueEnum::IntValue(self.context.i8_type().const_int(*value as u64, false))),
             STree::LIT_STRING { value } => {
                 let str_val = self.builder.build_global_string_ptr(value, "str").unwrap();
                 Ok(str_val.as_pointer_value().into())

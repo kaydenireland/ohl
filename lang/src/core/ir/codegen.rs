@@ -4,9 +4,7 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
-use inkwell::values::{BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue};
-use inkwell::{FloatPredicate, IntPredicate};
-
+use inkwell::values::{FunctionValue, PointerValue};
 use crate::core::converter::stree::STree;
 use crate::core::lexer::token_type::TokenType;
 use crate::core::util::logger::Logger;
@@ -161,6 +159,7 @@ impl<'ctx> CodeGen<'ctx> {
             TokenType::FLOAT => Ok(self.context.f32_type().into()),
             TokenType::BOOLEAN => Ok(self.context.bool_type().into()),
             TokenType::STRING => Ok(self.context.i8_type().ptr_type(inkwell::AddressSpace::default()).into()),
+            TokenType::CHAR => Ok(self.context.i8_type().into()),
 
             // TokenType::NULL => Ok(self.context.void_type().into()),
 

@@ -27,12 +27,18 @@ impl<'ctx> CodeGen<'ctx> {
                         self.build_bool_print(*i)?;
                         continue;
                     }
-                    "%d\n\0"
-                },
-                BasicValueEnum::FloatValue(_) => "%f\n\0",
-                BasicValueEnum::PointerValue(_) => "%s\n\0",
 
-                _                             => return Err("Unsupported print type".into()),
+                    if i.get_type() == self.context.i8_type() {
+                        // char
+                        "%c\n"
+                    } else {
+                        "%d\n"
+                    }
+                },
+                BasicValueEnum::FloatValue(_) => "%f\n",
+                BasicValueEnum::PointerValue(_) => "%s\n",
+
+                _ => return Err("Unsupported print type".into()),
             };
 
             let fmt_global = self.builder.build_global_string_ptr(fmt_str, "fmt").unwrap();
@@ -45,6 +51,17 @@ impl<'ctx> CodeGen<'ctx> {
                         .build_float_ext(*f, self.context.f64_type(), "fext")
                         .unwrap()
                         .into()
+                },
+                BasicValueEnum::IntValue(i) => {
+                    if i.get_type() == self.context.i8_type() {
+                        // sign-extend char to i32
+                        self.builder
+                            .build_int_s_extend(*i, self.context.i32_type(), "char_ext")
+                            .unwrap()
+                            .into()
+                    } else {
+                        (*i).into()
+                    }
                 },
                 other => *other,
             };
@@ -63,8 +80,8 @@ impl<'ctx> CodeGen<'ctx> {
     fn build_bool_print(&mut self, val: IntValue<'ctx>) -> Result<(), String> {
         let printf = self.module.get_function("printf").ok_or("printf not declared")?;
 
-        let true_str  = self.builder.build_global_string_ptr("true\n\0",  "true_str").unwrap();
-        let false_str = self.builder.build_global_string_ptr("false\n\0", "false_str").unwrap();
+        let true_str  = self.builder.build_global_string_ptr("true\n",  "true_str").unwrap();
+        let false_str = self.builder.build_global_string_ptr("false\n", "false_str").unwrap();
 
         let func = self.current_fn.unwrap();
         let then_bb  = self.context.append_basic_block(func, "bool_true");

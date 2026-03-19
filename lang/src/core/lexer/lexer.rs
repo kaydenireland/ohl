@@ -19,6 +19,7 @@ enum LexerState {
     END_BLOCK_COMMENT,
 
     STRING,
+    CHAR,
 
     CARAT,
     EXCLAIM,
@@ -158,6 +159,7 @@ impl Lexer {
                         self.string_line = self.line.clone();
                         self.string_col = self.col.clone();
                     },
+                    '\'' => self.state = LexerState::CHAR,
                     
                     // Containers
                     '(' => {
@@ -354,6 +356,22 @@ impl Lexer {
                         self.buffer.push(char);
                     }
                 },
+                LexerState::CHAR => match char {
+                    '\'' => {
+                        self.state = LexerState::START;
+                        if self.buffer.len() == 1 {
+                            let value = self.buffer.chars().nth(0).unwrap();
+                            self.current = self.create_token_with_location(
+                                TokenType::LIT_CHAR { value }, 
+                                self.string_line, 
+                                self.string_col
+                            );
+                            self.buffer = String::new();
+                            break;
+                        }
+                    },
+                    _ => self.buffer.push(char),
+                }
                 LexerState::CARAT => match char {
                     '/' => {
                         self.state = LexerState::START;

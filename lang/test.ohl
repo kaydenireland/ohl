@@ -1,6 +1,6 @@
 public int main() {
 
-    string x = "hello world!";
+    char x = 't';
     print(x);
 
     return 0;

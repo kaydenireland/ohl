@@ -274,7 +274,7 @@ impl Converter {
             TokenType::TRUE => Ok(STree::LIT_BOOL { value: true }),
             TokenType::FALSE => Ok(STree::LIT_BOOL { value: false }),
 
-            // TokenType::LIT_CHAR { value } => Ok(STree::LIT_CHAR { value: *value }),
+            TokenType::LIT_CHAR { value } => Ok(STree::LIT_CHAR { value: *value }),
             TokenType::LIT_STRING { value } => Ok(STree::LIT_STRING { value: value.clone() }),
             TokenType::NULL => Ok(STree::NULL),
 

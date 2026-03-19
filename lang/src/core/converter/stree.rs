@@ -21,6 +21,7 @@ pub enum STree {
     LIT_FLOAT { value: f32 },
     LIT_BOOL { value: bool },
     LIT_STRING { value: String },
+    LIT_CHAR { value: char },
 
     // Statements
     VAR_STMT { id: String, var_type: TokenType, mutable: bool, expression: Box<STree> },
