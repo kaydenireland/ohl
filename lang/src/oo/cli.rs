@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::fs::File;
 use std::io::{Write, Result};
 use std::path::Path;
@@ -5,6 +6,7 @@ use std::path::Path;
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
 use inkwell::context::Context;
+use crate::core::analyzer::analyzer::Analyzer;
 use crate::core::converter::converter::Converter;
 use crate::core::converter::stree::STree;
 use crate::core::ir::codegen::CodeGen;
@@ -52,6 +54,11 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
     },
+    Analyze {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool
+    },
     Ir {
         filepath: String,
         #[arg(short, long)]
@@ -70,6 +77,7 @@ pub fn handle(cli: Cli) {
         Command::Token { filepath } => _ = tokenize(filepath, true),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
+        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
         Command::Ir { filepath, debug: _debug, out } => _ = ir(filepath, _debug, out),
     }
 }
@@ -230,8 +238,44 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     stree
 }
 
+pub fn analyze(path: String, _debug: bool) -> STree{
+    let mut analyzer = Analyzer::new(_debug);
+    let stree = convert(path, _debug, _debug);
+
+    let result = analyzer.analyze(stree.clone());
+    match result {
+        Ok(warnings) => {
+            print_vec_string(warnings.clone());
+            println!(
+                "\nAnalysis complete with {} {}",
+                warnings.len(),
+                "warning(s)".yellow()
+            );
+        },
+        Err((warnings, errors)) => {
+            print_vec_string(warnings.clone());
+            print_vec_string(errors.clone());
+            println!(
+                "\nAnalysis complete with {} {} and {} {}",
+                warnings.len(),
+                "warning(s)".yellow(),
+                errors.len(),
+                "error(s)".red()
+            );
+        }
+    }
+    stree
+}
+
+fn print_vec_string(strings: Vec<String>) {
+    println!();
+    for msg in strings {
+        println!("{}", msg);
+    }
+}
+
 pub fn ir(path: String, _debug: bool, out: bool) -> Result<String> {
-    let stree = convert(path.clone(), _debug, _debug);
+    let stree = analyze(path.clone(), _debug);
 
     let context = Context::create();
     let mut codegen = CodeGen::new(&context, "ohl", _debug);

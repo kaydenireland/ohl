@@ -33,6 +33,7 @@ pub enum STree {
     BREAK,
     CONTINUE,
     REPEAT,
+    DEFER { body: Box<STree> },
 
     // Calls
     FUNCTION_CALL { callee: Box<STree>, args: Vec<STree> },

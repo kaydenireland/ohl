@@ -1,3 +1,4 @@
+#[derive(Debug, Clone)]
 pub struct Logger{
     indent: usize,
     _debug: bool
