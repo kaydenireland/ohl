@@ -1,8 +1,5 @@
 public int main() {
-    string s = null;
-    print(s);
-    char c = null;
-    print(c);
+    int Num = 5;
     foo();
     return 0;
 }
@@ -13,10 +10,9 @@ public null foo() {
     print(even);
 }
 
-
 public boolean isEven(int x) {
     int rem = x % 2;
     if (rem == 0) return true;
-    
+
     return false;
 }

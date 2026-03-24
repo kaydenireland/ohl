@@ -1,18 +1,24 @@
-use crate::core::lexer::token_type::TokenType;
+use crate::core::analyzer::variable::VariableType;
 
 #[derive(Debug, Clone)]
 pub struct FunctionSignature {
-    pub parameters: Vec<TokenType>,
-    pub return_type: TokenType,
+    pub name: String,
+    pub parameters: Vec<VariableType>,
+    pub return_type: VariableType,
     pub called: bool
 }
 
 impl FunctionSignature {
-    pub fn new(parameters: Vec<TokenType>, return_type: TokenType, called: bool) -> FunctionSignature {
+    pub fn new(name: String, parameters: Vec<VariableType>, return_type: VariableType, called: bool) -> FunctionSignature {
         FunctionSignature {
+            name,
             parameters,
             return_type,
             called
         }
+    }
+
+    pub fn call(&mut self) {
+        self.called = true;
     }
 }

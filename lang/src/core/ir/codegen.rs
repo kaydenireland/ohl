@@ -6,6 +6,7 @@ use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
 use inkwell::values::{FunctionValue, PointerValue};
+use crate::core::analyzer::variable::VariableType;
 use crate::core::converter::stree::STree;
 use crate::core::lexer::token_type::TokenType;
 use crate::core::util::logger::Logger;
@@ -81,15 +82,15 @@ impl<'ctx> CodeGen<'ctx> {
     }
 
 
-    pub fn llvm_type(&self, ty: &TokenType) -> Result<inkwell::types::BasicTypeEnum<'ctx>, String> {
+    pub fn llvm_type(&self, ty: &VariableType) -> Result<inkwell::types::BasicTypeEnum<'ctx>, String> {
         match ty {
-            TokenType::INT => Ok(self.context.i32_type().into()),
-            TokenType::FLOAT => Ok(self.context.f32_type().into()),
-            TokenType::BOOLEAN => Ok(self.context.bool_type().into()),
-            TokenType::STRING => Ok(self.context.i8_type().ptr_type(inkwell::AddressSpace::default()).into()),
-            TokenType::CHAR => Ok(self.context.i16_type().into()),
+            VariableType::INT => Ok(self.context.i32_type().into()),
+            VariableType::FLOAT => Ok(self.context.f32_type().into()),
+            VariableType::BOOLEAN => Ok(self.context.bool_type().into()),
+            VariableType::STRING => Ok(self.context.i8_type().ptr_type(inkwell::AddressSpace::default()).into()),
+            VariableType::CHAR => Ok(self.context.i16_type().into()),
 
-            // TokenType::NULL => Ok(self.context.void_type().into()),
+            // VariableType::NULL => Ok(self.context.void_type().into()),
 
             _ => Err(format!("Unsupported type in ir: {:?}", ty)),
         }

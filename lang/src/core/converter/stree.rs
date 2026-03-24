@@ -1,12 +1,13 @@
 #![allow(warnings)]
 
+use crate::core::analyzer::variable::VariableType;
 use crate::core::lexer::token_type::TokenType;
 
 // Semantic AST
 #[derive(Debug, Clone, PartialEq)]
 pub enum STree {
     START { functions: Vec<STree> },
-    FUNCTION { function_type: TokenType, return_type: TokenType, name: String, params: Vec<(String, TokenType)>, body: Box<STree> },
+    FUNCTION { function_type: TokenType, return_type: VariableType, name: String, params: Vec<(String, VariableType)>, body: Box<STree> },
     BLOCK { statements: Vec<STree> },
     VAR_TYPE { var_type: TokenType },
 
@@ -24,8 +25,8 @@ pub enum STree {
     LIT_CHAR { value: char },
 
     // Statements
-    VAR_STMT { id: String, var_type: TokenType, mutable: bool, expression: Box<STree> },
-    ASSIGN_STMT { id: String, expression: Box<STree> },
+    VAR_DECL { id: String, var_type: VariableType, mutable: bool, expression: Box<STree> },
+    VAR_ASSIGN { id: String, expression: Box<STree> },
     RETURN_STMT { expression: Option<Box<STree>>},
     IF_STMT { condition: Box<STree>, then_block: Box<STree>, else_block: Option<Box<STree>> },
     WHILE_STMT { condition: Box<STree>, body: Box<STree> },
@@ -33,14 +34,13 @@ pub enum STree {
     BREAK,
     CONTINUE,
     REPEAT,
-    DEFER { body: Box<STree> },
 
     // Calls
     FUNCTION_CALL { callee: Box<STree>, args: Vec<STree> },
     MEMBER_CALL { object: Box<STree>, member: String },
 
     NULL,
-    BLANK_STMT,
+    BLANK,
     PRINT { expression: Box<STree> }
 }
 

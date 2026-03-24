@@ -1,12 +1,12 @@
 use inkwell::types::{BasicMetadataTypeEnum, BasicType};
 use inkwell::values::{BasicValueEnum, FunctionValue};
+use crate::core::analyzer::variable::VariableType;
 use crate::core::converter::stree::STree;
 use crate::core::ir::codegen::CodeGen;
-use crate::core::lexer::token_type::TokenType;
 
 impl<'ctx> CodeGen<'ctx> {
     
-    pub fn declare_function(&mut self, name: &str, params: &Vec<(String, TokenType)>, return_type: &TokenType) -> Result<FunctionValue<'ctx>, String> {
+    pub fn declare_function(&mut self, name: &str, params: &Vec<(String, VariableType)>, return_type: &VariableType) -> Result<FunctionValue<'ctx>, String> {
         self.logger.info("declare_function()");
         self.logger.indent_inc();
 
@@ -15,7 +15,7 @@ impl<'ctx> CodeGen<'ctx> {
             .map(|(_, t)| self.llvm_type(t).unwrap().into())
             .collect();
 
-        let fn_type = if *return_type == TokenType::NULL {
+        let fn_type = if *return_type == VariableType::NULL {
             self.context.void_type().fn_type(&param_types, false)
         } else {
             self.llvm_type(return_type)?.fn_type(&param_types, false)
@@ -38,7 +38,7 @@ impl<'ctx> CodeGen<'ctx> {
         Ok(function)
     }
 
-    pub fn compile_function(&mut self, name: &str, params: &Vec<(String, TokenType)>, body: &Box<STree>) -> Result<(), String> {
+    pub fn compile_function(&mut self, name: &str, params: &Vec<(String, VariableType)>, body: &Box<STree>) -> Result<(), String> {
         self.logger.info("compile_function()");
         self.logger.indent_inc();
 

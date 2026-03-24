@@ -37,7 +37,7 @@ impl<'ctx> CodeGen<'ctx> {
                 }
             }
 
-            STree::VAR_STMT { id, expression, var_type, .. } => {
+            STree::VAR_DECL { id, expression, var_type, .. } => {
                 let val = self.compile_expression(expression)?;
                 let func = self.current_fn.unwrap();
 
@@ -50,7 +50,7 @@ impl<'ctx> CodeGen<'ctx> {
                 Ok(Some(val))
             },
 
-            STree::ASSIGN_STMT { id, expression } => {
+            STree::VAR_ASSIGN { id, expression } => {
                 let val = self.compile_expression(expression)?;
                 let (ptr, expected_typ) = self.variables.get(id).ok_or(format!("Undefined var {}", id))?;
 
@@ -281,7 +281,7 @@ impl<'ctx> CodeGen<'ctx> {
             },
 
             STree::VAR_TYPE { .. } => Ok(None),
-            STree::BLANK_STMT => Ok(None),
+            STree::BLANK => Ok(None),
             STree::NULL => Ok(None),
 
             STree::PRINT { expression } => {

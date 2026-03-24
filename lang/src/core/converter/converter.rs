@@ -1,5 +1,5 @@
 use crate::core::{converter::stree::STree, parser::mtree::MTree, util::logger::Logger, lexer::token_type::TokenType};
-
+use crate::core::analyzer::variable::VariableType;
 
 pub struct Converter {
     log: Logger,
@@ -41,7 +41,8 @@ impl Converter {
                 self.log.info("convert_function_decl()");
                 
                 let function_type = node.children[0].token.token_type.clone();
-                let return_type = node.children[1].token.token_type.clone();
+                let return_type_token = node.children[1].token.token_type.clone();
+                let return_type = self.token_to_variable_type(&return_type_token, true)?;
                 let name_node = node.children[2].token.token_type.clone();
                 let function_name: String = match &name_node {
                     TokenType::ID { name } => name.clone(),
@@ -52,7 +53,7 @@ impl Converter {
                 self.log.indent_inc();
 
                 let params_node = &node.children[3];
-                let mut params: Vec<(String, TokenType)> = Vec::new();
+                let mut params: Vec<(String, VariableType)> = Vec::new();
                 for param_node in &params_node.children {
                     self.log.info("convert_param()");
 
@@ -64,7 +65,8 @@ impl Converter {
                         TokenType::ID { name } => name,
                         _ => return Err("Expected ID in param".into()),
                     };
-                    let param_type = type_node.token.token_type.clone();
+                    let param_type_token = type_node.token.token_type.clone();
+                    let param_type = self.token_to_variable_type(&param_type_token, false)?;
                     params.push((param_name.to_string(), param_type));
                 }
                 self.log.indent_dec();
@@ -106,14 +108,15 @@ impl Converter {
                 let mut mutable = true;
 
                 let type_token = node.children[0].token.token_type.clone();
-                let variable_type = match type_token {
+                let variable_type_token = match type_token {
                     TokenType::VAR => self.infer_type(&node.children[2].token.token_type)?,
                     TokenType::CONST => {
                         mutable = false;
                         self.infer_type(&node.children[2].token.token_type)?
                     }
                     _ => type_token
-                }; 
+                };
+                let var_type = self.token_to_variable_type(&variable_type_token, false)?;
 
 
                 let id_node = node.children.get(1).ok_or("Variable Missing ID")?;
@@ -133,7 +136,7 @@ impl Converter {
 
                 self.log.indent_dec();
 
-                Ok(STree::VAR_STMT { id, var_type: variable_type, mutable, expression })
+                Ok(STree::VAR_DECL { id, var_type, mutable, expression })
             }
 
             // Expected Assignment Children
@@ -155,7 +158,7 @@ impl Converter {
 
                 self.log.indent_dec();
 
-                Ok(STree::ASSIGN_STMT { id, expression: Box::new(right) })
+                Ok(STree::VAR_ASSIGN { id, expression: Box::new(right) })
             }
 
 
@@ -181,7 +184,7 @@ impl Converter {
 
                 self.log.indent_dec();
 
-                Ok(STree::ASSIGN_STMT { id: name, expression: Box::new(combined) })
+                Ok(STree::VAR_ASSIGN { id: name, expression: Box::new(combined) })
             }*/
 
             // Expected Print Children
@@ -400,7 +403,7 @@ impl Converter {
             TokenType::LIT_STRING { value } => Ok(STree::LIT_STRING { value: value.clone() }),
             TokenType::NULL => Ok(STree::NULL),
 
-            TokenType::SEMICOLON => Ok(STree::BLANK_STMT),
+            TokenType::SEMICOLON => Ok(STree::BLANK),
 
             TokenType::INT | TokenType::FLOAT
             | TokenType::BOOLEAN
@@ -436,6 +439,26 @@ impl Converter {
             | TokenType::GREATER | TokenType::GREATER_EQUAL => Ok(TokenType::BOOLEAN),
 
             _ => Err("Invalid Type to Infer".to_string())
+        }
+    }
+    
+    pub fn token_to_variable_type(&self, token_type: &TokenType, allow_null: bool) -> Result<VariableType, String> {
+        match token_type {
+            TokenType::STRING => Ok(VariableType::STRING),
+            TokenType::CHAR => Ok(VariableType::CHAR),
+            TokenType::INT => Ok(VariableType::INT),
+            TokenType::FLOAT => Ok(VariableType::FLOAT),
+            TokenType::BOOLEAN => Ok(VariableType::BOOLEAN),
+            
+            TokenType::NULL => {
+                if allow_null {
+                    Ok(VariableType::NULL)
+                } else {
+                    Err("Invalid variable type".to_string())
+                }
+            },
+            
+            _ => Err("Invalid token for variable type".to_string())
         }
     }
 
