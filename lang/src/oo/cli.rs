@@ -1,17 +1,21 @@
-use clap::{Parser, Subcommand};
+use std::fmt::format;
+use std::fs::File;
+use std::io::{Write, Result};
+use std::path::Path;
+
+use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
+use inkwell::context::Context;
+use crate::core::analyzer::analyzer::Analyzer;
+use crate::core::converter::converter::Converter;
+use crate::core::converter::stree::STree;
+use crate::core::ir::codegen::CodeGen;
+use crate::core::parser::mtree::MTree;
+use crate::core::parser::parser::Parser;
+use crate::core::util::error::Error;
+use crate::core::lexer::lexer::Lexer;
 
-use crate::core::analyzing::analyzer::Analyzer;
-use crate::core::analyzing::folder::ConstantFolder;
-use crate::core::running::interpreter::Interpreter;
-use crate::core::tokenizing::lexer::Lexer;
-use crate::core::parsing::mtree::MTree;
-use crate::core::parsing::parser::Parser as OhlParser;
-use crate::core::analyzing::converter::Converter;
-use crate::core::analyzing::stree::STree;
-
-
-#[derive(Parser)]
+#[derive(ClapParser)]
 #[command(name = "oo", version)]
 pub struct Cli {
     #[command(subcommand)]
@@ -25,10 +29,19 @@ pub enum Command {
         #[arg(short, long)]
         numbered: bool,
     },
+    Write {
+        filepath: String,
+        extension: String,
+        content: String,
+    },
     Size {
         filepath: String,
     },
-    Tokenize {
+    Repl {
+        #[arg(short, long)]
+        debug: bool,
+    },
+    Token {
         filepath: String,
     },
     Parse {
@@ -44,28 +57,28 @@ pub enum Command {
     Analyze {
         filepath: String,
         #[arg(short, long)]
-        debug: bool,
+        debug: bool
     },
-    Run {
+    Ir {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
         #[arg(short, long)]
-        warnings: bool,
-        #[arg(short, long)]
-        time: bool
-    },
+        out: bool
+    }
 }
 
 pub fn handle(cli: Cli) {
     match cli.command {
         Command::Print { filepath, numbered } => print(filepath, numbered),
+        Command::Write { filepath, content, extension } => _ = write_to_file(filepath, extension, content),
         Command::Size { filepath } => size(filepath),
-        Command::Tokenize { filepath } => tokenize(filepath),
+        Command::Repl { debug: _debug } => repl(_debug),
+        Command::Token { filepath } => _ = tokenize(filepath, true),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
-        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug, true),
-        Command::Run { filepath, debug: _debug, warnings, time: _time } => run(filepath, _debug, warnings, _time),
+        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
+        Command::Ir { filepath, debug: _debug, out } => _ = ir(filepath, _debug, out),
     }
 }
 
@@ -87,6 +100,30 @@ pub fn print(path: String, numbered: bool) {
     }
 }
 
+pub fn write_to_file(filename: String, extension: String, content: String) -> Result<()> {
+    let full_name = format!("{}.{}", filename, extension);
+    let mut file = File::create(full_name)?;
+    file.write_all(content.as_bytes())?;
+    Ok(())
+}
+
+
+pub fn split_filename(path: &str) -> (String, String) {
+    let p = Path::new(path);
+
+    let filename = p.file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_string();
+
+    let extension = p.extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_string();
+
+    (filename, extension)
+}
+
 pub fn size(path: String) {
     use std::fs;
     let data = fs::metadata(path.clone()).unwrap_or_else( |e| {
@@ -103,8 +140,9 @@ pub fn validate_ohl_file(path: String) {
     let p = Path::new(&path);
 
     if p.is_dir() {
-        eprintln!("Expected a file, got a directory");
-        std::process::exit(0);
+        let mut e = Error::new(0, 0, "Expected file, got directory.".to_string());
+        e.disable_location();
+        e.report();
     }
 
 
@@ -121,33 +159,71 @@ pub fn validate_ohl_file(path: String) {
     }
 }
 
-pub fn tokenize(path: String) {
+pub fn repl(_debug: bool) {
+    let mut input: String = String::new();
+
+    let mut lexer: Lexer = Lexer::new(String::new());
+    let mut parser: Parser;
+    let mut tree: MTree;
+
+    loop {
+        print!("ohl >>> ");
+        let _ = std::io::stdout().flush();
+        std::io::stdin().read_line(&mut input).expect("Failed to read line.");
+
+        lexer.set_input(input.clone());
+
+        if _debug {
+            lexer.print_tokens();
+            lexer.reset();
+        }
+
+        parser = Parser::new(lexer.clone(), _debug);
+        tree = parser.analyze();
+        if _debug {
+            println!("\n\nParse Tree:\n");
+            tree.print(_debug);
+            println!();
+        }
+
+        if input.is_empty() {
+            break;
+        }
+
+        println!("{}", input);
+    }
+}
+
+pub fn tokenize(path: String, _debug: bool) -> Lexer {
     validate_ohl_file(path.clone());
     let contents = std::fs::read_to_string(path).unwrap();
     let mut lexer = Lexer::new(contents);
-    lexer.print_tokens();
+    if _debug {
+        lexer.print_tokens();
+        lexer.reset();
+    }
+
+    lexer
 }
 
 pub fn parse(path: String, _debug: bool, print_tree: bool) -> MTree {
-    validate_ohl_file(path.clone());
-    let contents = std::fs::read_to_string(path).unwrap();
-    let lexer = Lexer::new(contents);
-    let mut parser = OhlParser::new(lexer, _debug);
+    let lexer = tokenize(path, _debug);
+    let mut parser = Parser::new(lexer, _debug);
     let tree = parser.analyze();
     if print_tree {
         println!("\n\nParse Tree:\n");
-        tree.print();
+        tree.print(_debug);
         println!();
     }
+
     tree
 }
 
-
 pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
-    let mtree: MTree = parse(path, _debug, _debug);
+    let mtree = parse(path, _debug, _debug);
+    
     let mut converter: Converter = Converter::new(_debug);
-    let result: Result<STree, String> = converter.convert_tree(&mtree);
-    let stree = match result {
+    let stree = match converter.convert_tree(&mtree) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{}: Semantic Conversion Failed \n{}\n", "ERROR".red(), e.red());
@@ -156,78 +232,69 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     };
 
     if print_tree {
-        println!("\n\nSemantic Tree:\n{:#?}", stree);
+        println!("\n\nSemantic Tree:\n{:#?}\n", stree);
     }
 
     stree
 }
 
-pub fn analyze(path: String, _debug: bool, show: bool) -> STree {
-    let mut stree: STree = convert(path, _debug, _debug);
+pub fn analyze(path: String, _debug: bool) -> STree{
+    let mut analyzer = Analyzer::new(_debug);
+    let stree = convert(path, _debug, _debug);
 
-    let mut folder: ConstantFolder = ConstantFolder::new(_debug);
-    folder.run(&mut stree);
-
-    let analyzer = Analyzer::new(_debug);
-    let result = analyzer.analyze(&stree);
+    let result = analyzer.analyze(stree.clone());
     match result {
         Ok(warnings) => {
-            if !warnings.is_empty() && show {
-                println!("Analysis completed with {} {}:", warnings.len().to_string().yellow(), "warnings(s)".yellow());
-                for (i, warning) in warnings.iter().enumerate() {
-                    println!("  {}. {}", i + 1, warning);
-                }
-            }
+            print_vec_string(warnings.clone());
+            println!(
+                "\nAnalysis complete with {} {}",
+                warnings.len(),
+                "warning(s)".yellow()
+            );
         },
-        Err(errors) => {
-            println!("Analysis completed with {} {}:", errors.len().to_string().yellow(), "error(s)".red());
-            for (i, error) in errors.iter().enumerate() {
-                println!("  {}. {}", i + 1, error);
-            }
-            std::process::exit(0);
+        Err((warnings, errors)) => {
+            print_vec_string(warnings.clone());
+            print_vec_string(errors.clone());
+            println!(
+                "\nAnalysis complete with {} {} and {} {}",
+                warnings.len(),
+                "warning(s)".yellow(),
+                errors.len(),
+                "error(s)".red()
+            );
         }
-    };
-    
+    }
     stree
 }
 
-pub fn run(path: String, _debug: bool, hide_warnings: bool, _time: bool) {
-    use std::time::Instant;
-
-    let mut stree = analyze(path.clone(), _debug, !hide_warnings);
-    let mut folder: ConstantFolder = ConstantFolder::new(_debug);
-    folder.run(&mut stree);
-
-    println!("\n\n{} {}", "Running".to_string().green(), &path.white());
-
-    let mut interpreter = Interpreter::new();
-
-    let start = if _time {
-        Some(Instant::now())
-    } else {
-        None
-    };
-
-
-    let result = interpreter.execute(stree);
-
-    match result {
-        Ok(_) => {}
-        Err(err) => {
-            println!("{}: {}", "\nRuntime Error".red(), err);
-            std::process::exit(0);
-        }
+fn print_vec_string(strings: Vec<String>) {
+    println!();
+    for msg in strings {
+        println!("{}", msg);
     }
+}
 
-    if let Some(start) = start {
-        let elapsed = start.elapsed();
-        println!(
-            "\n\n{} execution in {:.6}s",
-            "Completed".green(),
-            elapsed.as_secs_f64().to_string().cyan()
-        );
-    } else {
-        println!("\n");
-    }
+pub fn ir(path: String, _debug: bool, out: bool) -> Result<String> {
+    let stree = analyze(path.clone(), _debug);
+
+    let context = Context::create();
+    let mut codegen = CodeGen::new(&context, "ohl", _debug);
     
+    match codegen.compile(&stree) {
+        Ok(_) => println!("\nCompilation Complete"),
+        Err(e) => println!("\nCompilation Error: {:?}", e)
+    }
+
+    let content = codegen.print_ir();
+
+    if _debug {
+        println!("\nIR: \n\n{}, ", content);
+    }
+
+    if out {
+        let (name, _) = split_filename(&path);
+        write_to_file(name, "ll".to_string(), content.clone())?;
+    }
+
+    Ok(content)
 }

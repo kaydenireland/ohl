@@ -1,7 +1,6 @@
-pub mod tokenizing;
-pub mod parsing;
-pub mod analyzing;
-pub mod running;
-pub mod modules;
-
-pub mod logger;
+pub mod util;
+pub mod lexer;
+pub mod parser;
+pub mod converter;
+pub mod ir;
+pub mod analyzer;
