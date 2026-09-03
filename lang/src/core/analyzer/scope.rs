@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use crate::core::analyzer::variable::{VariableSignature, VariableType};
-use crate::core::lexer::token_type::TokenType;
+use crate::core::analyzer::signature::{VariableSignature, VariableType};
 
 #[derive(Debug, Clone)]
 pub struct Scope {

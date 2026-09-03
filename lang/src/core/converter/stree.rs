@@ -1,6 +1,6 @@
 #![allow(warnings)]
 
-use crate::core::analyzer::variable::VariableType;
+use crate::core::analyzer::signature::VariableType;
 use crate::core::lexer::token_type::TokenType;
 
 // Semantic AST

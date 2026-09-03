@@ -1,5 +1,5 @@
 use crate::core::{converter::stree::STree, parser::mtree::MTree, util::logger::Logger, lexer::token_type::TokenType};
-use crate::core::analyzer::variable::VariableType;
+use crate::core::analyzer::signature::VariableType;
 
 pub struct Converter {
     log: Logger,

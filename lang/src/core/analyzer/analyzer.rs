@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::fmt::format;
 use std::ops::Deref;
 use colored::Colorize;
-use crate::core::analyzer::function::FunctionSignature;
+use crate::core::analyzer::signature::FunctionSignature;
 use crate::core::analyzer::scope::Scope;
-use crate::core::analyzer::variable::VariableType;
+use crate::core::analyzer::signature::VariableType;
 use crate::core::converter::stree::STree;
 use crate::core::util::logger::Logger;
 
@@ -328,6 +328,7 @@ impl Analyzer {
                 self.functions.insert(
                     name.to_string(),
                     FunctionSignature::new(
+                        "Test".to_string(),
                         name.clone(),
                         param_types,
                         return_type.clone(),
