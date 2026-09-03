@@ -1,0 +1,74 @@
+Start
+<program> ::= {class_declaration};
+
+// Class Declarations with optional scope modifier
+
+<class_declaration> ::= [<scope_modifier>] "class" <id> "{" <class_body> "}";
+<class_body> ::= {<class_member>};
+<class_member> ::= [<scope_modifier>] (<function_declaration> | <variable_declaration>);
+
+// Function Declarations with optional scope modifier
+<function_declaration> ::= [<scope_modifier>] "fun" <id> "(" [<params>] ")" ["->" <type>] <block>;
+<params> ::= <param> {"," <param>};
+<param> ::= <id> {"," <id>} ":" <type>;
+
+
+// Scope
+<scope_modifier> ::= "public" | "private" | "protected";
+
+// Type
+<type> ::= "int" | "float" | "bool" | "char" | "string";
+
+
+// Blocks & Statements
+<block> ::= "{" {<statement>} "}";
+<statement> ::= <variable_declaration> | <if_statement> | <for_loop> | <while_loop> | <do_while_loop> | <loop> | <return> | <break> | <continue> | <repeat> | <print> | <expression>;
+
+<variable_declaration> ::= "var" <id> [":" <type>] ["=" <expression>] ";" | "const" <id> [":" <type>] ["=" <expression>] ";";
+<if_statement> ::= "if" "(" <expression> ")" <statement> ["else" <statement>];
+<for_loop> ::= "for" "(" <variable_declaration> <expression> ";" <expression> ")" <block>;
+<while_loop> ::= "while" "(" <expression> ")" <statement>;
+<do_while_loop> ::= "do" <block> "while" "(" <expression> ")" ";";
+<loop> ::= "loop" <block>;
+<return> ::= "return" [<expression>] ";";
+<break> ::= "break" ";";
+<continue> ::= "continue" ";";
+<repeat> ::= "repeat" ";";
+<print> ::= "print" "(" <expression> ")" ";";
+
+
+// Expression Hierarchy Ordered via Pratt Parser Precedence
+
+<expression> ::= <assignment> ;
+<assignment> ::= <or_expression> | <id> "=" <assignment> ;
+<or_expression> ::= <and_expression> { "||" <and_expression> } ;
+<and_expression> ::= <eq_expression> { "&&" <eq_expression> } ;
+<eq_expression> ::= <rel_expression> { ( "==" | "!=" ) <rel_expression> } ;
+<rel_expression> ::= <add_expression> { ( "<" | ">" | "<=" | ">=" ) <add_expression> } ;
+<add_expression> ::= <mul_expression> { ( "+" | "-" ) <mul_expression> } ;
+<mul_expression> ::= <unary> { ( "*" | "/" ) <unary> } ;
+<unary> ::= <primary> | ( "!" | "-" ) <unary> ;
+<primary> ::= <id> | <literal> | "(" <expression> ")";
+<postfix> ::= <primary> { <call> | <member_access> | <postfix_operator> };
+<call> ::= "(" [<args>] ")";
+<member_access> ::= "." <id>;
+<args> ::= <expression> { "," <expression> } ;
+
+
+// Lexical Elements
+
+<id> ::= letter {letter | digit | "_"} ;
+<literal> ::= <int> | <float> | <char> | <bool> | <string> ;
+<int> ::= digit { digit } ;
+<float> ::= digit { digit } "." digit { digit } ;
+<char> ::= "'" character "'" ;
+<bool> ::= "true" | "false" ;
+<string> ::= '"' { character } '"' ;
+letter ::= "a".."z" | "A".."Z" ;
+digit ::= "0".."9" ;
+
+
+// Comments & Whitespace
+
+<comment> ::= "//" { character } ;
+<ws> ::= { ' ' | '\t' | '\n' | '\r' } ;

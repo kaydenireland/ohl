@@ -12,7 +12,8 @@ enum LexerState {
     NUMBERS,
     NUMPOINT,
     DECIMALS,
-    
+
+    DASH,
     SLASH,
     COMMENT,
     START_BLOCK_COMMENT,
@@ -184,6 +185,10 @@ impl Lexer {
                         self.current = self.create_token(TokenType::SEMICOLON);
                         break;
                     },
+                    ':' => {
+                        self.current = self.create_token(TokenType::COLON);
+                        break;
+                    },
                     '.' => {
                         self.current = self.create_token(TokenType::PERIOD);
                         break;
@@ -198,10 +203,7 @@ impl Lexer {
                         self.current = self.create_token(TokenType::PLUS);
                         break;
                     },
-                    '-' => {
-                        self.current = self.create_token(TokenType::DASH);
-                        break;
-                    },
+                    '-' => self.state = LexerState::DASH,
                     '*' => {
                         self.current = self.create_token(TokenType::STAR);
                         break;
@@ -320,6 +322,25 @@ impl Lexer {
                         );                        
                         self.buffer = String::new();
                         
+                        self.position -= 1;
+                        self.col -= 1;
+                        break;
+                    }
+                },
+                LexerState::DASH => match char {
+                    '>' => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token_with_location(
+                            TokenType::ARROW,
+                            self.line,
+                            self.col - 1);
+                        break;
+                    }
+
+                    _ => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token(TokenType::DASH);
+
                         self.position -= 1;
                         self.col -= 1;
                         break;
@@ -530,18 +551,22 @@ impl Lexer {
             "xor" => TokenType::XOR,
             
             "null" => TokenType::NULL,
+            "void" => TokenType::VOID,
             "true" => TokenType::TRUE,
             "false" => TokenType::FALSE,
-            
-            "var" => TokenType::VAR,
-            "const" => TokenType::CONST,
+            "fun" => TokenType::FUNCTION,
+            "class" => TokenType::CLASS,
+
+            "var" => TokenType::VARIABLE,
             "string" => TokenType::STRING,
             "char" => TokenType::CHAR,
             "int" => TokenType::INT,
             "float" => TokenType::FLOAT,
-            "boolean" => TokenType::BOOLEAN,
+            "bool" => TokenType::BOOLEAN,
 
             "public" => TokenType::PUBLIC,
+            "private" => TokenType::PRIVATE,
+            "protected" => TokenType::PROTECTED,
 
             "return" => TokenType::RETURN,
 

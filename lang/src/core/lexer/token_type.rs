@@ -11,6 +11,8 @@ pub enum TokenType {
     COMMA,
     PERIOD,
     SEMICOLON,
+    COLON,
+    ARROW,
 
     // Arithmetic Symbols
     PLUS,
@@ -43,9 +45,13 @@ pub enum TokenType {
     RETURN,
 
     // Variables
-    VAR,
-    CONST,
+    VARIABLE,
+    CLASS_VARIABLE,
     NULL,
+    VOID,
+    FUNCTION,
+    CLASS,
+
 
     // Types
     STRING,
@@ -56,6 +62,8 @@ pub enum TokenType {
 
     // Member Types
     PUBLIC,
+    PRIVATE,
+    PROTECTED,
 
     // Literals
     ID { name: String },
@@ -80,13 +88,13 @@ pub enum TokenType {
     START,
     EOI,
     ERROR,
+    CLASS_BODY,
     BLOCK,
-    VAR_DECL,
-    FUNC_DECL,
     PARAM,
     PARAM_LIST,
     ARG_LIST,
-    CALL
+    CALL,
+    INFER
 }
 
 impl TokenType {
@@ -98,21 +106,23 @@ impl TokenType {
             TokenType::INT => true,
             TokenType::FLOAT => true,
             TokenType::BOOLEAN => true,
-            TokenType::VAR | TokenType::CONST => include_implicit,
+            TokenType::VARIABLE => include_implicit,
             _ => false
         }
     }
 
     pub fn is_implicit_variable_type(&mut self) -> bool {
         match self {
-            TokenType::VAR | TokenType::CONST => true,
+            TokenType::VARIABLE => true,
             _ => false
         }
     }
 
-    pub fn is_member_type(&self) -> bool {
+    pub fn is_scope_modifier(&self) -> bool {
         match self {
             TokenType::PUBLIC => true,
+            TokenType::PRIVATE => true,
+            TokenType::PROTECTED => true,
             _ => false
         }
     }

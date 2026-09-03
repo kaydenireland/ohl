@@ -5,11 +5,9 @@ use std::path::Path;
 
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
-use inkwell::context::Context;
 use crate::core::analyzer::analyzer::Analyzer;
 use crate::core::converter::converter::Converter;
 use crate::core::converter::stree::STree;
-use crate::core::ir::codegen::CodeGen;
 use crate::core::parser::mtree::MTree;
 use crate::core::parser::parser::Parser;
 use crate::core::util::error::Error;
@@ -58,13 +56,6 @@ pub enum Command {
         filepath: String,
         #[arg(short, long)]
         debug: bool
-    },
-    Ir {
-        filepath: String,
-        #[arg(short, long)]
-        debug: bool,
-        #[arg(short, long)]
-        out: bool
     }
 }
 
@@ -77,8 +68,7 @@ pub fn handle(cli: Cli) {
         Command::Token { filepath } => _ = tokenize(filepath, true),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
-        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
-        Command::Ir { filepath, debug: _debug, out } => _ = ir(filepath, _debug, out),
+        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug)
     }
 }
 
@@ -272,29 +262,4 @@ fn print_vec_string(strings: Vec<String>) {
     for msg in strings {
         println!("{}", msg);
     }
-}
-
-pub fn ir(path: String, _debug: bool, out: bool) -> Result<String> {
-    let stree = analyze(path.clone(), _debug);
-
-    let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "ohl", _debug);
-    
-    match codegen.compile(&stree) {
-        Ok(_) => println!("\nCompilation Complete"),
-        Err(e) => println!("\nCompilation Error: {:?}", e)
-    }
-
-    let content = codegen.print_ir();
-
-    if _debug {
-        println!("\nIR: \n\n{}, ", content);
-    }
-
-    if out {
-        let (name, _) = split_filename(&path);
-        write_to_file(name, "ll".to_string(), content.clone())?;
-    }
-
-    Ok(content)
 }

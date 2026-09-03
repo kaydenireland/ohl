@@ -15,35 +15,118 @@ impl Converter {
         
         match &node.token.token_type {
 
-            // Program Root: All Children are Functions
-            &TokenType::START => {
+            // Program Root: All Children are Classes
+            TokenType::START => {
                 self.log.info("convert_program()");
                 self.log.indent_inc();
 
+                let mut classes = Vec::new();
+                for child in &node.children {
+                    let next = self.convert_tree(child)?;
+                    classes.push(next);
+                }
+                self.log.indent_dec();
+                Ok(STree::START { classes })
+            }
+
+            // Expected Function Declaration Children
+            // [ ScopeModifier, ID, ClassBody ]
+            TokenType::CLASS => {
+                self.log.info("convert_class()");
+                self.log.indent_inc();
+
+                let scope = node.children.get(0).unwrap();
+                let name_node = node.children[1].token.token_type.clone();
+                let class_name: String = match &name_node {
+                    TokenType::ID { name } => name.clone(),
+                    _ => return Err("Expected ID in Class Declaration".into()),
+                };
+
+                let block_node = &node.children[2];
+                let body = self.convert_tree(&block_node)?;
+
+                self.log.indent_dec();
+
+                self.log.indent_dec();
+                Ok(STree::CLASS { scope: scope.token.token_type.clone(), name: class_name, body: Box::new(body) })
+            }
+
+            // Expected Class Body
+            // [ Vec<ClassVariable>, Vec<Function> ]
+            TokenType::CLASS_BODY => {
+                self.log.info("convert_class_body()");
+                self.log.indent_inc();
+
+
+                let mut variables = Vec::new();
                 let mut functions = Vec::new();
                 for child in &node.children {
-                    self.log.info("convert_function()");
-                    self.log.indent_inc();
 
-                    let next = self.convert_tree(child)?;
-                    functions.push(next);
+                    if child.token.token_type == TokenType::CLASS_VARIABLE {
+                        self.log.info("convert_class_variable()");
+                        self.log.indent_inc();
+
+                        let next = self.convert_tree(child)?;
+                        variables.push(next);
+                    } else {
+                        self.log.info("convert_function()");
+                        self.log.indent_inc();
+
+                        let next = self.convert_tree(child)?;
+                        functions.push(next);
+                    }
 
                     self.log.indent_dec();
                 }
                 self.log.indent_dec();
-                Ok(STree::START { functions })
+                Ok(STree::CLASS_BODY { variables, functions })
+            }
+
+            // Expected Variable Declaration Children
+            // [ Scope, ID(name), Option<VARIABLE_TYPE>, Option<Expression> ]
+            TokenType::CLASS_VARIABLE => {
+                self.log.info("convert_class_variable()");
+                self.log.indent_inc();
+
+                let mut mutable = true;
+
+                let scope = node.children.get(0).unwrap().token.token_type.clone();
+
+                let id_node = node.children.get(1).ok_or("Variable Missing ID")?;
+                let id = match &id_node.token.token_type {
+                    TokenType::ID { name } => name.clone(),
+                    _ => return Err("Unexpected ID in Variable".into()),
+                };
+
+                let declared_type = &node.children[2].token.token_type;
+
+                let expression = if node.children.len() >= 4 {
+                    self.convert_tree(&node.children[3])?
+                } else {
+                    STree::NULL
+                };
+
+                let var_type = match declared_type {
+                    TokenType::INFER => {
+                        self.infer_expression_type(&expression)?
+                    }
+                    _ => self.token_to_variable_type(declared_type, false)?
+                };
+
+                self.log.indent_dec();
+
+                Ok(STree::CLASS_VAR_DECL { scope, id, var_type, mutable, expression: Box::new(expression) })
             }
 
             // Expected Function Declaration Children
-            // [ FunctionType, ReturnType, ID(name)vf PARAM_LIST, BLOCK ]
-            TokenType::FUNC_DECL => {
+            // [ Scope, ID(name) PARAM_LIST, ReturnType, BLOCK ]
+            TokenType::FUNCTION => {
 
                 self.log.info("convert_function_decl()");
                 
-                let function_type = node.children[0].token.token_type.clone();
-                let return_type_token = node.children[1].token.token_type.clone();
-                let return_type = self.token_to_variable_type(&return_type_token, true)?;
-                let name_node = node.children[2].token.token_type.clone();
+                let scope = node.children[0].token.token_type.clone();
+
+                let name_node = node.children[1].token.token_type.clone();
                 let function_name: String = match &name_node {
                     TokenType::ID { name } => name.clone(),
                     _ => return Err("Expected ID in Function Declaration".into()),
@@ -52,14 +135,14 @@ impl Converter {
                 self.log.info("convert_param_list()");
                 self.log.indent_inc();
 
-                let params_node = &node.children[3];
+                let params_node = &node.children[2];
                 let mut params: Vec<(String, VariableType)> = Vec::new();
                 for param_node in &params_node.children {
                     self.log.info("convert_param()");
 
-                    let type_node = param_node.children.get(0).ok_or("Param Missing Type")?;
+                    let id_node = param_node.children.get(0).ok_or("Param Missing ID")?;
+                    let type_node = param_node.children.get(1).ok_or("Param Missing Type")?;
 
-                    let id_node = param_node.children.get(1).ok_or("Param Missing ID")?;
 
                     let param_name = match &id_node.token.token_type {
                         TokenType::ID { name } => name,
@@ -69,7 +152,12 @@ impl Converter {
                     let param_type = self.token_to_variable_type(&param_type_token, false)?;
                     params.push((param_name.to_string(), param_type));
                 }
+
                 self.log.indent_dec();
+
+                let return_type_token = node.children[3].token.token_type.clone();
+                let return_type = self.token_to_variable_type(&return_type_token, true)?;
+
 
                 self.log.info("convert_block()");
                 self.log.indent_inc();
@@ -77,14 +165,14 @@ impl Converter {
                 let block_node = &node.children[4];
                 let body = self.convert_tree(&block_node)?;
                 
-                self.log.indent_dec();
+                //self.log.indent_dec();
 
                 Ok(
                     STree::FUNCTION {
-                        function_type, 
-                        return_type, 
+                        scope,
                         name: function_name,
                         params,
+                        return_type,
                         body: Box::new(body),
                     }
                 )
@@ -100,43 +188,46 @@ impl Converter {
             }
 
             // Expected Variable Declaration Children
-            // [ ID(name), VARIABLE_TYPE, MUTABLE/IMMUTABLE, Option<Expression> ]
-            TokenType::VAR_DECL => {
+            // [ ID(name), Option<VARIABLE_TYPE>, Option<Expression> ]
+            TokenType::VARIABLE => {
                 self.log.info("convert_var_statement()");
                 self.log.indent_inc();
 
-                let mut mutable = true;
+                let id_node = node.children
+                    .get(0)
+                    .ok_or("Variable Missing ID")?;
 
-                let type_token = node.children[0].token.token_type.clone();
-                let variable_type_token = match type_token {
-                    TokenType::VAR => self.infer_type(&node.children[2].token.token_type)?,
-                    TokenType::CONST => {
-                        mutable = false;
-                        self.infer_type(&node.children[2].token.token_type)?
-                    }
-                    _ => type_token
-                };
-                let var_type = self.token_to_variable_type(&variable_type_token, false)?;
-
-
-                let id_node = node.children.get(1).ok_or("Variable Missing ID")?;
                 let id = match &id_node.token.token_type {
                     TokenType::ID { name } => name.clone(),
-                    _ => return Err("Unexpected ID in Variable".into()),
+                    _ => return Err("Expected ID in Variable".into()),
                 };
 
+                let declared_type = &node.children[1].token.token_type;
 
-                let expression: Box<STree>;
-                if node.children.len() >= 3 {
-                    let expression_node = &node.children[2];
-                    expression = Box::new(self.convert_tree(expression_node)?);
+                let expression = if node.children.len() >= 3 {
+                    self.convert_tree(&node.children[2])?
                 } else {
-                    expression = Box::new(STree::NULL)
-                }
+                    STree::NULL
+                };
+
+                let var_type = match declared_type {
+                    TokenType::INFER => {
+                        self.infer_expression_type(&expression)?
+                    }
+
+                    _ => {
+                        self.token_to_variable_type(declared_type, false)?
+                    }
+                };
 
                 self.log.indent_dec();
 
-                Ok(STree::VAR_DECL { id, var_type, mutable, expression })
+                Ok(STree::VAR_DECL {
+                    id,
+                    var_type,
+                    mutable: true,
+                    expression: Box::new(expression),
+                })
             }
 
             // Expected Assignment Children
@@ -426,33 +517,31 @@ impl Converter {
 
 impl Converter {
 
-    pub fn infer_type(&self, literal: &TokenType) -> Result<TokenType, String> {
-        match literal {
-            TokenType::LIT_STRING { .. } => Ok(TokenType::STRING),
-            TokenType::CHAR { .. } => Ok(TokenType::CHAR),
-            TokenType::LIT_INT { .. } => Ok(TokenType::INT),
-            TokenType::LIT_FLOAT { .. } => Ok(TokenType::FLOAT),
-            TokenType::TRUE | TokenType::FALSE => Ok(TokenType::BOOLEAN),
+    pub fn infer_expression_type(&self, expression: &STree ) -> Result<VariableType, String> {
+        match expression {
+            STree::LIT_INT { .. } => Ok(VariableType::INT),
+            STree::LIT_FLOAT { .. } => Ok(VariableType::FLOAT),
+            STree::LIT_BOOL { .. } => Ok(VariableType::BOOLEAN),
+            STree::LIT_CHAR { .. } => Ok(VariableType::CHAR),
+            STree::LIT_STRING { .. } => Ok(VariableType::STRING),
 
-            TokenType::EQUAL | TokenType::NOT_EQUAL 
-            | TokenType::LESS | TokenType::LESS_EQUAL
-            | TokenType::GREATER | TokenType::GREATER_EQUAL => Ok(TokenType::BOOLEAN),
-
-            _ => Err("Invalid Type to Infer".to_string())
+            _ => Err("Unable to infer expression type".into()),
         }
     }
     
-    pub fn token_to_variable_type(&self, token_type: &TokenType, allow_null: bool) -> Result<VariableType, String> {
+    pub fn token_to_variable_type(&self, token_type: &TokenType, allow_void: bool) -> Result<VariableType, String> {
         match token_type {
             TokenType::STRING => Ok(VariableType::STRING),
             TokenType::CHAR => Ok(VariableType::CHAR),
             TokenType::INT => Ok(VariableType::INT),
             TokenType::FLOAT => Ok(VariableType::FLOAT),
             TokenType::BOOLEAN => Ok(VariableType::BOOLEAN),
-            
-            TokenType::NULL => {
-                if allow_null {
-                    Ok(VariableType::NULL)
+
+            TokenType::INFER => Ok(VariableType::UNKNOWN),
+
+            TokenType::VOID => {
+                if allow_void {
+                    Ok(VariableType::VOID)
                 } else {
                     Err("Invalid variable type".to_string())
                 }

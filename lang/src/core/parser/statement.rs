@@ -13,27 +13,30 @@ impl Parser {
 
         match token_type {
             
-            TokenType::PRINT => child = self.parse_print(),
+            TokenType::PRINT => {
+                child = self.parse_print();
+                self.expect(TokenType::SEMICOLON);
+            },
             TokenType::SEMICOLON => child = self.parse_blank(),
             TokenType::BRACE_L => child = self.parse_block(),
             TokenType::RETURN => child = self.parse_return(),
             TokenType::IF => child = self.parse_if(),
             TokenType::WHILE => child = self.parse_while(),
             TokenType::DO => child = self.parse_do_while(),
+            // TODO: for loop
             TokenType::LOOP => child = self.parse_loop(),
             TokenType::BREAK | TokenType::CONTINUE | TokenType::REPEAT => {
                 self.expect(token_type.clone());
                 child = MTree::new(Token::using_location(token_type.clone(), self.current()));
                 self.expect(TokenType::SEMICOLON);
-            }
+            },
+            TokenType::VARIABLE => {
+                child = self.parse_variable_declaration();
+                self.expect(TokenType::SEMICOLON)
+            },
             _ => {
-                if token_type.is_type(true) {
-                    child = self.parse_variable_declaration();
-                    self.expect(TokenType::SEMICOLON)
-                } else {
-                    child = self.parse_expression();
-                    self.expect(TokenType::SEMICOLON);
-                }
+                child = self.parse_expression();
+                self.expect(TokenType::SEMICOLON);
             }
         }
         self.log.indent_dec();
@@ -41,19 +44,25 @@ impl Parser {
         child
     }
 
+    // <variable_declaration> ::= "var" <id> [":" <type>] ["=" <expression>] ";";
     pub fn parse_variable_declaration(&mut self) -> MTree {
         self.log.info("parse_variable_declaration()");
         self.log.indent_inc();
 
-        let mut child = MTree::new(Token::using_location(TokenType::VAR_DECL, self.current()));
+        let mut child = MTree::new(Token::using_location(TokenType::VARIABLE, self.current()));
 
-        let token = self.current();
-        self.expect_type(false, true);
-        child._push(MTree::new(token));
-
+        self.expect(TokenType::VARIABLE);
         let id = self.current();
         self.expect(TokenType::id());
         child._push(MTree::new(id));
+
+        if self.accept(TokenType::COLON) {
+            let token = self.current();
+            self.expect_type(false, true);
+            child._push(MTree::new(token));
+        } else {
+            child._push(MTree::new(Token::using_location(TokenType::INFER, self.current())));
+        }
 
         if self.accept(TokenType::ASSIGN) {
             child._push(self.parse_expression());
@@ -63,7 +72,8 @@ impl Parser {
 
         child
     }
-    
+
+    // <print> ::= "print" "(" <expression> ")" ";";
     pub fn parse_print(&mut self) -> MTree {
         self.log.info("parse_print()");
         self.log.indent_inc();
@@ -77,12 +87,12 @@ impl Parser {
         child._push(self.parse_expression());
 
         self.expect(TokenType::PAREN_R);
-        self.expect(TokenType::SEMICOLON);
 
         self.log.indent_dec();
         child
     }
 
+    // <return> ::= "return" [<expression>] ";";
     pub fn parse_return(&mut self) -> MTree {
         self.log.info("parse_return()");
         self.log.indent_inc();
@@ -100,6 +110,7 @@ impl Parser {
         child
     }
 
+    // <if_statement> ::= "if" "(" <expression> ")" <block> ["else" <block>];
     pub fn parse_if(&mut self) -> MTree {
         self.log.info("parse_if()");
         self.log.indent_inc();
@@ -126,6 +137,7 @@ impl Parser {
         child
     }
 
+    // <while_loop> ::= "while" "(" <expression> ")" <block>;
     pub fn parse_while(&mut self) -> MTree {
         self.log.info("parse_while()");
         self.log.indent_inc();
@@ -145,6 +157,7 @@ impl Parser {
         child
     }
 
+    // <do_while_loop> ::= "do" <block> "while" "(" <expression> ")" ";";
     pub fn parse_do_while(&mut self) -> MTree {
         self.log.info("parse_do_while()");
         self.log.indent_inc();
@@ -166,6 +179,7 @@ impl Parser {
         child
     }
 
+    // <loop> ::= "loop" <block>;
     pub fn parse_loop(&mut self) -> MTree {
         self.log.info("parse_loop()");
         self.log.indent_inc();

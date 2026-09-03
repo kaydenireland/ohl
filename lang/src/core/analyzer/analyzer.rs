@@ -4,9 +4,8 @@ use std::ops::Deref;
 use colored::Colorize;
 use crate::core::analyzer::function::FunctionSignature;
 use crate::core::analyzer::scope::Scope;
-use crate::core::analyzer::variable::{VariableSignature, VariableType};
+use crate::core::analyzer::variable::VariableType;
 use crate::core::converter::stree::STree;
-use crate::core::lexer::token_type::TokenType;
 use crate::core::util::logger::Logger;
 
 #[derive(Debug, Clone)]
@@ -57,19 +56,49 @@ impl Analyzer {
     fn visit(&mut self, node: &STree, scope: &mut Scope) -> Option<VariableType> {
         match node {
 
-            STree::START { functions } => {
+            STree::START { classes } => {
                 self.log.info("analyze()");
                 self.log.indent_inc();
 
-                for function in functions {
-                    self.visit(function, scope);
+                for class in classes {
+                    self.visit(class, scope);
                 }
 
                 self.log.indent_dec();
                 None
             }
 
-            STree::FUNCTION { function_type, return_type, name, params, body } => {
+            STree::CLASS { scope, name, body } => {
+                self.log.info("analyze()");
+                self.log.indent_inc();
+
+                let mut local = Scope::new();
+
+                self.visit(body, &mut local);
+
+                self.log.indent_dec();
+                None
+            }
+
+            STree::CLASS_BODY { variables, functions } => {
+                self.log.info("analyze()");
+                self.log.indent_inc();
+
+                let mut local = Scope::new();
+
+                for variable in variables {
+                    self.visit(variable, &mut local);
+                }
+
+                for function in functions {
+                    self.visit(function, &mut local);
+                }
+
+                self.log.indent_dec();
+                None
+            }
+
+            STree::FUNCTION { scope, return_type, name, params, body } => {
                 self.log.info("analyze_function()");
                 self.log.indent_inc();
 
@@ -80,7 +109,7 @@ impl Analyzer {
 
                 self.visit(body, &mut local);
 
-                if *return_type != VariableType::NULL {
+                if *return_type != VariableType::VOID {
                     if !self.has_return(body) {
                         self.create_error_message(format!(
                             "Function '{}' declares return type {:?} but has no return statement",
@@ -194,7 +223,7 @@ impl Analyzer {
                 }
 
                 for (param, arg) in function.parameters.iter().zip(args.iter()) {
-                    let arg_type = self.visit(arg, scope).unwrap_or(VariableType::NULL);
+                    let arg_type = self.visit(arg, scope).unwrap_or(VariableType::VOID);
                     if *param != arg_type {
                         self.create_error_message(format!(
                             "Argument type mismatch in '{}': expected {:?}, got {:?}",
@@ -219,7 +248,7 @@ impl Analyzer {
                     }
                 }
 
-                Some(scope.check_variable(name).unwrap_or(VariableType::NULL))
+                Some(scope.check_variable(name).unwrap_or(VariableType::VOID))
             },
 
             STree::LIT_INT { .. } => Some(VariableType::INT),
@@ -227,7 +256,7 @@ impl Analyzer {
             STree::LIT_CHAR { .. } => Some(VariableType::CHAR),
             STree::LIT_STRING { .. } => Some(VariableType::STRING),
             STree::LIT_BOOL { .. } => Some(VariableType::BOOLEAN),
-            STree::NULL => Some(VariableType::NULL),
+            STree::NULL => Some(VariableType::VOID),
 
             STree::BLANK => {
                 self.create_warning_message("Unnecessary semicolons".to_string());
@@ -274,13 +303,23 @@ impl Analyzer {
 
     pub fn collect_function_signatures(&mut self, node: &STree) {
         match node {
-            STree::START { functions} => {
+            STree::START { classes} => {
+                for class in classes {
+                    self.collect_function_signatures(class);
+                }
+            },
+
+            STree::CLASS { scope, name, body } => {
+                self.collect_function_signatures(body);
+            },
+
+            STree::CLASS_BODY { variables, functions} => {
                 for function in functions {
                     self.collect_function_signatures(function);
                 }
             },
 
-            STree::FUNCTION { function_type, return_type, name, params, .. } => {
+            STree::FUNCTION { return_type, name, params, .. } => {
                 let mut param_types = Vec::new();
                 for (_, token_type) in params {
                     param_types.push(token_type.clone());
@@ -311,7 +350,6 @@ impl Analyzer {
                 then_has || else_has
             }
             STree::FUNCTION { body, .. } => self.has_return(body),
-            STree::START { functions } => functions.iter().any(|f| self.has_return(f)),
             _ => false,
         }
     }

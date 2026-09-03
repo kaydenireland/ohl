@@ -6,15 +6,17 @@ use crate::core::lexer::token_type::TokenType;
 // Semantic AST
 #[derive(Debug, Clone, PartialEq)]
 pub enum STree {
-    START { functions: Vec<STree> },
-    FUNCTION { function_type: TokenType, return_type: VariableType, name: String, params: Vec<(String, VariableType)>, body: Box<STree> },
+    START { classes: Vec<STree> },
+    CLASS { scope: TokenType, name: String, body: Box<STree> },
+    CLASS_BODY { variables: Vec<STree>, functions: Vec<STree> },
+    FUNCTION { scope: TokenType, name: String, params: Vec<(String, VariableType)>, return_type: VariableType, body: Box<STree> },
     BLOCK { statements: Vec<STree> },
     VAR_TYPE { var_type: TokenType },
 
     // Expressions
     EXPR { left: Box<STree>, operator: TokenType, right: Box<STree> },
     PRFX_EXPR { operator: TokenType, right: Box<STree> },
-    PTFX_EXPR { left: Box<STree>, operator: TokenType },
+    // PTFX_EXPR { left: Box<STree>, operator: TokenType },
 
     // Literals
     ID { name: String },
@@ -25,6 +27,7 @@ pub enum STree {
     LIT_CHAR { value: char },
 
     // Statements
+    CLASS_VAR_DECL { scope: TokenType, id: String, var_type: VariableType, mutable: bool, expression: Box<STree> },
     VAR_DECL { id: String, var_type: VariableType, mutable: bool, expression: Box<STree> },
     VAR_ASSIGN { id: String, expression: Box<STree> },
     RETURN_STMT { expression: Option<Box<STree>>},

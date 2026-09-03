@@ -28,5 +28,7 @@ pub enum VariableType {
     CLASS,
 
     OBJECT,
-    NULL
+    VOID,
+
+    UNKNOWN
 }
