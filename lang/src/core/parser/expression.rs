@@ -2,17 +2,18 @@ use crate::core::parser::mtree::MTree;
 use crate::core::parser::parser::Parser;
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_type::TokenType;
+use crate::core::util::logger::LOGGER;
 use crate::core::util::error::Error;
 
 // Pratt Expression Parser
 
 impl Parser {
     pub fn parse_expression(&mut self) -> MTree {
-        self.log.info("parse_expression()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_expression()");
+        LOGGER.lock().indent_inc();
 
         let child = self.parse_expression_token(1);
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
         child
     }
 

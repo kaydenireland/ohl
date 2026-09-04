@@ -1,39 +1,44 @@
 use crate::core::{converter::stree::STree, parser::mtree::MTree, util::logger::Logger, lexer::token_type::TokenType};
 use crate::core::analyzer::signature::VariableType;
+use crate::core::util::logger::LOGGER;
 
-pub struct Converter {
-    log: Logger,
-}
+pub struct Converter { }
 
 impl Converter {
     pub fn new(_debug: bool) -> Converter {
-        let log = Logger::new(_debug);
-        Converter { log }
+        LOGGER.lock().set_debug(_debug);
+        Converter {  }
     }
 
     pub fn convert_tree(&mut self, node: &MTree) -> Result<STree, String> {
+        let converted_tree_result = self.convert(node);
+        LOGGER.lock().reset_indent();
+        converted_tree_result
+    }
+
+    fn convert(&mut self, node: &MTree) -> Result<STree, String> {
         
         match &node.token.token_type {
 
             // Program Root: All Children are Classes
             TokenType::START => {
-                self.log.info("convert_program()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_program()");
+                LOGGER.lock().indent_inc();
 
                 let mut classes = Vec::new();
                 for child in &node.children {
-                    let next = self.convert_tree(child)?;
+                    let next = self.convert(child)?;
                     classes.push(next);
                 }
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 Ok(STree::START { classes })
             }
 
             // Expected Function Declaration Children
             // [ ScopeModifier, ID, ClassBody ]
             TokenType::CLASS => {
-                self.log.info("convert_class()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_class()");
+                LOGGER.lock().indent_inc();
 
                 let scope = node.children.get(0).unwrap();
                 let name_node = node.children[1].token.token_type.clone();
@@ -43,19 +48,19 @@ impl Converter {
                 };
 
                 let block_node = &node.children[2];
-                let body = self.convert_tree(&block_node)?;
+                let body = self.convert(&block_node)?;
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 Ok(STree::CLASS { scope: scope.token.token_type.clone(), name: class_name, body: Box::new(body) })
             }
 
             // Expected Class Body
             // [ Vec<ClassVariable>, Vec<Function> ]
             TokenType::CLASS_BODY => {
-                self.log.info("convert_class_body()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_class_body()");
+                LOGGER.lock().indent_inc();
 
 
                 let mut variables = Vec::new();
@@ -63,30 +68,30 @@ impl Converter {
                 for child in &node.children {
 
                     if child.token.token_type == TokenType::CLASS_VARIABLE {
-                        self.log.info("convert_class_variable()");
-                        self.log.indent_inc();
+                        LOGGER.lock().info("convert_class_variable()");
+                        LOGGER.lock().indent_inc();
 
-                        let next = self.convert_tree(child)?;
+                        let next = self.convert(child)?;
                         variables.push(next);
                     } else {
-                        self.log.info("convert_function()");
-                        self.log.indent_inc();
+                        LOGGER.lock().info("convert_function()");
+                        LOGGER.lock().indent_inc();
 
-                        let next = self.convert_tree(child)?;
+                        let next = self.convert(child)?;
                         functions.push(next);
                     }
 
-                    self.log.indent_dec();
+                    LOGGER.lock().indent_dec();
                 }
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 Ok(STree::CLASS_BODY { variables, functions })
             }
 
             // Expected Variable Declaration Children
             // [ Scope, ID(name), Option<VARIABLE_TYPE>, Option<Expression> ]
             TokenType::CLASS_VARIABLE => {
-                self.log.info("convert_class_variable()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_class_variable()");
+                LOGGER.lock().indent_inc();
 
                 let mut mutable = true;
 
@@ -101,7 +106,7 @@ impl Converter {
                 let declared_type = &node.children[2].token.token_type;
 
                 let expression = if node.children.len() >= 4 {
-                    self.convert_tree(&node.children[3])?
+                    self.convert(&node.children[3])?
                 } else {
                     STree::NULL
                 };
@@ -113,7 +118,7 @@ impl Converter {
                     _ => self.token_to_variable_type(declared_type, false)?
                 };
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
                 Ok(STree::CLASS_VAR_DECL { scope, id, var_type, mutable, expression: Box::new(expression) })
             }
@@ -122,7 +127,7 @@ impl Converter {
             // [ Scope, ID(name) PARAM_LIST, ReturnType, BLOCK ]
             TokenType::FUNCTION => {
 
-                self.log.info("convert_function_decl()");
+                LOGGER.lock().info("convert_function_decl()");
                 
                 let scope = node.children[0].token.token_type.clone();
 
@@ -132,13 +137,13 @@ impl Converter {
                     _ => return Err("Expected ID in Function Declaration".into()),
                 };
 
-                self.log.info("convert_param_list()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_param_list()");
+                LOGGER.lock().indent_inc();
 
                 let params_node = &node.children[2];
                 let mut params: Vec<(String, VariableType)> = Vec::new();
                 for param_node in &params_node.children {
-                    self.log.info("convert_param()");
+                    LOGGER.lock().info("convert_param()");
 
                     let id_node = param_node.children.get(0).ok_or("Param Missing ID")?;
                     let type_node = param_node.children.get(1).ok_or("Param Missing Type")?;
@@ -153,19 +158,19 @@ impl Converter {
                     params.push((param_name.to_string(), param_type));
                 }
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
                 let return_type_token = node.children[3].token.token_type.clone();
                 let return_type = self.token_to_variable_type(&return_type_token, true)?;
 
 
-                self.log.info("convert_block()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_block()");
+                LOGGER.lock().indent_inc();
                 // Block
                 let block_node = &node.children[4];
-                let body = self.convert_tree(&block_node)?;
+                let body = self.convert(&block_node)?;
                 
-                //self.log.indent_dec();
+                //LOGGER.lock().indent_dec();
 
                 Ok(
                     STree::FUNCTION {
@@ -181,7 +186,7 @@ impl Converter {
             TokenType::BLOCK => {
                 let mut statements = Vec::new();
                 for child in &node.children {
-                    let stmt = self.convert_tree(child)?;
+                    let stmt = self.convert(child)?;
                     statements.push(stmt);
                 }
                 Ok(STree::BLOCK { statements })
@@ -190,8 +195,8 @@ impl Converter {
             // Expected Variable Declaration Children
             // [ ID(name), Option<VARIABLE_TYPE>, Option<Expression> ]
             TokenType::VARIABLE => {
-                self.log.info("convert_var_statement()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_var_statement()");
+                LOGGER.lock().indent_inc();
 
                 let id_node = node.children
                     .get(0)
@@ -205,7 +210,7 @@ impl Converter {
                 let declared_type = &node.children[1].token.token_type;
 
                 let expression = if node.children.len() >= 3 {
-                    self.convert_tree(&node.children[2])?
+                    self.convert(&node.children[2])?
                 } else {
                     STree::NULL
                 };
@@ -220,7 +225,7 @@ impl Converter {
                     }
                 };
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
                 Ok(STree::VAR_DECL {
                     id,
@@ -233,8 +238,8 @@ impl Converter {
             // Expected Assignment Children
             // [ ID(name), VARIABLE_TYPE, Option<Expression> ]
             TokenType::ASSIGN => {
-                self.log.info("convert_assignment()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_assignment()");
+                LOGGER.lock().indent_inc();
 
                 if node.children.len() != 2 {
                     return Err("Assignment must have left and right side".into());
@@ -245,9 +250,9 @@ impl Converter {
                     TokenType::ID { name } => name.clone(),
                     _ => return Err("Left side of assignment must be an ID".into()),
                 };
-                let right = self.convert_tree(&node.children[1])?;
+                let right = self.convert(&node.children[1])?;
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
                 Ok(STree::VAR_ASSIGN { id, expression: Box::new(right) })
             }
@@ -256,24 +261,24 @@ impl Converter {
             /*
             TokenType::ADD_ASSIGN | TokenType::SUB_ASSIGN | TokenType::MULT_ASSIGN |TokenType::DIV_ASSIGN
             | TokenType::REM_ASSIGN | TokenType::POWER_ASSIGN | TokenType::ROOT_ASSIGN => {
-                self.log.info("convert_expression_assignment()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_expression_assignment()");
+                LOGGER.lock().indent_inc();
 
                 let variable_node = node.children.get(0).ok_or("Assignment missing left side")?;
-                let variable = self.convert_tree(variable_node)?;
+                let variable = self.convert(variable_node)?;
                 let name = match &variable_node.token.token_type {
                     TokenType::ID { name } => name.clone(),
                     _ => return Err("Left side of assignment must be an ID".into()),
                 };
 
                 let right_node = node.children.get(1).ok_or("Assignment missing right side")?;
-                let expression = self.convert_tree(right_node)?;
+                let expression = self.convert(right_node)?;
 
                 let operator = node.token.token_type;
 
                 let combined = STree::EXPR { left: Box::new(variable.clone()), operator, right: Box::new(expression) };
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
                 Ok(STree::VAR_ASSIGN { id: name, expression: Box::new(combined) })
             }*/
@@ -281,31 +286,31 @@ impl Converter {
             // Expected Print Children
             // [ Expression ]
             TokenType::PRINT => {
-                self.log.info("convert_return()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_return()");
+                LOGGER.lock().indent_inc();
 
                 let expression_node = node.children.get(0).unwrap();
-                let expression = self.convert_tree(expression_node)?;
+                let expression = self.convert(expression_node)?;
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 Ok(STree::PRINT { expression: Box::new(expression) })
             }
 
             // Expected Return Children
             // [ Expression ]
             TokenType::RETURN => {
-                self.log.info("convert_return()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_return()");
+                LOGGER.lock().indent_inc();
 
                 let expression_node = node.children.get(0);
                 match expression_node {
                     Some(_) => {
-                        let expression = self.convert_tree(expression_node.unwrap())?;
-                        self.log.indent_dec();
+                        let expression = self.convert(expression_node.unwrap())?;
+                        LOGGER.lock().indent_dec();
                         Ok(STree::RETURN_STMT { expression: Some(Box::new(expression)) })
                     },
                     None => {
-                        self.log.indent_dec();
+                        LOGGER.lock().indent_dec();
                         Ok(STree::RETURN_STMT { expression: None })
                     }
                 }
@@ -313,16 +318,16 @@ impl Converter {
 
             // Unary Prefix Only Operators 
             TokenType::NOT => {
-                self.log.info("convert_unary_op()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_unary_op()");
+                LOGGER.lock().indent_inc();
 
                 if node.children.len() != 1 {
                     return Err("Unary Prefix NOT must have one child".into());
                 }
 
-                let child = self.convert_tree(&node.children[0])?;
+                let child = self.convert(&node.children[0])?;
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
                 Ok(STree::PRFX_EXPR { operator: TokenType::NOT, right: Box::new(child) })
             }
@@ -338,24 +343,24 @@ impl Converter {
 
                 // Check for Unary
                 if node.children.len() == 1 {
-                    self.log.info("convert_unary_op()");
-                    self.log.indent_inc();
+                    LOGGER.lock().info("convert_unary_op()");
+                    LOGGER.lock().indent_inc();
 
-                    let child = self.convert_tree(&node.children[0])?;
+                    let child = self.convert(&node.children[0])?;
                     let operator = node.token.token_type.clone();
 
-                    self.log.indent_dec();
+                    LOGGER.lock().indent_dec();
 
                     Ok(STree::PRFX_EXPR { operator, right: Box::new(child) })
                 } else if node.children.len() == 2 {
-                    self.log.info("convert_binary_op()");
-                    self.log.indent_inc();
+                    LOGGER.lock().info("convert_binary_op()");
+                    LOGGER.lock().indent_inc();
 
-                    let left = self.convert_tree(&node.children[0])?;
-                    let right = self.convert_tree(&node.children[1])?;
+                    let left = self.convert(&node.children[0])?;
+                    let right = self.convert(&node.children[1])?;
                     let operator = node.token.token_type.clone();
 
-                    self.log.indent_dec();
+                    LOGGER.lock().indent_dec();
                     Ok(STree::EXPR { left: Box::new(left), operator, right: Box::new(right) })
                 } else {
                     return Err("Operator must have either one or two children".into());
@@ -365,26 +370,26 @@ impl Converter {
             // Expected If Children
             // [ Expression, Body, Else(Else if) ]
             TokenType::IF => {
-                self.log.info("convert_if()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_if()");
+                LOGGER.lock().indent_inc();
 
                 // condition
                 let condition_node = node.children.get(0).ok_or("If statement missing condition")?;
-                let condition = self.convert_tree(condition_node)?;
+                let condition = self.convert(condition_node)?;
 
                 // then block
                 let then_node = node.children.get(1).ok_or("If statement missing then block")?;
-                let then_block = self.convert_tree(then_node)?;
+                let then_block = self.convert(then_node)?;
 
                 // else or else-if
                 let else_block = if node.children.len() > 2 {
                     let else_node = &node.children[2];
-                    Some(Box::new(self.convert_tree(else_node)?))
+                    Some(Box::new(self.convert(else_node)?))
                 } else {
                     None
                 };
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 Ok(STree::IF_STMT {
                     condition: Box::new(condition),
                     then_block: Box::new(then_block),
@@ -395,16 +400,16 @@ impl Converter {
             // Expected While Children
             // [ Expression, Body ]
             TokenType::WHILE => {
-                self.log.info("convert_while()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_while()");
+                LOGGER.lock().indent_inc();
 
                 let condition_node = node.children.get(0).ok_or("While missing condition")?;
-                let condition = self.convert_tree(condition_node)?;
+                let condition = self.convert(condition_node)?;
 
                 let body_node = node.children.get(1).ok_or("While missing body")?;
-                let body = self.convert_tree(body_node)?;
+                let body = self.convert(body_node)?;
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
                 Ok(STree::WHILE_STMT { condition: Box::new(condition), body: Box::new(body) })
             },
@@ -412,16 +417,16 @@ impl Converter {
             // Expected Do-While Children
             // [ Body, Expression ]
             TokenType::DO => {
-                self.log.info("convert_while()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_while()");
+                LOGGER.lock().indent_inc();
 
                 let condition_node = node.children.get(1).ok_or("While missing condition")?;
-                let condition = self.convert_tree(condition_node)?;
+                let condition = self.convert(condition_node)?;
 
                 let body_node = node.children.get(0).ok_or("While missing body")?;
-                let body = self.convert_tree(body_node)?;
+                let body = self.convert(body_node)?;
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
                 Ok(STree::DO_WHILE_STMT { condition: Box::new(condition), body: Box::new(body) })
             },
@@ -433,12 +438,12 @@ impl Converter {
             // Expected Call Children
             // [ Id/Dot, Arg_List ]
             TokenType::CALL => {
-                self.log.info("convert_call()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_call()");
+                LOGGER.lock().indent_inc();
 
                 
                 let callee_node = node.children.get(0).ok_or("Call missing callee")?;
-                let callee = self.convert_tree(callee_node)?;
+                let callee = self.convert(callee_node)?;
 
                 // Remaining children are args (depends on your parser shape)
                 let mut args = Vec::new();
@@ -447,11 +452,11 @@ impl Converter {
                     let args_node = &node.children[1];
 
                     for arg_node in &args_node.children {
-                        args.push(self.convert_tree(arg_node)?);
+                        args.push(self.convert(arg_node)?);
                     }
                 }
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
                 Ok(STree::FUNCTION_CALL {
                     callee: Box::new(callee),
@@ -460,10 +465,10 @@ impl Converter {
             },
 
             TokenType::PERIOD => {
-                self.log.info("convert_dot()");
-                self.log.indent_inc();
+                LOGGER.lock().info("convert_dot()");
+                LOGGER.lock().indent_inc();
 
-                let left = self.convert_tree(&node.children[0])?;
+                let left = self.convert(&node.children[0])?;
 
                 let right_node = &node.children[1];
                 let member = match &right_node.token.token_type {
@@ -471,7 +476,7 @@ impl Converter {
                     _ => return Err("Right side of '.' must be an identifier".into()),
                 };
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
 
                 Ok(STree::MEMBER_CALL {
                     object: Box::new(left),
@@ -481,7 +486,7 @@ impl Converter {
 
             // Identifier
             TokenType::ID { name } => {
-                self.log.info("convert_identifier()");
+                LOGGER.lock().info("convert_identifier()");
                 Ok(STree::ID { name: name.clone() })
             }
 
@@ -507,7 +512,7 @@ impl Converter {
 
 
             other => {
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 Err(format!("Unrecognized token in semantic conversion: {:?}", other ))
             }
         }

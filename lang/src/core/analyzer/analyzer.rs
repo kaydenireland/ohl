@@ -1,29 +1,27 @@
 use std::collections::HashMap;
-use std::fmt::format;
 use std::ops::Deref;
 use colored::Colorize;
 use crate::core::analyzer::signature::FunctionSignature;
 use crate::core::analyzer::scope::Scope;
 use crate::core::analyzer::signature::VariableType;
 use crate::core::converter::stree::STree;
-use crate::core::util::logger::Logger;
+use crate::core::util::logger::{Logger, LOGGER};
 
 #[derive(Debug, Clone)]
 pub struct Analyzer {
     pub functions: HashMap<String, FunctionSignature>,
     pub errors: Vec<String>,
     pub warnings: Vec<String>,
-    pub log: Logger,
     loop_depth: usize
 }
 
 impl Analyzer {
     pub fn new(_debug: bool) -> Analyzer {
+        LOGGER.lock().set_debug(_debug);
         Analyzer {
             functions: HashMap::new(),
             errors: Vec::new(),
             warnings: Vec::new(),
-            log: Logger::new(_debug),
             loop_depth: 0
         }
     }
@@ -46,6 +44,8 @@ impl Analyzer {
             }
         }
 
+        LOGGER.lock().reset_indent();
+
         if !self.errors.is_empty() {
             Err((self.warnings.clone(), self.errors.clone()))
         } else {
@@ -57,32 +57,32 @@ impl Analyzer {
         match node {
 
             STree::START { classes } => {
-                self.log.info("analyze()");
-                self.log.indent_inc();
+                LOGGER.lock().info("analyze()");
+                LOGGER.lock().indent_inc();
 
                 for class in classes {
                     self.visit(class, scope);
                 }
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 None
             }
 
             STree::CLASS { scope, name, body } => {
-                self.log.info("analyze()");
-                self.log.indent_inc();
+                LOGGER.lock().info("analyze()");
+                LOGGER.lock().indent_inc();
 
                 let mut local = Scope::new();
 
                 self.visit(body, &mut local);
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 None
             }
 
             STree::CLASS_BODY { variables, functions } => {
-                self.log.info("analyze()");
-                self.log.indent_inc();
+                LOGGER.lock().info("analyze()");
+                LOGGER.lock().indent_inc();
 
                 let mut local = Scope::new();
 
@@ -94,13 +94,13 @@ impl Analyzer {
                     self.visit(function, &mut local);
                 }
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 None
             }
 
             STree::FUNCTION { scope, return_type, name, params, body } => {
-                self.log.info("analyze_function()");
-                self.log.indent_inc();
+                LOGGER.lock().info("analyze_function()");
+                LOGGER.lock().indent_inc();
 
                 let mut local = Scope::new();
                 for (name, token_type) in params {
@@ -118,13 +118,13 @@ impl Analyzer {
                     }
                 }
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 Some(return_type.clone())
             }
 
             STree::BLOCK { statements } => {
-                self.log.info("analyze_block()");
-                self.log.indent_inc();
+                LOGGER.lock().info("analyze_block()");
+                LOGGER.lock().indent_inc();
 
                 let mut local = Scope::new_child(scope);
 
@@ -138,13 +138,13 @@ impl Analyzer {
                     )
                 }
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 None
             }
 
             STree::VAR_DECL { id, var_type, mutable, expression} => {
-                self.log.info("analyze_variable_declaration()");
-                self.log.indent_inc();
+                LOGGER.lock().info("analyze_variable_declaration()");
+                LOGGER.lock().indent_inc();
 
                 match scope.declare_variable(id.clone(), var_type.clone(), mutable.clone()) {
                     Ok(_) => {}
@@ -156,14 +156,14 @@ impl Analyzer {
 
                 self.visit(expression, scope);
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 None
             }
 
             STree::WHILE_STMT { condition, body }
             | STree::DO_WHILE_STMT { condition, body } => {
-                self.log.info("analyze_while()");
-                self.log.indent_inc();
+                LOGGER.lock().info("analyze_while()");
+                LOGGER.lock().indent_inc();
 
                 self.visit(condition, scope);
 
@@ -172,12 +172,12 @@ impl Analyzer {
                 self.visit(body, &mut local);
                 self.loop_depth -= 1;
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 None
             },
 
             STree::BREAK | STree::CONTINUE | STree::REPEAT => {
-                self.log.info("analyze_jump()");
+                LOGGER.lock().info("analyze_jump()");
                 if self.loop_depth == 0 {
                     self.create_error_message("Jump statement used outside of loop".to_string())
                 }
@@ -185,8 +185,8 @@ impl Analyzer {
             },
 
             STree::FUNCTION_CALL { callee, args } => {
-                self.log.info("analyze_function_call()");
-                self.log.indent_inc();
+                LOGGER.lock().info("analyze_function_call()");
+                LOGGER.lock().indent_inc();
 
                 let name = match callee.deref() {
                     STree::ID { name } => {
@@ -194,7 +194,7 @@ impl Analyzer {
                     }
                     _ => {
                         self.create_error_message(format!("Callee '{:?}' is not a function call", callee));
-                        self.log.indent_dec();
+                        LOGGER.lock().indent_dec();
                         return None
                     }
                 };
@@ -206,7 +206,7 @@ impl Analyzer {
                     },
                     None => {
                         self.create_error_message(format!("Called function '{:?}' does not exist", name));
-                        self.log.indent_dec();
+                        LOGGER.lock().indent_dec();
                         return None
                     }
                 };
@@ -232,7 +232,7 @@ impl Analyzer {
                     }
                 }
 
-                self.log.indent_dec();
+                LOGGER.lock().indent_dec();
                 Some(function.return_type.clone())
             },
 
@@ -292,13 +292,13 @@ impl Analyzer {
     }
 
     pub fn print_function_table(&mut self) {
-        self.log.info("\nFunction Table:");
-        self.log.indent_inc();
+        LOGGER.lock().info("\nFunction Table:");
+        LOGGER.lock().indent_inc();
         for function in self.functions.values() {
             let params = function.parameters.clone();
-            self.log.info(format!("{}: {:?}", function.name, params).as_str());
+            LOGGER.lock().info(format!("{}: {:?}", function.name, params).as_str());
         }
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
     }
 
     pub fn collect_function_signatures(&mut self, node: &STree) {

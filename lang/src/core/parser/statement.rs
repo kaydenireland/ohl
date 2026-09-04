@@ -1,12 +1,13 @@
 use crate::core::lexer::token::Token;
 use crate::core::lexer::token_type::TokenType;
+use crate::core::util::logger::LOGGER;
 use crate::core::parser::parser::Parser;
 use crate::core::parser::mtree::MTree;
 
 impl Parser {
     pub fn parse_statement(&mut self) -> MTree {
-        self.log.info("parse_statement()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_statement()");
+        LOGGER.lock().indent_inc();
 
         let child: MTree;
         let token_type = self.current().token_type;
@@ -39,15 +40,15 @@ impl Parser {
                 self.expect(TokenType::SEMICOLON);
             }
         }
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
 
     // <variable_declaration> ::= "var" <id> [":" <type>] ["=" <expression>] ";";
     pub fn parse_variable_declaration(&mut self) -> MTree {
-        self.log.info("parse_variable_declaration()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_variable_declaration()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(Token::using_location(TokenType::VARIABLE, self.current()));
 
@@ -68,15 +69,15 @@ impl Parser {
             child._push(self.parse_expression());
         }
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
 
     // <print> ::= "print" "(" <expression> ")" ";";
     pub fn parse_print(&mut self) -> MTree {
-        self.log.info("parse_print()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_print()");
+        LOGGER.lock().indent_inc();
 
         
         let mut child = MTree::new(self.current());
@@ -88,14 +89,14 @@ impl Parser {
 
         self.expect(TokenType::PAREN_R);
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
         child
     }
 
     // <return> ::= "return" [<expression>] ";";
     pub fn parse_return(&mut self) -> MTree {
-        self.log.info("parse_return()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_return()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(self.current());
 
@@ -105,15 +106,15 @@ impl Parser {
             self.expect(TokenType::SEMICOLON);
         }
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
 
     // <if_statement> ::= "if" "(" <expression> ")" <block> ["else" <block>];
     pub fn parse_if(&mut self) -> MTree {
-        self.log.info("parse_if()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_if()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(self.current());
 
@@ -132,15 +133,15 @@ impl Parser {
             }
         }
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
 
     // <while_loop> ::= "while" "(" <expression> ")" <block>;
     pub fn parse_while(&mut self) -> MTree {
-        self.log.info("parse_while()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_while()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(self.current());
 
@@ -152,15 +153,15 @@ impl Parser {
 
         child._push(self.parse_optional_block());
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
 
     // <do_while_loop> ::= "do" <block> "while" "(" <expression> ")" ";";
     pub fn parse_do_while(&mut self) -> MTree {
-        self.log.info("parse_do_while()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_do_while()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(self.current());
 
@@ -174,15 +175,15 @@ impl Parser {
         self.expect(TokenType::PAREN_R);
         self.expect(TokenType::SEMICOLON);
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
 
     // <loop> ::= "loop" <block>;
     pub fn parse_loop(&mut self) -> MTree {
-        self.log.info("parse_loop()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_loop()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(Token::using_location(TokenType::WHILE, self.current()));
 
@@ -191,13 +192,13 @@ impl Parser {
 
         child._push(self.parse_block());
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
 
     pub fn parse_optional_block(&mut self) -> MTree {
-        self.log.info("parse_optional_block()");
+        LOGGER.lock().info("parse_optional_block()");
 
         if self.is(TokenType::BRACE_L) {
             return self.parse_block();
@@ -209,7 +210,7 @@ impl Parser {
 
 
     pub fn parse_blank(&mut self) -> MTree {
-        self.log.info("parse_blank()");
+        LOGGER.lock().info("parse_blank()");
         let child = MTree::new(self.current());
         while self.is(TokenType::SEMICOLON) {
             self.expect(TokenType::SEMICOLON);

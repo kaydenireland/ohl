@@ -1,24 +1,24 @@
 use crate::core::lexer::lexer::Lexer;
 use crate::core::lexer::token_type::TokenType;
-use crate::core::util::logger::Logger;
+use crate::core::util::logger::LOGGER;
 use crate::core::parser::mtree::MTree;
 use crate::core::lexer::token::Token;
 
 pub struct Parser {
-    lexer: Lexer,
-    pub log: Logger
+    lexer: Lexer
 }
 
 impl Parser {
     pub fn new(lexer: Lexer, _debug: bool) -> Parser {
-        let log = Logger::new(_debug);
-        Parser { lexer, log }
+        LOGGER.lock().set_debug(_debug);
+        Parser { lexer }
     }
 
     pub fn analyze(&mut self) -> MTree {
         self.advance();
         let tree = self.parse();
         self.expect(TokenType::EOI);
+        LOGGER.lock().reset_indent();
         tree
     }
 }
@@ -50,7 +50,7 @@ impl Parser {
     pub fn expect(&mut self, token: TokenType) {
         let current = self.current();
         if std::mem::discriminant(&current.token_type) == std::mem::discriminant(&token) {
-            self.log.info(&format!("expect({current:?})"));
+            LOGGER.lock().info(&format!("expect({current:?})"));
             self.advance();
         } else {
             panic!("Expected '{token:?}', currently '{:?}'!", current.token_type);
@@ -60,11 +60,11 @@ impl Parser {
     pub fn expect_type(&mut self, allow_void: bool, implicit: bool) {
         let current = self.current().token_type;
         if current.is_type(implicit) {
-            self.log.info(&format!("expect({current:?})"));
+            LOGGER.lock().info(&format!("expect({current:?})"));
             self.advance();
         } else {
             if current == TokenType::VOID && allow_void {
-                self.log.info("expect(VOID)");
+                LOGGER.lock().info("expect(VOID)");
                 self.advance();
             } else {
                 panic!("Expected variable type, current token is '{current:?}'!");
@@ -75,7 +75,7 @@ impl Parser {
     pub fn expect_scope_modifier(&mut self) {
         let current = self.current().token_type;
         if current.is_scope_modifier() {
-            self.log.info(&format!("expect({current:?})"));
+            LOGGER.lock().info(&format!("expect({current:?})"));
             self.advance();
         } else {
             panic!("Expected scope modifier, current token is '{current:?}'!");
@@ -98,21 +98,21 @@ impl Parser {
     // <program> ::= {class_declaration};
     pub fn parse(&mut self) -> MTree {
         let mut tree = MTree::new(Token::from(TokenType::START));
-        self.log.info("parse()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse()");
+        LOGGER.lock().indent_inc();
         while !self.accept(TokenType::EOI) {
             tree._push(self.parse_class());
         }
 
-        self.log.info("");
+        LOGGER.lock().info("");
 
         tree
     }
 
     // <class_declaration> ::= [<scope_modifier>] "class" <id> "{" [<class_body>] "}";
     pub fn parse_class(&mut self) -> MTree {
-        self.log.info("parse_class()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_class()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(Token::using_location(TokenType::CLASS, self.current()));
 
@@ -127,14 +127,14 @@ impl Parser {
 
         child._push(self.parse_class_body());
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
         child
     }
 
     // <class_body> ::= {<function_declaration> | <variable_declaration>};
     pub fn parse_class_body(&mut self) -> MTree {
-        self.log.info("parse_class_body()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_class_body()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(Token::using_location(TokenType::CLASS_BODY, self.current()));
 
@@ -157,14 +157,14 @@ impl Parser {
 
         self.expect(TokenType::BRACE_R);
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
         child
     }
 
     // <variable_declaration> ::= <scope_modifier> "var" <id> [":" <type>] ["=" <expression>] ";" | "const" <id> [":" <type>] ["=" <expression>] ";";
     pub fn parse_class_variable_declaration(&mut self, scope: Token) -> MTree {
-        self.log.info("parse_variable_declaration()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_variable_declaration()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(Token::using_location(TokenType::CLASS_VARIABLE, self.current()));
 
@@ -186,15 +186,15 @@ impl Parser {
             child._push(self.parse_expression());
         }
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
 
     // [modifier] fun <id> (<params>) <block>
     pub fn parse_function(&mut self, scope: Token) -> MTree {
-        self.log.info("parse_function()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_function()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(Token::using_location(TokenType::FUNCTION, self.current()));
 
@@ -218,14 +218,14 @@ impl Parser {
 
         child._push(self.parse_block());
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
         child
     }
 
     // <params> ::= <param> {"," <param>};
     pub fn parse_parameter_list(&mut self) -> MTree {
-        self.log.info("parse_parameter_list()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_parameter_list()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(Token::using_location(TokenType::PARAM_LIST, self.current()));
 
@@ -244,14 +244,14 @@ impl Parser {
 
         self.expect(TokenType::PAREN_R);
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
         child
     }
 
     // <param> ::= <id> {"," <id>} ":" <type>;
     pub fn parse_parameter(&mut self) -> MTree {
-        self.log.info("parse_parameter()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_parameter()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(Token::using_location(TokenType::PARAM, self.current()));
 
@@ -267,14 +267,14 @@ impl Parser {
         self.expect_type(false, false);
         child._push(MTree::new(type_token));
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
 
     pub fn parse_argument_list(&mut self) -> MTree {
-        self.log.info("parse_argument_list()");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_argument_list()");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(Token::using_location(TokenType::ARG_LIST, self.current()));
 
@@ -285,14 +285,14 @@ impl Parser {
             }
         }
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
 
     pub fn parse_block(&mut self) -> MTree {
-        self.log.info("parse_block");
-        self.log.indent_inc();
+        LOGGER.lock().info("parse_block");
+        LOGGER.lock().indent_inc();
 
         let mut child = MTree::new(Token::using_location(TokenType::BLOCK, self.current()));
 
@@ -302,7 +302,7 @@ impl Parser {
         }
         self.expect(TokenType::BRACE_R);
 
-        self.log.indent_dec();
+        LOGGER.lock().indent_dec();
 
         child
     }
