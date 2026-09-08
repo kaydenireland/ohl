@@ -4,16 +4,16 @@ use crate::core::lexer::token::Token;
 use crate::core::lexer::token_type::TokenType;
 use crate::core::util::logger::LOGGER;
 use crate::core::util::error::Error;
-
+use crate::{indent_dec, indent_inc, info};
 // Pratt Expression Parser
 
 impl Parser {
     pub fn parse_expression(&mut self) -> MTree {
-        LOGGER.lock().info("parse_expression()");
-        LOGGER.lock().indent_inc();
+        info!("parse_expression()");
+        indent_inc!();
 
         let child = self.parse_expression_token(1);
-        LOGGER.lock().indent_dec();
+        indent_dec!();
         child
     }
 
