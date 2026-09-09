@@ -40,6 +40,9 @@ pub enum TokenType {
     OR,
     XOR,
 
+    // Bitwise Operators
+    TILDE,
+
     // Keywords
     PRINT,
     RETURN,
@@ -149,6 +152,13 @@ impl TokenType {
             _ => false
         }
     }
+
+    pub fn is_bitwise_operator(&self) -> bool {
+        match self {
+            TokenType::TILDE => true,
+            _ => false
+        }
+    }
     
     pub fn is_assignment_operator(&self) -> bool {
         match self {
@@ -174,6 +184,8 @@ impl TokenType {
             TokenType::DASH => true,
             TokenType::SLASH => true,
             TokenType::NOT => true,
+
+            TokenType::TILDE => true,
 
             _ => false
         }
@@ -241,6 +253,7 @@ impl TokenType {
             TokenType::POWER | TokenType::ROOT => BindingPower { left: 90, right: 89, unary: 0 },
 
             TokenType::NOT => BindingPower { left: 0, right: 0, unary: 70 },
+            TokenType::TILDE => BindingPower { left: 0, right: 0, unary: 70 },
 
             TokenType::PAREN_L => BindingPower { left: 100, right: 0, unary: 0 },
             TokenType::PERIOD => BindingPower { left: 100, right: 99, unary: 0 },

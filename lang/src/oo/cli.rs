@@ -6,6 +6,7 @@ use std::path::Path;
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
 use crate::core::analyzer::analyzer::Analyzer;
+use crate::core::codegen::program::Program;
 use crate::core::converter::converter::Converter;
 use crate::core::converter::stree::STree;
 use crate::core::parser::mtree::MTree;
@@ -56,6 +57,11 @@ pub enum Command {
         filepath: String,
         #[arg(short, long)]
         debug: bool
+    },
+    Lower {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool
     }
 }
 
@@ -68,7 +74,8 @@ pub fn handle(cli: Cli) {
         Command::Token { filepath } => _ = tokenize(filepath, true),
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
-        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug)
+        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
+        Command::Lower { filepath, debug: _debug } => _ = lower(filepath, _debug)
     }
 }
 
@@ -228,7 +235,7 @@ pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
     stree
 }
 
-pub fn analyze(path: String, _debug: bool) -> STree{
+pub fn analyze(path: String, _debug: bool) -> STree {
     let mut analyzer = Analyzer::new(_debug);
     let stree = convert(path, _debug, _debug);
 
@@ -262,4 +269,15 @@ fn print_vec_string(strings: Vec<String>) {
     for msg in strings {
         println!("{}", msg);
     }
+}
+
+pub fn lower(path: String, _debug: bool) -> Program {
+    let stree: STree = analyze(path, _debug);
+    
+    let mut codegen: Program = Program::new(_debug);
+    
+    codegen.lower(stree);
+    codegen.dump();
+    
+    codegen
 }

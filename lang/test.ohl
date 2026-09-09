@@ -1,18 +1,5 @@
-class Player {
-    public var name: string = "Kayden";
-    private var health: int = 100;
-    public var speed = 5.5;
-
-    public fun getHealth() -> int {
-        var currentHealth: int = health;
-        var damage = 25;
-        var alive = true;
-
-        return currentHealth;
-    }
-
-    public fun reset() -> void {
-        var defaultHealth = 100;
-        health = defaultHealth;
+class Main {
+    public fun main() -> int {
+        return -~5;
     }
 }

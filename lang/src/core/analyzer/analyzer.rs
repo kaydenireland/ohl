@@ -39,7 +39,7 @@ impl Analyzer {
         for function in function_map.values() {
             if !function.called {
                 self.create_warning_message(format!(
-                        "Unused function '{}'", function.name
+                        "Unused functions '{}'", function.name
                     )
                 )
             }
@@ -194,7 +194,7 @@ impl Analyzer {
                         name
                     }
                     _ => {
-                        self.create_error_message(format!("Callee '{:?}' is not a function call", callee));
+                        self.create_error_message(format!("Callee '{:?}' is not a functions call", callee));
                         indent_dec!();
                         return None
                     }
@@ -206,7 +206,7 @@ impl Analyzer {
                         func
                     },
                     None => {
-                        self.create_error_message(format!("Called function '{:?}' does not exist", name));
+                        self.create_error_message(format!("Called functions '{:?}' does not exist", name));
                         indent_dec!();
                         return None
                     }

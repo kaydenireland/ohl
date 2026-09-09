@@ -1,6 +1,7 @@
 use crate::core::{converter::stree::STree, parser::mtree::MTree, lexer::token_type::TokenType};
 use crate::core::analyzer::signature::VariableType;
 use crate::{indent_reset, indent_inc, indent_dec, info, log_debug};
+use crate::core::converter::operator::Operator;
 
 pub struct Converter { }
 
@@ -317,7 +318,7 @@ impl Converter {
             }
 
             // Unary Prefix Only Operators 
-            TokenType::NOT => {
+            TokenType::NOT | TokenType::TILDE => {
                 info!("convert_unary_op()");
                 indent_inc!();
 
@@ -325,11 +326,12 @@ impl Converter {
                     return Err("Unary Prefix NOT must have one child".into());
                 }
 
+                let operator = Operator::from_token_type(node.token.token_type.clone());
                 let child = self.convert(&node.children[0])?;
 
                 indent_dec!();
 
-                Ok(STree::PRFX_EXPR { operator: TokenType::NOT, right: Box::new(child) })
+                Ok(STree::PRFX_EXPR { operator, right: Box::new(child) })
             }
 
             // Binary Operators
@@ -347,7 +349,7 @@ impl Converter {
                     indent_inc!();
 
                     let child = self.convert(&node.children[0])?;
-                    let operator = node.token.token_type.clone();
+                    let operator = Operator::from_token_type(node.token.token_type.clone());
 
                     indent_dec!();
 
@@ -358,7 +360,7 @@ impl Converter {
 
                     let left = self.convert(&node.children[0])?;
                     let right = self.convert(&node.children[1])?;
-                    let operator = node.token.token_type.clone();
+                    let operator = Operator::from_token_type(node.token.token_type.clone());
 
                     indent_dec!();
                     Ok(STree::EXPR { left: Box::new(left), operator, right: Box::new(right) })

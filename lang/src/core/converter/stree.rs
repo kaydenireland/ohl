@@ -1,6 +1,7 @@
 #![allow(warnings)]
 
 use crate::core::analyzer::signature::VariableType;
+use crate::core::converter::operator::Operator;
 use crate::core::lexer::token_type::TokenType;
 
 // Semantic AST
@@ -14,9 +15,9 @@ pub enum STree {
     VAR_TYPE { var_type: TokenType },
 
     // Expressions
-    EXPR { left: Box<STree>, operator: TokenType, right: Box<STree> },
-    PRFX_EXPR { operator: TokenType, right: Box<STree> },
-    // PTFX_EXPR { left: Box<STree>, operator: TokenType },
+    EXPR { left: Box<STree>, operator: Operator, right: Box<STree> },
+    PRFX_EXPR { operator: Operator, right: Box<STree> },
+    // PTFX_EXPR { left: Box<STree>, operator: Operator },
 
     // Literals
     ID { name: String },

@@ -212,7 +212,11 @@ impl Lexer {
                     '%' => {
                         self.current = self.create_token(TokenType::PERCENT);
                         break;
-                    }
+                    },
+                    '~' => {
+                        self.current = self.create_token(TokenType::TILDE);
+                        break;
+                    },
                     '^' => self.state = LexerState::CARAT,
                     
                     // Assignment Operators
