@@ -1,3 +1,4 @@
+use log::error;
 use crate::core::converter::operator::Operator::{ADD, COMPLEMENT, DIVIDE, MULTIPLY, NEGATE, POWER, RECIPRICOL, REMAINDER, SUBTRACT};
 use crate::core::lexer::token_type::TokenType;
 
@@ -61,7 +62,7 @@ impl Operator {
             // Bitwise
             TokenType::TILDE => COMPLEMENT,
 
-            _ => Operator::XOR
+            _ => panic!("Unknown operator {:?}", typ),
         }
     }
 }

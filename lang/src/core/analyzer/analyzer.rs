@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::ops::Deref;
 use colored::Colorize;
-use crate::core::analyzer::signature::FunctionSignature;
+use crate::core::analyzer::signature::{ClassSignature, FunctionSignature};
 use crate::core::analyzer::scope::Scope;
 use crate::core::analyzer::signature::VariableType;
 use crate::core::converter::stree::STree;
@@ -10,6 +10,7 @@ use crate::{log_debug, indent_reset, indent_inc, indent_dec, info};
 
 #[derive(Debug, Clone)]
 pub struct Analyzer {
+    pub classes: HashMap<String, ClassSignature>,
     pub functions: HashMap<String, FunctionSignature>,
     pub errors: Vec<String>,
     pub warnings: Vec<String>,
@@ -20,6 +21,7 @@ impl Analyzer {
     pub fn new(_debug: bool) -> Analyzer {
         log_debug!(_debug);
         Analyzer {
+            classes: HashMap::new(),
             functions: HashMap::new(),
             errors: Vec::new(),
             warnings: Vec::new(),
@@ -29,12 +31,24 @@ impl Analyzer {
 
     pub fn analyze(&mut self, tree: STree) -> Result<Vec<String>, (Vec<String>, Vec<String>)> {
 
-        self.collect_function_signatures(&tree);
+        self.collect_signatures(&tree);
         self.visit(&tree, &mut Scope::new());
 
+        self.print_class_table();
         self.print_function_table();
 
-        // Detect unused Functions
+        // Detect Unused Classes
+        let class_map = self.classes.clone();
+        for class in class_map.values() {
+            if !class.used {
+                self.create_warning_message(format!(
+                    "Unused classes '{}'", class.name
+                )
+                )
+            }
+        }
+
+        // Detect Unused Functions
         let function_map = self.functions.clone();
         for function in function_map.values() {
             if !function.called {
@@ -44,6 +58,8 @@ impl Analyzer {
                 )
             }
         }
+
+
 
         indent_reset!();
 
@@ -292,54 +308,28 @@ impl Analyzer {
         );
     }
 
+    pub fn print_class_table(&mut self) {
+        info!("\nClass Table:");
+        indent_inc!();
+        for class in self.classes.values() {
+            let funcs = class.functions.clone();
+            let mut names: Vec<String> = Vec::new();
+            for func in funcs {
+                names.push(func.name.clone());
+            }
+            info!("{}: {:?}", class.name, names);
+        }
+        indent_dec!();
+    }
+
     pub fn print_function_table(&mut self) {
         info!("\nFunction Table:");
         indent_inc!();
         for function in self.functions.values() {
             let params = function.parameters.clone();
-            info!("{}: {:?}", function.name, params);
+            info!("{}: {:?}", function.key(), params);
         }
         indent_dec!();
-    }
-
-    pub fn collect_function_signatures(&mut self, node: &STree) {
-        match node {
-            STree::START { classes} => {
-                for class in classes {
-                    self.collect_function_signatures(class);
-                }
-            },
-
-            STree::CLASS { scope, name, body } => {
-                self.collect_function_signatures(body);
-            },
-
-            STree::CLASS_BODY { variables, functions} => {
-                for function in functions {
-                    self.collect_function_signatures(function);
-                }
-            },
-
-            STree::FUNCTION { return_type, name, params, .. } => {
-                let mut param_types = Vec::new();
-                for (_, token_type) in params {
-                    param_types.push(token_type.clone());
-                }
-
-                self.functions.insert(
-                    name.to_string(),
-                    FunctionSignature::new(
-                        "Test".to_string(),
-                        name.clone(),
-                        param_types,
-                        return_type.clone(),
-                        name == "main"
-                    )
-                );
-            },
-
-            _ => {}
-        }
     }
 
     fn has_return(&self, node: &STree) -> bool {

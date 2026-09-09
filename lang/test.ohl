@@ -2,4 +2,14 @@ class Main {
     public fun main() -> int {
         return -~5;
     }
+
+    private fun foo() {
+        return;
+    }
+}
+
+class Dog {
+    public fun bark() {
+        return 2;
+    }
 }
