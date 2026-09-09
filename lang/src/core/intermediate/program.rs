@@ -1,19 +1,19 @@
-use crate::core::codegen::definition::Function;
+use crate::core::intermediate::definition::IntermediateFunction;
 use crate::{indent_dec, indent_inc, indent_reset, info, log_debug};
-use crate::core::codegen::instruction::Instruction;
-use crate::core::codegen::instruction::Instruction::UNARY;
-use crate::core::codegen::operator::{UnaryOperator, Value};
+use crate::core::intermediate::instruction::IntermediateInstruction;
+use crate::core::intermediate::instruction::IntermediateInstruction::UNARY;
+use crate::core::intermediate::operator::{UnaryOperator, Value};
 use crate::core::converter::stree::STree;
 
-pub struct Program {
-    pub functions: Vec<Function>,
+pub struct IntermediateProgram {
+    pub functions: Vec<IntermediateFunction>,
     pub counter: usize,
 }
 
-impl Program {
-    pub fn new(_debug: bool) -> Program {
+impl IntermediateProgram {
+    pub fn new(_debug: bool) -> IntermediateProgram {
         log_debug!(_debug);
-        Program { functions: Vec::new(), counter: 0 }
+        IntermediateProgram { functions: Vec::new(), counter: 0 }
     }
 
     pub fn make_temporary_name(&mut self) -> String {
@@ -22,12 +22,12 @@ impl Program {
         name
     }
 
-    pub fn lower(&mut self, tree: STree) -> (Vec<Instruction>, Value) {
+    pub fn lower(&mut self, tree: STree) -> (Vec<IntermediateInstruction>, Value) {
         match tree {
 
             // File
             STree::START { classes } => {
-                info!("lower_file()");
+                info!("intermediate_lower_file()");
                 indent_inc!();
 
                 for class in classes {
@@ -40,7 +40,7 @@ impl Program {
 
             // Classes
             STree::CLASS { scope, name, body } => {
-                info!("lower_class_declaration()");
+                info!("intermediate_lower_class_declaration()");
                 indent_inc!();
 
                 self.lower(*body);
@@ -50,7 +50,7 @@ impl Program {
             }
 
             STree::CLASS_BODY {variables, functions} => {
-                info!("lower_class_body()");
+                info!("intermediate_lower_class_body()");
                 indent_inc!();
 
                 for function in functions {
@@ -63,21 +63,21 @@ impl Program {
 
             // Functions
             STree::FUNCTION { scope, name, params, return_type, body } => {
-                info!("lower_function_declaration()");
+                info!("intermediate_lower_function_declaration()");
                 indent_inc!();
 
                 let (instructions, _) = self.lower(*body);
-                self.functions.push(Function::new(name, instructions));
+                self.functions.push(IntermediateFunction::new(name, instructions));
 
                 indent_dec!();
                 (Vec::new(), Value::INT(0))
             }
 
             STree::BLOCK { statements } => {
-                info!("lower_block()");
+                info!("intermediate_lower_block()");
                 indent_inc!();
 
-                let mut instructions: Vec<Instruction> = Vec::new();
+                let mut instructions: Vec<IntermediateInstruction> = Vec::new();
 
                 for statement in statements {
                     let (new_instructions, _) = self.lower(statement);
@@ -91,7 +91,7 @@ impl Program {
 
             // Expressions
             STree::PRFX_EXPR { operator, right } => {
-                info!("lower_prefix_expression()");
+                info!("intermediate_lower_prefix_expression()");
                 indent_inc!();
 
                 let unary_op = UnaryOperator::from(operator);
@@ -108,7 +108,7 @@ impl Program {
 
             // Statements
             STree::RETURN_STMT { expression } => {
-                info!("lower_return()");
+                info!("intermediate_lower_return()");
                 indent_inc!();
 
                 let (mut instructions, value) = match expression {
@@ -116,7 +116,7 @@ impl Program {
                     None => (Vec::new(), Value::INT(0))
                 };
 
-                instructions.push(Instruction::RETURN(value));
+                instructions.push(IntermediateInstruction::RETURN(value));
 
                 indent_dec!();
                 (instructions, Value::INT(0))
@@ -135,20 +135,14 @@ impl Program {
     }
 
     pub fn dump(&self) {
-        println!("\nDumping Program");
+        println!("\nDumping Ohl IR:");
         for function in &self.functions {
-            println!("Function: {}", function.name);
+            println!("\nfn {}", function.name);
             for instruction in &function.instructions {
-                match instruction {
-                    Instruction::RETURN(val) => {
-                        println!("  Return {:?}", val);
-                    }
-                    Instruction::UNARY { operator, src, dst } => {
-                        println!("  Unary {:?} {:?} {:?}", operator, src, dst);
-                    }
-                }
+                println!("   {}", instruction);
             }
         }
+        println!();
     }
 
 }

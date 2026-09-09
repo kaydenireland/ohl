@@ -6,13 +6,14 @@ use std::path::Path;
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
 use crate::core::analyzer::analyzer::Analyzer;
-use crate::core::codegen::program::Program;
+use crate::core::intermediate::program::IntermediateProgram;
 use crate::core::converter::converter::Converter;
 use crate::core::converter::stree::STree;
 use crate::core::parser::mtree::MTree;
 use crate::core::parser::parser::Parser;
 use crate::core::util::error::Error;
 use crate::core::lexer::lexer::Lexer;
+use crate::core::lowering::program::MachineProgram;
 
 #[derive(ClapParser)]
 #[command(name = "oo", version)]
@@ -61,7 +62,11 @@ pub enum Command {
     Lower {
         filepath: String,
         #[arg(short, long)]
-        debug: bool
+        debug: bool,
+        #[arg(long)]
+        oil: bool,
+        #[arg(long)]
+        omil: bool
     }
 }
 
@@ -75,7 +80,7 @@ pub fn handle(cli: Cli) {
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
         Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
-        Command::Lower { filepath, debug: _debug } => _ = lower(filepath, _debug)
+        Command::Lower { filepath, debug: _debug, oil, omil } => _ = lower(filepath, _debug, oil, omil)
     }
 }
 
@@ -271,13 +276,16 @@ fn print_vec_string(strings: Vec<String>) {
     }
 }
 
-pub fn lower(path: String, _debug: bool) -> Program {
+pub fn lower(path: String, _debug: bool, out_oil: bool, out_omil: bool) -> MachineProgram {
     let stree: STree = analyze(path, _debug);
     
-    let mut codegen: Program = Program::new(_debug);
+    let mut inter: IntermediateProgram = IntermediateProgram::new(_debug);
+    inter.lower(stree);
+    inter.dump();
     
-    codegen.lower(stree);
-    codegen.dump();
-    
-    codegen
+    let mut machine: MachineProgram = MachineProgram::new();
+    machine.lower(inter);
+    machine.dump();
+
+    machine
 }

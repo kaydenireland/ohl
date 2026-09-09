@@ -21,7 +21,7 @@ impl Converter {
         
         match &node.token.token_type {
 
-            // Program Root: All Children are Classes
+            // IntermediateProgram Root: All Children are Classes
             TokenType::START => {
                 info!("convert_program()");
                 indent_inc!();
@@ -35,7 +35,7 @@ impl Converter {
                 Ok(STree::START { classes })
             }
 
-            // Expected Function Declaration Children
+            // Expected IntermediateFunction Declaration Children
             // [ ScopeModifier, ID, ClassBody ]
             TokenType::CLASS => {
                 info!("convert_class()");
@@ -58,7 +58,7 @@ impl Converter {
             }
 
             // Expected Class Body
-            // [ Vec<ClassVariable>, Vec<Function> ]
+            // [ Vec<ClassVariable>, Vec<IntermediateFunction> ]
             TokenType::CLASS_BODY => {
                 info!("convert_class_body()");
                 indent_inc!();
@@ -124,7 +124,7 @@ impl Converter {
                 Ok(STree::CLASS_VAR_DECL { scope, id, var_type, mutable, expression: Box::new(expression) })
             }
 
-            // Expected Function Declaration Children
+            // Expected IntermediateFunction Declaration Children
             // [ Scope, ID(name) PARAM_LIST, ReturnType, BLOCK ]
             TokenType::FUNCTION => {
 
@@ -135,7 +135,7 @@ impl Converter {
                 let name_node = node.children[1].token.token_type.clone();
                 let function_name: String = match &name_node {
                     TokenType::ID { name } => name.clone(),
-                    _ => return Err("Expected ID in Function Declaration".into()),
+                    _ => return Err("Expected ID in IntermediateFunction Declaration".into()),
                 };
 
                 info!("convert_param_list()");

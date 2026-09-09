@@ -129,7 +129,7 @@ impl Analyzer {
                 if *return_type != VariableType::VOID {
                     if !self.has_return(body) {
                         self.create_error_message(format!(
-                            "Function '{}' declares return type {:?} but has no return statement",
+                            "IntermediateFunction '{}' declares return type {:?} but has no return statement",
                             name, return_type
                         ));
                     }
@@ -234,7 +234,7 @@ impl Analyzer {
 
                 if function.parameters.len() != args.len() {
                     self.create_error_message(format!(
-                        "Function '{}' expects {} arguments, got {}",
+                        "IntermediateFunction '{}' expects {} arguments, got {}",
                         name, function.parameters.len(), args.len()
                     ));
                 }
@@ -323,7 +323,7 @@ impl Analyzer {
     }
 
     pub fn print_function_table(&mut self) {
-        info!("\nFunction Table:");
+        info!("\nIntermediateFunction Table:");
         indent_inc!();
         for function in self.functions.values() {
             let params = function.parameters.clone();
