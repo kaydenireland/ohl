@@ -11,7 +11,7 @@ pub struct IntermediateProgram {
 }
 
 impl IntermediateProgram {
-    pub fn new(_debug: bool) -> IntermediateProgram {
+    fn new(_debug: bool) -> IntermediateProgram {
         log_debug!(_debug);
         IntermediateProgram { functions: Vec::new(), counter: 0 }
     }
@@ -21,8 +21,14 @@ impl IntermediateProgram {
         self.counter += 1;
         name
     }
+    
+    pub fn lower_tree(tree: STree, _debug: bool) -> IntermediateProgram {
+        let mut program = IntermediateProgram::new(_debug);
+        program.lower(tree);
+        program
+    }
 
-    pub fn lower(&mut self, tree: STree) -> (Vec<IntermediateInstruction>, Value) {
+    fn lower(&mut self, tree: STree) -> (Vec<IntermediateInstruction>, Value) {
         match tree {
 
             // File

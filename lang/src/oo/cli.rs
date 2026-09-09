@@ -64,6 +64,13 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
         #[arg(long)]
+        oil: bool
+    },
+    Generate {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool,
+        #[arg(long)]
         oil: bool,
         #[arg(long)]
         omil: bool
@@ -80,7 +87,8 @@ pub fn handle(cli: Cli) {
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
         Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
-        Command::Lower { filepath, debug: _debug, oil, omil } => _ = lower(filepath, _debug, oil, omil)
+        Command::Lower { filepath, debug: _debug, oil } => _ = lower(filepath, _debug, oil, true),
+        Command::Generate { filepath, debug: _debug, oil, omil } => _ = generate(filepath, _debug, oil, omil, true)
     }
 }
 
@@ -276,16 +284,25 @@ fn print_vec_string(strings: Vec<String>) {
     }
 }
 
-pub fn lower(path: String, _debug: bool, out_oil: bool, out_omil: bool) -> MachineProgram {
+pub fn lower(path: String, _debug: bool, out_oil: bool, show_ir: bool) -> IntermediateProgram {
     let stree: STree = analyze(path, _debug);
-    
-    let mut inter: IntermediateProgram = IntermediateProgram::new(_debug);
-    inter.lower(stree);
-    inter.dump();
-    
-    let mut machine: MachineProgram = MachineProgram::new();
-    machine.lower(inter);
-    machine.dump();
+
+    let mut inter: IntermediateProgram = IntermediateProgram::lower_tree(stree, _debug);
+    if show_ir {
+        inter.dump();
+    }
+
+    inter
+}
+
+pub fn generate(path: String, _debug: bool, out_oil: bool, out_omil: bool, show_ir: bool) -> MachineProgram {
+
+    let inter: IntermediateProgram = lower(path, _debug, out_oil, _debug);
+
+    let mut machine: MachineProgram = MachineProgram::lower(inter, _debug);
+    if show_ir {
+        machine.dump();
+    }
 
     machine
 }
