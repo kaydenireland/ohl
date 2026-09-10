@@ -17,10 +17,10 @@ impl Operand {
 impl Display for Operand {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Operand::IMM(v) => write!(f, "{}", v),
+            Operand::IMM(v) => write!(f, "${}", v),
             Operand::REG(v) => write!(f, "%{}", v),
             Operand::PSEUDO(v) => write!(f, "{}", v),
-            Operand::STACK(v) => write!(f, "stack({})", v)
+            Operand::STACK(v) => write!(f, "{}(%rbp)", v)
         }
     }
 }
@@ -34,8 +34,8 @@ pub enum Register {
 impl Display for Register {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Register::AX => write!(f, "ax"),
-            Register::R10 => write!(f, "r10"),
+            Register::AX => write!(f, "eax"),
+            Register::R10 => write!(f, "r10d"),
         }
     }
 }

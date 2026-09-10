@@ -6,6 +6,8 @@ use std::path::Path;
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
 use crate::core::analyzer::analyzer::Analyzer;
+use crate::core::codegen::codegen::AssemblyGenerator;
+use crate::core::codegen::x64::X64CodeGenerator;
 use crate::core::intermediate::program::IntermediateProgram;
 use crate::core::converter::converter::Converter;
 use crate::core::converter::stree::STree;
@@ -66,7 +68,7 @@ pub enum Command {
         #[arg(long)]
         oil: bool
     },
-    Generate {
+    Machine {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
@@ -74,6 +76,11 @@ pub enum Command {
         oil: bool,
         #[arg(long)]
         omil: bool
+    },
+    Generate {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool,
     }
 }
 
@@ -88,7 +95,8 @@ pub fn handle(cli: Cli) {
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
         Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
         Command::Lower { filepath, debug: _debug, oil } => _ = lower(filepath, _debug, oil, true),
-        Command::Generate { filepath, debug: _debug, oil, omil } => _ = generate(filepath, _debug, oil, omil, true)
+        Command::Machine { filepath, debug: _debug, oil, omil } => _ = machine(filepath, _debug, oil, omil, true),
+        Command::Generate { filepath, debug: _debug } => _ = generate(filepath, _debug)
     }
 }
 
@@ -295,7 +303,7 @@ pub fn lower(path: String, _debug: bool, out_oil: bool, show_ir: bool) -> Interm
     inter
 }
 
-pub fn generate(path: String, _debug: bool, out_oil: bool, out_omil: bool, show_ir: bool) -> MachineProgram {
+pub fn machine(path: String, _debug: bool, out_oil: bool, out_omil: bool, show_ir: bool) -> MachineProgram {
 
     let inter: IntermediateProgram = lower(path, _debug, out_oil, _debug);
 
@@ -305,4 +313,13 @@ pub fn generate(path: String, _debug: bool, out_oil: bool, out_omil: bool, show_
     }
 
     machine
+}
+
+pub fn generate(path: String, _debug: bool) -> Result<()> {
+    let machine_ir = machine(path, _debug, false, false, _debug);
+
+    let mut codegen = X64CodeGenerator::new(_debug);
+    codegen.generate(machine_ir)?;
+
+    Ok(())
 }

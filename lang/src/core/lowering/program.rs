@@ -3,12 +3,12 @@ use crate::core::intermediate::program::IntermediateProgram;
 use crate::{indent_dec, indent_inc, indent_reset, info, log_debug};
 use crate::core::intermediate::instruction::IntermediateInstruction;
 use crate::core::intermediate::operator::Value;
-use crate::core::lowering::definition::AssemblyFunction;
-use crate::core::lowering::instruction::AssemblyInstruction;
+use crate::core::lowering::definition::MachineFunction;
+use crate::core::lowering::instruction::MachineInstruction;
 use crate::core::lowering::operand::{Operand, Register};
 
 pub struct MachineProgram {
-    pub functions: Vec<AssemblyFunction>
+    pub functions: Vec<MachineFunction>
 }
 
 impl MachineProgram {
@@ -36,40 +36,40 @@ impl MachineProgram {
         machine
     }
 
-    fn lower_function(&mut self, function: IntermediateFunction) -> AssemblyFunction {
+    fn lower_function(&mut self, function: IntermediateFunction) -> MachineFunction {
         info!("machine_lower_function()");
         indent_inc!();
 
-        let mut instructions: Vec<AssemblyInstruction> = Vec::new();
+        let mut instructions: Vec<MachineInstruction> = Vec::new();
 
         for instruction in function.instructions {
             instructions.extend(self.lower_instruction(instruction));
         }
 
         indent_dec!();
-        AssemblyFunction { name: function.name, instructions }
+        MachineFunction { name: function.name, instructions }
     }
 
-    fn lower_instruction(&mut self, instruction: IntermediateInstruction) -> Vec<AssemblyInstruction> {
+    fn lower_instruction(&mut self, instruction: IntermediateInstruction) -> Vec<MachineInstruction> {
         info!("machine_lower_instruction()");
         indent_inc!();
 
-        let mut new_instructions: Vec<AssemblyInstruction> = Vec::new();
+        let mut new_instructions: Vec<MachineInstruction> = Vec::new();
 
         match instruction {
             IntermediateInstruction::RETURN(value) => {
                 new_instructions.push(
-                    AssemblyInstruction::MOVE { src: self.lower_value(value), dst: Operand::REG(Register::AX)}
+                    MachineInstruction::MOVE { src: self.lower_value(value), dst: Operand::REG(Register::AX)}
                 );
-                new_instructions.push(AssemblyInstruction::RETURN);
+                new_instructions.push(MachineInstruction::RETURN);
             },
             IntermediateInstruction::UNARY { operator, src, dst} => {
                 let dst_val = self.lower_value(dst);
                 new_instructions.push(
-                    AssemblyInstruction::MOVE { src: self.lower_value(src), dst: dst_val.clone()}
+                    MachineInstruction::MOVE { src: self.lower_value(src), dst: dst_val.clone()}
                 );
                 new_instructions.push(
-                    AssemblyInstruction::UNARY { operator, operand: dst_val }
+                    MachineInstruction::UNARY { operator, operand: dst_val }
                 );
             }
         }
@@ -118,27 +118,27 @@ impl MachineProgram {
         info!("legalize_moves()");
 
         for function in &mut self.functions {
-            let mut new_instructions: Vec<AssemblyInstruction> = Vec::new();
+            let mut new_instructions: Vec<MachineInstruction> = Vec::new();
             for instruction in &mut function.instructions.drain(..) {
                 match instruction {
-                    AssemblyInstruction::MOVE { src, dst } => {
+                    MachineInstruction::MOVE { src, dst } => {
                         if src.is_memory() && dst.is_memory() {
                             new_instructions.push(
-                                AssemblyInstruction::MOVE {
+                                MachineInstruction::MOVE {
                                     src,
                                     dst: Operand::REG(Register::R10),
                                 }
                             );
 
                             new_instructions.push(
-                                AssemblyInstruction::MOVE {
+                                MachineInstruction::MOVE {
                                     src: Operand::REG(Register::R10),
                                     dst,
                                 }
                             );
                         } else {
                             new_instructions.push(
-                                AssemblyInstruction::MOVE { src, dst }
+                                MachineInstruction::MOVE { src, dst }
                             );
                         }
                     },
