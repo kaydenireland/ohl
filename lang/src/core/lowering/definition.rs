@@ -23,6 +23,11 @@ impl MachineFunction {
                     Self::allocate_operand(src, &mut vars, &mut stack_size);
                     Self::allocate_operand(dst, &mut vars, &mut stack_size)
                 },
+                MachineInstruction::BINARY { operand1, operand2, .. } => {
+                    Self::allocate_operand(operand1, &mut vars, &mut stack_size);
+                    Self::allocate_operand(operand2, &mut vars, &mut stack_size);
+                },
+                MachineInstruction::IDIV(operand) => Self::allocate_operand(operand, &mut vars, &mut stack_size),
 
                 _ => {}
             }

@@ -2,7 +2,7 @@ use crate::core::intermediate::definition::IntermediateFunction;
 use crate::{indent_dec, indent_inc, indent_reset, info, log_debug};
 use crate::core::intermediate::instruction::IntermediateInstruction;
 use crate::core::intermediate::instruction::IntermediateInstruction::UNARY;
-use crate::core::intermediate::operator::{UnaryOperator, Value};
+use crate::core::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
 use crate::core::converter::stree::STree;
 
 pub struct IntermediateProgram {
@@ -100,12 +100,31 @@ impl IntermediateProgram {
                 info!("intermediate_lower_prefix_expression()");
                 indent_inc!();
 
-                let unary_op = UnaryOperator::from(operator);
+                let unary_op = IntermediateUnaryOperator::from(operator);
                 let (mut instructions, value) = self.lower(*right);
 
                 let dst = Value::VAR(self.make_temporary_name());
 
                 instructions.push(UNARY { operator: unary_op, src: value, dst: dst.clone() });
+
+                indent_dec!();
+                (instructions, dst)
+            }
+
+            STree::EXPR { left, operator, right } => {
+                info!("intermediate_lower_expression()");
+                indent_inc!();
+
+                let binary_op = IntermediateBinaryOperator::from(operator);
+                let mut instructions: Vec<IntermediateInstruction> = Vec::new();
+                let (mut left_instructions, left_value) = self.lower(*left);
+                instructions.append(&mut left_instructions);
+
+                let (mut right_instructions, right_value) = self.lower(*right);
+                instructions.append(&mut right_instructions);
+
+                let dst = Value::VAR(self.make_temporary_name());
+                instructions.push(IntermediateInstruction::BINARY { operator: binary_op, src1: left_value, src2: right_value, dst: dst.clone() });
 
                 indent_dec!();
                 (instructions, dst)

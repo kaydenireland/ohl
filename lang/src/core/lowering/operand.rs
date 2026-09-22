@@ -28,14 +28,18 @@ impl Display for Operand {
 #[derive(Debug, Clone)]
 pub enum Register {
     AX,
-    R10
+    DX,
+    R10,
+    R11
 }
 
 impl Display for Register {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Register::AX => write!(f, "eax"),
+            Register::DX => write!(f, "edx"),
             Register::R10 => write!(f, "r10d"),
+            Register::R11 => write!(f, "r11d"),
         }
     }
 }

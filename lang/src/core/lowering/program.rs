@@ -2,10 +2,11 @@ use crate::core::intermediate::definition::IntermediateFunction;
 use crate::core::intermediate::program::IntermediateProgram;
 use crate::{indent_dec, indent_inc, indent_reset, info, log_debug};
 use crate::core::intermediate::instruction::IntermediateInstruction;
-use crate::core::intermediate::operator::Value;
+use crate::core::intermediate::operator::{IntermediateBinaryOperator, Value};
 use crate::core::lowering::definition::MachineFunction;
 use crate::core::lowering::instruction::MachineInstruction;
 use crate::core::lowering::operand::{Operand, Register};
+use crate::core::lowering::operator::{MachineBinaryOperator, MachineUnaryOperator};
 
 pub struct MachineProgram {
     pub functions: Vec<MachineFunction>
@@ -69,8 +70,38 @@ impl MachineProgram {
                     MachineInstruction::MOVE { src: self.lower_value(src), dst: dst_val.clone()}
                 );
                 new_instructions.push(
-                    MachineInstruction::UNARY { operator, operand: dst_val }
+                    MachineInstruction::UNARY { operator: MachineUnaryOperator::from(operator), operand: dst_val }
                 );
+            },
+            IntermediateInstruction::BINARY { operator, src1, src2, dst } => {
+                let dst_val = self.lower_value(dst);
+
+                match operator {
+                    IntermediateBinaryOperator::DIVIDE => {
+                        new_instructions.push(
+                            MachineInstruction::MOVE { src: self.lower_value(src1), dst: Operand::REG(Register::AX)}
+                        );
+                        new_instructions.push(MachineInstruction::CDQ);
+                        new_instructions.push(MachineInstruction::IDIV(self.lower_value(src2)));
+                        new_instructions.push(
+                            MachineInstruction::MOVE { src: Operand::REG(Register::AX), dst: dst_val }
+                        );
+                    },
+                    IntermediateBinaryOperator::REMAINDER => {
+                        new_instructions.push(
+                            MachineInstruction::MOVE { src: self.lower_value(src1), dst: Operand::REG(Register::AX)}
+                        );
+                        new_instructions.push(MachineInstruction::CDQ);
+                        new_instructions.push(MachineInstruction::IDIV(self.lower_value(src2)));
+                        new_instructions.push(
+                            MachineInstruction::MOVE { src: Operand::REG(Register::DX), dst: dst_val }
+                        );
+                    },
+                    _ => {
+                        new_instructions.push(MachineInstruction::MOVE { src: self.lower_value(src1), dst: dst_val.clone() });
+                        new_instructions.push(MachineInstruction::BINARY { operator: MachineBinaryOperator::from(operator), operand1: dst_val, operand2: self.lower_value(src2) });
+                    }
+                }
             }
         }
 
@@ -141,6 +172,70 @@ impl MachineProgram {
                                 MachineInstruction::MOVE { src, dst }
                             );
                         }
+                    },
+
+                    MachineInstruction::IDIV(operand) => {
+                        new_instructions.push(
+                            MachineInstruction::MOVE { src: operand, dst: Operand::REG(Register::R10) }
+                        );
+                        new_instructions.push(
+                            MachineInstruction::IDIV(Operand::REG(Register::R10))
+                        );
+                    },
+                    MachineInstruction::BINARY { operator: MachineBinaryOperator::ADD, operand1, operand2 } => {
+                        if operand1.is_memory() && operand2.is_memory() {
+                            new_instructions.push(
+                                MachineInstruction::MOVE {
+                                    src: operand2,
+                                    dst: Operand::REG(Register::R10),
+                                }
+                            );
+
+                            new_instructions.push(
+                                MachineInstruction::BINARY {
+                                    operator: MachineBinaryOperator::ADD,
+                                    operand1,
+                                    operand2: Operand::REG(Register::R10),
+                                }
+                            );
+                        } else {
+                            new_instructions.push(
+                                MachineInstruction::BINARY { operator: MachineBinaryOperator::ADD, operand1, operand2 }
+                            );
+                        }
+                    },
+                    MachineInstruction::BINARY { operator: MachineBinaryOperator::SUBTRACT, operand1, operand2 } => {
+                        if operand1.is_memory() && operand2.is_memory() {
+                            new_instructions.push(
+                                MachineInstruction::MOVE {
+                                    src: operand2,
+                                    dst: Operand::REG(Register::R10),
+                                }
+                            );
+
+                            new_instructions.push(
+                                MachineInstruction::BINARY {
+                                    operator: MachineBinaryOperator::SUBTRACT,
+                                    operand1,
+                                    operand2: Operand::REG(Register::R10),
+                                }
+                            );
+                        } else {
+                            new_instructions.push(
+                                MachineInstruction::BINARY { operator: MachineBinaryOperator::SUBTRACT, operand1, operand2 }
+                            );
+                        }
+                    },
+                    MachineInstruction::BINARY { operator: MachineBinaryOperator::MULTIPLY, operand1, operand2 } => {
+                        new_instructions.push(
+                            MachineInstruction::MOVE { src: operand1.clone(), dst: Operand::REG(Register::R11) }
+                        );
+                        new_instructions.push(
+                            MachineInstruction::BINARY { operator: MachineBinaryOperator::MULTIPLY, operand1: Operand::REG(Register::R11), operand2 }
+                        );
+                        new_instructions.push(
+                            MachineInstruction::MOVE { src: Operand::REG(Register::R11), dst: operand1 }
+                        )
                     },
 
                     instruction => new_instructions.push(instruction.clone())

@@ -6,3 +6,9 @@ pub enum Platform {
     WINDOWS,
     LINUX
 }
+
+pub enum Syntax {
+    Att,
+    Intel,
+    Masm
+}
