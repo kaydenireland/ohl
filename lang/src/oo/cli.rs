@@ -1,7 +1,8 @@
-use std::fmt::format;
+use std::fs;
 use std::fs::File;
 use std::io::{Write, Result};
 use std::path::Path;
+use std::process::{Command as TerminalCommand, ExitStatus};
 
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
@@ -65,23 +66,33 @@ pub enum Command {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
-        #[arg(long)]
-        oil: bool
     },
     Machine {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
-        #[arg(long)]
-        oil: bool,
-        #[arg(long)]
-        omil: bool
     },
     Generate {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
-    }
+    },
+    Build {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool,
+        #[arg(short('s'), long)]
+        asm: bool,
+    },
+    Run {
+        filepath: String,
+        #[arg(short, long)]
+        debug: bool,
+        #[arg(short('s'), long)]
+        asm: bool,
+        #[arg(short, long)]
+        exe: bool,
+    },
 }
 
 pub fn handle(cli: Cli) {
@@ -94,9 +105,11 @@ pub fn handle(cli: Cli) {
         Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
         Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
         Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
-        Command::Lower { filepath, debug: _debug, oil } => _ = lower(filepath, _debug, oil, true),
-        Command::Machine { filepath, debug: _debug, oil, omil } => _ = machine(filepath, _debug, oil, omil, true),
-        Command::Generate { filepath, debug: _debug } => _ = generate(filepath, _debug)
+        Command::Lower { filepath, debug: _debug } => _ = lower(filepath, _debug, true),
+        Command::Machine { filepath, debug: _debug } => _ = machine(filepath, _debug, true),
+        Command::Generate { filepath, debug: _debug } => _ = generate(filepath, _debug, true),
+        Command::Build { filepath, debug: _debug, asm } => _ = build(filepath, _debug, asm),
+        Command::Run { filepath, debug: _debug, asm, exe } => _ = run(filepath, _debug, asm, exe)
     }
 }
 
@@ -292,7 +305,7 @@ fn print_vec_string(strings: Vec<String>) {
     }
 }
 
-pub fn lower(path: String, _debug: bool, out_oil: bool, show_ir: bool) -> IntermediateProgram {
+pub fn lower(path: String, _debug: bool, show_ir: bool) -> IntermediateProgram {
     let stree: STree = analyze(path, _debug);
 
     let mut inter: IntermediateProgram = IntermediateProgram::lower_tree(stree, _debug);
@@ -303,9 +316,9 @@ pub fn lower(path: String, _debug: bool, out_oil: bool, show_ir: bool) -> Interm
     inter
 }
 
-pub fn machine(path: String, _debug: bool, out_oil: bool, out_omil: bool, show_ir: bool) -> MachineProgram {
+pub fn machine(path: String, _debug: bool, show_ir: bool) -> MachineProgram {
 
-    let inter: IntermediateProgram = lower(path, _debug, out_oil, _debug);
+    let inter: IntermediateProgram = lower(path, _debug, _debug);
 
     let mut machine: MachineProgram = MachineProgram::lower(inter, _debug);
     if show_ir {
@@ -315,11 +328,73 @@ pub fn machine(path: String, _debug: bool, out_oil: bool, out_omil: bool, show_i
     machine
 }
 
-pub fn generate(path: String, _debug: bool) -> Result<()> {
-    let machine_ir = machine(path, _debug, false, false, _debug);
+pub fn generate(path: String, _debug: bool, print_asm: bool) -> Result<String> {
+    let machine_ir = machine(path, _debug, _debug);
 
     let mut codegen = X64CodeGenerator::new(_debug);
-    codegen.generate(machine_ir)?;
+    let asm: String =codegen.generate(machine_ir)?;
+
+    if print_asm {
+        println!("\n{}", asm);
+    }
+
+    Ok(asm)
+}
+pub fn build(path: String, _debug: bool, asm: bool) -> Result<String> {
+
+    let (filename, _ext) = split_filename(&path);
+
+    let asm_path = format!("{}.s", filename);
+    let executable_path = format!("{}.exe", filename);
+
+    let assembly = generate(path, _debug, false)?;
+
+    fs::write(&asm_path, assembly)?;
+
+
+    let status: ExitStatus = TerminalCommand::new("gcc")
+        .arg(&asm_path)
+        .arg("-o")
+        .arg(&executable_path)
+        .status()?;
+
+
+    if !status.success() {
+        eprintln!("GCC failed to build the program.");
+        std::process::exit(1);
+    }
+
+    if !asm {
+        fs::remove_file(&asm_path)?;
+    }
+
+    println!("Built {}", executable_path);
+
+    Ok(executable_path)
+}
+pub fn run(path: String, _debug: bool, asm: bool, exe: bool) -> Result<()> {
+    let (filename, _ext) = split_filename(&path);
+
+    let exe_path: String = build(path, _debug, asm)?;
+
+    let executable = if cfg!(target_os = "windows") {
+        format!(".\\{}.exe", filename)
+    } else {
+        format!("./{}", filename)
+    };
+
+    let status = TerminalCommand::new(&executable).status()?;
+
+    if !exe {
+        fs::remove_file(&exe_path)?;
+    }
+
+    if !status.success() {
+        eprintln!("Program exited with status: {}", status.to_string().red());
+        std::process::exit(0);
+    } else {
+        println!("Program exited successfully.");
+    }
 
     Ok(())
 }

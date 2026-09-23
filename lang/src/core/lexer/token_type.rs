@@ -245,19 +245,15 @@ impl TokenType {
 
     pub fn binding_power(&self) -> BindingPower {
         match self {
-
             TokenType::ASSIGN => BindingPower { left: 5, right: 4, unary: 0 },
-
-            TokenType::BITWISE_SHIFT_LEFT | TokenType::BITWISE_SHIFT_RIGHT => BindingPower { left: 10, right: 11, unary: 0 },
             
-            TokenType::OR | TokenType::XOR => BindingPower { left: 15, right: 16, unary: 0 },
-            TokenType::AND => BindingPower { left: 20, right: 21, unary: 0 },
+            TokenType::OR | TokenType::XOR => BindingPower { left: 10, right: 11, unary: 0 },
+            TokenType::AND => BindingPower { left: 15, right: 16, unary: 0 },
 
-            TokenType::BITWISE_OR | TokenType::BITWISE_XOR => BindingPower { left: 15, right: 16, unary: 0 },
-            TokenType::BITWISE_AND => BindingPower { left: 20, right: 21, unary: 0 },
+            TokenType::BITWISE_OR | TokenType::BITWISE_XOR => BindingPower { left: 20, right: 21, unary: 0 },
+            TokenType::BITWISE_AND => BindingPower { left: 25, right: 26, unary: 0 },
 
             TokenType::EQUAL | TokenType::NOT_EQUAL => BindingPower { left: 30, right: 31, unary: 0 },
-
 
             TokenType::LESS | TokenType::GREATER |
             TokenType::LESS_EQUAL | TokenType::GREATER_EQUAL =>  BindingPower { left: 32, right: 33, unary: 0 },
@@ -266,6 +262,9 @@ impl TokenType {
             TokenType::PLUS | TokenType::DASH => BindingPower { left: 40, right: 41, unary: 70 },
             TokenType::STAR | TokenType::PERCENT => BindingPower { left: 50, right: 51, unary: 0 },
             TokenType::SLASH => BindingPower { left: 50, right: 51, unary: 70 },
+
+            TokenType::BITWISE_SHIFT_LEFT | TokenType::BITWISE_SHIFT_RIGHT => BindingPower { left: 60, right: 61, unary: 0 },
+
             TokenType::POWER | TokenType::ROOT => BindingPower { left: 90, right: 89, unary: 0 },
 
             TokenType::NOT => BindingPower { left: 0, right: 0, unary: 70 },

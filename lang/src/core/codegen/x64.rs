@@ -9,33 +9,37 @@ use crate::core::lowering::register::Register;
 use crate::core::lowering::operator::{MachineBinaryOperator, MachineUnaryOperator};
 
 pub struct X64CodeGenerator {
+    output: String,
 }
 
 impl X64CodeGenerator {
     pub fn new(_debug: bool) -> X64CodeGenerator {
         log_debug!(_debug);
-        X64CodeGenerator {}
+        X64CodeGenerator {
+            output: String::new(),
+        }
     }
 }
 
 // AT&T ASM
 impl AssemblyGenerator for X64CodeGenerator {
-    fn generate(&mut self, program: MachineProgram ) -> Result<(), Error> {
+    fn generate(&mut self, program: MachineProgram ) -> Result<String, Error> {
+        self.output.clear();
         indent_reset!();
         info!("generate_file_x64()");
         indent_inc!();
 
-        println!(".globl {}", "main");
+        self.output.push_str(&format!(".globl {}\n", "main"));
         for function in program.functions {
             self.generate_function_definition(function.name)?;
             self.generate_instructions(function.instructions)?;
         }
-        println!();
+        self.output.push_str("\n");
 
 
         indent_dec!();
 
-        Ok(())
+        Ok(self.output.clone())
     }
 
 }
@@ -45,9 +49,9 @@ impl X64CodeGenerator {
         info!("generate_function_definition_x64()");
         indent_inc!();
 
-        println!("{}:", name);
-        println!("\tpushq\t%rbp");
-        println!("\tmovq\t%rsp, %rbp");
+        self.output.push_str(&format!("{}:\n", name));
+        self.output.push_str(&format!("\tpushq\t%rbp\n"));
+        self.output.push_str(&format!("\tmovq\t%rsp, %rbp\n"));
 
         indent_dec!();
         Ok(())
@@ -66,7 +70,7 @@ impl X64CodeGenerator {
 
     }
 
-    fn generate_operand(&mut self, operand: Operand) -> Result<String, Error> {
+    fn generate_operand(&self, operand: &Operand) -> Result<String, Error> {
         info!("generate_operand_x64()");
         indent_inc!();
 
@@ -86,7 +90,7 @@ impl X64CodeGenerator {
         Ok(asm)
     }
 
-    fn generate_unary_operator(&mut self, operand: MachineUnaryOperator) -> String {
+    fn generate_unary_operator(&self, operand: &MachineUnaryOperator) -> String {
         info!("generate_unary_operator_x64()");
         indent_inc!();
 
@@ -100,7 +104,7 @@ impl X64CodeGenerator {
         asm
     }
 
-    fn generate_binary_operator(&mut self, operand: MachineBinaryOperator) -> String {
+    fn generate_binary_operator(&self, operand: &MachineBinaryOperator) -> String {
         info!("generate_binary_operator_x64()");
         indent_inc!();
 
@@ -127,35 +131,35 @@ impl X64CodeGenerator {
         indent_inc!();
 
         match instruction {
-            MachineInstruction::MOVE { src, dst} => println!("\tmovl\t{}, {}", self.generate_operand(src)?, self.generate_operand(dst)?),
+            MachineInstruction::MOVE { src, dst} => self.output.push_str(&format!("\tmovl\t{}, {}\n", self.generate_operand(&src)?, self.generate_operand(&dst)?)),
             MachineInstruction::RETURN => {
-                println!("\tmovq\t%rbp, %rsp");
-                println!("\tpopq\t%rbp");
-                println!("\tret");
+                self.output.push_str(&format!("\tmovq\t%rbp, %rsp\n"));
+                self.output.push_str(&format!("\tpopq\t%rbp\n"));
+                self.output.push_str(&format!("\tret\n"));
             },
-            MachineInstruction::UNARY { operator, operand } => println!("\t{}\t{}", self.generate_unary_operator(operator), self.generate_operand(operand)?),
+            MachineInstruction::UNARY { operator, operand } => self.output.push_str(&format!("\t{}\t{}\n", self.generate_unary_operator(&operator), self.generate_operand(&operand)?)),
             MachineInstruction::BINARY { operator, operand1, operand2} => {
                 let src = match operator {
                     MachineBinaryOperator::SHIFT_LEFT | MachineBinaryOperator::SHIFT_RIGHT => {
                         match operand2 {
                             Operand::REG(Register::CX) => "%cl".to_string(),
-                            _ => self.generate_operand(operand2)?,
+                            _ => self.generate_operand(&operand2)?,
                         }
                     }
 
-                    _ => self.generate_operand(operand2)?,
+                    _ => self.generate_operand(&operand2)?,
                 };
 
-                println!(
-                    "\t{}\t{}, {}",
-                    self.generate_binary_operator(operator),
+                self.output.push_str(&format!(
+                    "\t{}\t{}, {}\n",
+                    self.generate_binary_operator(&operator),
                     src,
-                    self.generate_operand(operand1)?
-                );
+                    self.generate_operand(&operand1)?
+                ));
             },
-            MachineInstruction::IDIV(operand) => println!("\tidivl\t{}", self.generate_operand(operand)?),
-            MachineInstruction::CDQ => println!("\tcdq"),
-            MachineInstruction::ALLOCATE_STACK(v) => println!("\tsubq\t${}, %rsp", v),
+            MachineInstruction::IDIV(operand) => self.output.push_str(&format!("\tidivl\t{}\n", self.generate_operand(&operand)?)),
+            MachineInstruction::CDQ => self.output.push_str(&format!("\tcdq\n")),
+            MachineInstruction::ALLOCATE_STACK(v) => self.output.push_str(&format!("\tsubq\t${}, %rsp\n", v)),
 
             _ => {}
         };
