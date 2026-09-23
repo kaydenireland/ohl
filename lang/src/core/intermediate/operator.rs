@@ -19,7 +19,8 @@ impl Display for Value {
 #[derive(Debug, Clone)]
 pub enum IntermediateUnaryOperator {
     NEGATE,
-    COMPLEMENT
+    COMPLEMENT,
+    NOT
 }
 
 impl IntermediateUnaryOperator {
@@ -27,6 +28,7 @@ impl IntermediateUnaryOperator {
         match typ {
             Operator::NEGATE => IntermediateUnaryOperator::NEGATE,
             Operator::COMPLEMENT => IntermediateUnaryOperator::COMPLEMENT,
+            Operator::NOT => IntermediateUnaryOperator::NOT,
 
             _ => panic!("Unknown unary operator {:?}", typ)
         }
@@ -38,6 +40,7 @@ impl Display for IntermediateUnaryOperator {
         match self {
             IntermediateUnaryOperator::COMPLEMENT => write!(f, "not"),
             IntermediateUnaryOperator::NEGATE => write!(f, "neg"),
+            IntermediateUnaryOperator::NOT => write!(f, "not"),
         }
     }
 }
@@ -54,7 +57,14 @@ pub enum IntermediateBinaryOperator {
     BIT_OR,
     BIT_XOR,
     SHIFT_LEFT,
-    SHIFT_RIGHT
+    SHIFT_RIGHT,
+
+    EQUAL,
+    NOT_EQUAL,
+    GREATER_THAN,
+    GREATER_OR_EQUAL,
+    LESS_THAN,
+    LESS_OR_EQUAL,
 }
 
 
@@ -72,6 +82,13 @@ impl IntermediateBinaryOperator {
             Operator::BIT_XOR => IntermediateBinaryOperator::BIT_XOR,
             Operator::SHIFT_LEFT => IntermediateBinaryOperator::SHIFT_LEFT,
             Operator::SHIFT_RIGHT => IntermediateBinaryOperator::SHIFT_RIGHT,
+
+            Operator::EQUAL => IntermediateBinaryOperator::EQUAL,
+            Operator::NOT_EQUAL => IntermediateBinaryOperator::NOT_EQUAL,
+            Operator::GREATER_THAN => IntermediateBinaryOperator::GREATER_THAN,
+            Operator::GREATER_THAN_EQUAL => IntermediateBinaryOperator::GREATER_OR_EQUAL,
+            Operator::LESS_THAN => IntermediateBinaryOperator::LESS_THAN,
+            Operator::LESS_THAN_EQUAL => IntermediateBinaryOperator::LESS_OR_EQUAL,
 
             _ => panic!("Unknown binary operator {:?}", typ)
         }
@@ -92,6 +109,13 @@ impl Display for IntermediateBinaryOperator {
             IntermediateBinaryOperator::BIT_XOR => write!(f, "bxor"),
             IntermediateBinaryOperator::SHIFT_LEFT => write!(f, "slt"),
             IntermediateBinaryOperator::SHIFT_RIGHT => write!(f, "srt"),
+
+            IntermediateBinaryOperator::EQUAL => write!(f, "eq"),
+            IntermediateBinaryOperator::NOT_EQUAL => write!(f, "neq"),
+            IntermediateBinaryOperator::GREATER_THAN => write!(f, "gt"),
+            IntermediateBinaryOperator::GREATER_OR_EQUAL => write!(f, "ge"),
+            IntermediateBinaryOperator::LESS_THAN => write!(f, "lt"),
+            IntermediateBinaryOperator::LESS_OR_EQUAL => write!(f, "le"),
         }
     }
 }

@@ -23,6 +23,14 @@ pub enum Operator {
     XOR,
     NOT,
 
+    // Relational
+    EQUAL,
+    NOT_EQUAL,
+    GREATER_THAN,
+    GREATER_THAN_EQUAL,
+    LESS_THAN,
+    LESS_THAN_EQUAL,
+
 
     // Bitwise
     COMPLEMENT,
@@ -63,6 +71,14 @@ impl Operator {
             TokenType::AND => Operator::AND,
             TokenType::OR => Operator::OR,
             TokenType::XOR => Operator::XOR,
+
+            // Relational
+            TokenType::EQUAL => Operator::EQUAL,
+            TokenType::NOT_EQUAL => Operator::NOT_EQUAL,
+            TokenType::GREATER => Operator::GREATER_THAN,
+            TokenType::GREATER_EQUAL => Operator::GREATER_THAN_EQUAL,
+            TokenType::LESS => Operator::LESS_THAN,
+            TokenType::LESS_EQUAL => Operator::LESS_THAN_EQUAL,
 
             // Bitwise
             TokenType::BITWISE_COMPLEMENT => COMPLEMENT,

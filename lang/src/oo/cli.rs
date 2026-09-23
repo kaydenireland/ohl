@@ -8,7 +8,7 @@ use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
 use crate::core::analyzer::analyzer::Analyzer;
 use crate::core::codegen::codegen::AssemblyGenerator;
-use crate::core::codegen::x64::X64CodeGenerator;
+use crate::core::codegen::nasn::x64::X64CodeGenerator;
 use crate::core::intermediate::program::IntermediateProgram;
 use crate::core::converter::converter::Converter;
 use crate::core::converter::stree::STree;

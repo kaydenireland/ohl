@@ -27,7 +27,12 @@ impl MachineFunction {
                     Self::allocate_operand(operand1, &mut vars, &mut stack_size);
                     Self::allocate_operand(operand2, &mut vars, &mut stack_size);
                 },
+                MachineInstruction::COMPARE { operand1, operand2, .. } => {
+                    Self::allocate_operand(operand1, &mut vars, &mut stack_size);
+                    Self::allocate_operand(operand2, &mut vars, &mut stack_size);
+                },
                 MachineInstruction::IDIV(operand) => Self::allocate_operand(operand, &mut vars, &mut stack_size),
+                MachineInstruction::SET_CC { condition: _, operand } => Self::allocate_operand(operand, &mut vars, &mut stack_size),
 
                 _ => {}
             }

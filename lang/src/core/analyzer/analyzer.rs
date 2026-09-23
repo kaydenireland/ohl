@@ -196,7 +196,7 @@ impl Analyzer {
             STree::BREAK | STree::CONTINUE | STree::REPEAT => {
                 info!("analyze_jump()");
                 if self.loop_depth == 0 {
-                    self.create_error_message("Jump statement used outside of loop".to_string())
+                    self.create_error_message("JUMP statement used outside of loop".to_string())
                 }
                 None
             },

@@ -323,7 +323,7 @@ impl Converter {
                 indent_inc!();
 
                 if node.children.len() != 1 {
-                    return Err("Unary Prefix COMPLEMENT must have one child".into());
+                    return Err("Unary Prefix NOT must have one child".into());
                 }
 
                 let operator = Operator::from_token_type(node.token.token_type.clone());
@@ -341,7 +341,7 @@ impl Converter {
             | TokenType::EQUAL | TokenType::NOT_EQUAL 
             | TokenType::LESS | TokenType::GREATER 
             | TokenType::LESS_EQUAL | TokenType::GREATER_EQUAL 
-            | TokenType::AND | TokenType::OR | TokenType::XOR
+            | TokenType::AND | TokenType::OR
             | TokenType::BITWISE_AND | TokenType::BITWISE_OR | TokenType::BITWISE_XOR
             | TokenType::BITWISE_SHIFT_LEFT | TokenType::BITWISE_SHIFT_RIGHT => {
 
@@ -369,6 +369,53 @@ impl Converter {
                 } else {
                     return Err("Operator must have either one or two children".into());
                 }
+            },
+
+            TokenType::XOR => {
+                let left = self.convert(&node.children[0])?;
+                let right = self.convert(&node.children[1])?;
+
+                if node.token.token_type == TokenType::XOR {
+                    // a xor b
+                    //
+                    // becomes:
+                    // (a || b) && !(a && b)
+
+                    let or_expr = STree::EXPR {
+                        left: Box::new(left.clone()),
+                        operator: Operator::from_token_type(TokenType::OR),
+                        right: Box::new(right.clone()),
+                    };
+
+                    let and_expr = STree::EXPR {
+                        left: Box::new(left),
+                        operator: Operator::from_token_type(TokenType::AND),
+                        right: Box::new(right),
+                    };
+
+                    let not_and_expr = STree::PRFX_EXPR {
+                        operator: Operator::from_token_type(TokenType::NOT),
+                        right: Box::new(and_expr),
+                    };
+
+                    indent_dec!();
+
+                    return Ok(STree::EXPR {
+                        left: Box::new(or_expr),
+                        operator: Operator::from_token_type(TokenType::AND),
+                        right: Box::new(not_and_expr),
+                    });
+                }
+
+                let operator = Operator::from_token_type(node.token.token_type.clone());
+
+                indent_dec!();
+
+                Ok(STree::EXPR {
+                    left: Box::new(left),
+                    operator,
+                    right: Box::new(right),
+                })
             },
 
             // Expected If Children

@@ -1,4 +1,4 @@
-
+use std::fmt::format;
 use std::io::Error;
 use crate::core::codegen::codegen::AssemblyGenerator;
 use crate::core::lowering::program::MachineProgram;
@@ -96,7 +96,7 @@ impl X64CodeGenerator {
 
         let asm: String = match operand {
             MachineUnaryOperator::NEGATE => "negl".to_string(),
-            MachineUnaryOperator::COMPLEMENT => "notl".to_string(),
+            MachineUnaryOperator::NOT => "notl".to_string(),
         };
 
 
@@ -132,11 +132,6 @@ impl X64CodeGenerator {
 
         match instruction {
             MachineInstruction::MOVE { src, dst} => self.output.push_str(&format!("\tmovl\t{}, {}\n", self.generate_operand(&src)?, self.generate_operand(&dst)?)),
-            MachineInstruction::RETURN => {
-                self.output.push_str(&format!("\tmovq\t%rbp, %rsp\n"));
-                self.output.push_str(&format!("\tpopq\t%rbp\n"));
-                self.output.push_str(&format!("\tret\n"));
-            },
             MachineInstruction::UNARY { operator, operand } => self.output.push_str(&format!("\t{}\t{}\n", self.generate_unary_operator(&operator), self.generate_operand(&operand)?)),
             MachineInstruction::BINARY { operator, operand1, operand2} => {
                 let src = match operator {
@@ -157,11 +152,22 @@ impl X64CodeGenerator {
                     self.generate_operand(&operand1)?
                 ));
             },
+            MachineInstruction::COMPARE { operand1, operand2 } => self.output.push_str(&format!("\tcmpl\t{},\t{}\n", operand1, operand2)),
             MachineInstruction::IDIV(operand) => self.output.push_str(&format!("\tidivl\t{}\n", self.generate_operand(&operand)?)),
             MachineInstruction::CDQ => self.output.push_str(&format!("\tcdq\n")),
+            MachineInstruction::JUMP(id) => self.output.push_str(&format!("\tjmp\t.L{}\n", id)),
+            MachineInstruction::JUMP_CC { condition, identifier } => self.output.push_str(&format!("\tj{}\t.L{}\n", condition, identifier)),
+            MachineInstruction::SET_CC { condition, operand } => self.output.push_str(&format!("\tset{}\t{}\n", condition, operand)),
+            MachineInstruction::LABEL(id) => self.output.push_str(&format!("\t.L{}:\n", id)),
             MachineInstruction::ALLOCATE_STACK(v) => self.output.push_str(&format!("\tsubq\t${}, %rsp\n", v)),
+            MachineInstruction::RETURN => {
+                self.output.push_str(&format!("\tmovq\t%rbp, %rsp\n"));
+                self.output.push_str(&format!("\tpopq\t%rbp\n"));
+                self.output.push_str(&format!("\tret\n"));
+            },
 
-            _ => {}
+
+            // _ => {}
         };
 
 

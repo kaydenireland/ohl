@@ -13,6 +13,9 @@ impl Operand {
     pub fn is_memory(&self) -> bool {
         matches!(self, Operand::STACK(_))
     }
+    pub fn is_immediate(&self) -> bool {
+        matches!(self, Operand::IMM(_))
+    }
 }
 
 impl Display for Operand {

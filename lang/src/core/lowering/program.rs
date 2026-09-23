@@ -1,8 +1,9 @@
-use crate::core::intermediate::definition::IntermediateFunction;
+use crate::core::intermediate::function::IntermediateFunction;
 use crate::core::intermediate::program::IntermediateProgram;
 use crate::{indent_dec, indent_inc, info, log_debug};
 use crate::core::intermediate::instruction::IntermediateInstruction;
-use crate::core::intermediate::operator::{IntermediateBinaryOperator, Value};
+use crate::core::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
+use crate::core::lowering::condition::ConditionCode;
 use crate::core::lowering::function::MachineFunction;
 use crate::core::lowering::instruction::MachineInstruction;
 use crate::core::lowering::operand::Operand;
@@ -32,7 +33,7 @@ impl MachineProgram {
         }
 
         machine.allocate_stack();
-        machine.legalize_moves();
+        machine.legalize_instructions();
 
         indent_dec!();
         machine
@@ -64,6 +65,18 @@ impl MachineProgram {
                     MachineInstruction::MOVE { src: self.lower_value(value), dst: Operand::REG(Register::AX)}
                 );
                 new_instructions.push(MachineInstruction::RETURN);
+            },
+            IntermediateInstruction::UNARY { operator: IntermediateUnaryOperator::NOT, src, dst} => {
+                let dst_val = self.lower_value(dst);
+                new_instructions.push(
+                    MachineInstruction::COMPARE { operand1: Operand::IMM(0), operand2: self.lower_value(src) }
+                );
+                new_instructions.push(
+                    MachineInstruction::MOVE { src: Operand::IMM(0), dst: dst_val.clone() }
+                );
+                new_instructions.push(
+                    MachineInstruction::SET_CC { condition: ConditionCode::EQUAL, operand: dst_val }
+                );
             },
             IntermediateInstruction::UNARY { operator, src, dst} => {
                 let dst_val = self.lower_value(dst);
@@ -98,12 +111,49 @@ impl MachineProgram {
                             MachineInstruction::MOVE { src: Operand::REG(Register::DX), dst: dst_val }
                         );
                     },
+                    IntermediateBinaryOperator::EQUAL | IntermediateBinaryOperator::NOT_EQUAL |
+                    IntermediateBinaryOperator::GREATER_THAN | IntermediateBinaryOperator::GREATER_OR_EQUAL
+                    | IntermediateBinaryOperator::LESS_THAN | IntermediateBinaryOperator::LESS_OR_EQUAL => {
+                        new_instructions.push(
+                            MachineInstruction::COMPARE { operand1: self.lower_value(src2), operand2: self.lower_value(src1) }
+                        );
+                        new_instructions.push(
+                            MachineInstruction::MOVE { src: Operand::IMM(0), dst: dst_val.clone() }
+                        );
+                        new_instructions.push(
+                            MachineInstruction::SET_CC { condition: ConditionCode::from_inter_operator(&operator), operand: dst_val }
+                        )
+                    },
                     _ => {
                         new_instructions.push(MachineInstruction::MOVE { src: self.lower_value(src1), dst: dst_val.clone() });
                         new_instructions.push(MachineInstruction::BINARY { operator: MachineBinaryOperator::from(operator), operand1: dst_val, operand2: self.lower_value(src2) });
                     }
                 }
+            },
+            IntermediateInstruction::COPY { src, dst } => {
+                let dst_val = self.lower_value(dst);
+                new_instructions.push(
+                    MachineInstruction::MOVE { src: self.lower_value(src), dst: dst_val }
+                );
             }
+            IntermediateInstruction::JUMP { target } => new_instructions.push(MachineInstruction::JUMP(target)),
+            IntermediateInstruction::JUMP_IF_ZERO { condition, target } => {
+                new_instructions.push(
+                    MachineInstruction::COMPARE { operand1: Operand::IMM(0), operand2: self.lower_value(condition) }
+                );
+                new_instructions.push(
+                    MachineInstruction::JUMP_CC { condition: ConditionCode::EQUAL, identifier: target.clone() }
+                )
+            },
+            IntermediateInstruction::JUMP_IF_NOT_ZERO { condition, target } => {
+                new_instructions.push(
+                    MachineInstruction::COMPARE { operand1: Operand::IMM(0), operand2: self.lower_value(condition) }
+                );
+                new_instructions.push(
+                    MachineInstruction::JUMP_CC { condition: ConditionCode::NOT_EQUAL, identifier: target.clone() }
+                )
+            },
+            IntermediateInstruction::LABEL { label } => new_instructions.push(MachineInstruction::LABEL(label)),
         }
 
         indent_dec!();

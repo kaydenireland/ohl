@@ -1,5 +1,6 @@
-use crate::core::intermediate::definition::IntermediateFunction;
+use crate::core::intermediate::function::IntermediateFunction;
 use crate::{indent_dec, indent_inc, indent_reset, info, log_debug};
+use crate::core::converter::operator::Operator;
 use crate::core::intermediate::instruction::IntermediateInstruction;
 use crate::core::intermediate::instruction::IntermediateInstruction::UNARY;
 use crate::core::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
@@ -7,18 +8,25 @@ use crate::core::converter::stree::STree;
 
 pub struct IntermediateProgram {
     pub functions: Vec<IntermediateFunction>,
-    pub counter: usize,
+    pub temp_counter: usize,
+    pub label_counter: usize
 }
 
 impl IntermediateProgram {
     fn new(_debug: bool) -> IntermediateProgram {
         log_debug!(_debug);
-        IntermediateProgram { functions: Vec::new(), counter: 0 }
+        IntermediateProgram { functions: Vec::new(), temp_counter: 0, label_counter: 0 }
     }
 
     pub fn make_temporary_name(&mut self) -> String {
-        let name: String = format!("tmp.{}", self.counter);
-        self.counter += 1;
+        let name: String = format!("tmp.{}", self.temp_counter);
+        self.temp_counter += 1;
+        name
+    }
+
+    pub fn make_label_name(&mut self) -> String {
+        let name: String = format!("bl.{}", self.label_counter);
+        self.label_counter += 1;
         name
     }
     
@@ -109,7 +117,153 @@ impl IntermediateProgram {
 
                 indent_dec!();
                 (instructions, dst)
-            }
+            },
+
+            // Short Circuit AND
+            STree::EXPR { left, operator: Operator::AND, right } => {
+                info!("intermediate_lower_and_expression()");
+                indent_inc!();
+
+                let false_label = self.make_label_name();
+                let end_label = self.make_label_name();
+                let dst = Value::VAR(self.make_temporary_name());
+
+                let mut instructions: Vec<IntermediateInstruction> = Vec::new();
+
+                let (left_instructions, left_value) = self.lower(*left);
+                instructions.extend(left_instructions);
+
+                // If left == 0, result is false
+                instructions.push(
+                    IntermediateInstruction::JUMP_IF_ZERO {
+                        condition: left_value,
+                        target: false_label.clone(),
+                    }
+                );
+
+                // Evaluate right side ONLY if left was nonzero
+                let (right_instructions, right_value) = self.lower(*right);
+                instructions.extend(right_instructions);
+
+                // If right == 0, result is false
+                instructions.push(
+                    IntermediateInstruction::JUMP_IF_ZERO {
+                        condition: right_value,
+                        target: false_label.clone(),
+                    }
+                );
+
+                // Both were true
+                instructions.push(
+                    IntermediateInstruction::COPY {
+                        src: Value::INT(1),
+                        dst: dst.clone(),
+                    }
+                );
+
+                instructions.push(
+                    IntermediateInstruction::JUMP {
+                        target: end_label.clone(),
+                    }
+                );
+
+                // False
+                instructions.push(
+                    IntermediateInstruction::LABEL {
+                        label: false_label,
+                    }
+                );
+
+                instructions.push(
+                    IntermediateInstruction::COPY {
+                        src: Value::INT(0),
+                        dst: dst.clone(),
+                    }
+                );
+
+                // End
+                instructions.push(
+                    IntermediateInstruction::LABEL {
+                        label: end_label,
+                    }
+                );
+
+                indent_dec!();
+                (instructions, dst)
+            },
+
+            // Short Circuit OR
+            STree::EXPR { left, operator: Operator::OR, right } => {
+                info!("intermediate_lower_or_expression()");
+                indent_inc!();
+
+                let true_label = self.make_label_name();
+                let end_label = self.make_label_name();
+                let dst = Value::VAR(self.make_temporary_name());
+
+                let mut instructions = Vec::new();
+
+                // Evaluate left
+                let (left_instructions, left_value) = self.lower(*left);
+                instructions.extend(left_instructions);
+
+                // If left != 0, we're done: true
+                instructions.push(
+                    IntermediateInstruction::JUMP_IF_NOT_ZERO {
+                        condition: left_value,
+                        target: true_label.clone(),
+                    }
+                );
+
+                // Only evaluate right if left was zero
+                let (right_instructions, right_value) = self.lower(*right);
+                instructions.extend(right_instructions);
+
+                // If right != 0, true
+                instructions.push(
+                    IntermediateInstruction::JUMP_IF_NOT_ZERO {
+                        condition: right_value,
+                        target: true_label.clone(),
+                    }
+                );
+
+                // Neither was true
+                instructions.push(
+                    IntermediateInstruction::COPY {
+                        src: Value::INT(0),
+                        dst: dst.clone(),
+                    }
+                );
+
+                instructions.push(
+                    IntermediateInstruction::JUMP {
+                        target: end_label.clone(),
+                    }
+                );
+
+                // True
+                instructions.push(
+                    IntermediateInstruction::LABEL {
+                        label: true_label,
+                    }
+                );
+
+                instructions.push(
+                    IntermediateInstruction::COPY {
+                        src: Value::INT(1),
+                        dst: dst.clone(),
+                    }
+                );
+
+                instructions.push(
+                    IntermediateInstruction::LABEL {
+                        label: end_label,
+                    }
+                );
+
+                indent_dec!();
+                (instructions, dst)
+            },
 
             STree::EXPR { left, operator, right } => {
                 info!("intermediate_lower_expression()");
@@ -128,7 +282,7 @@ impl IntermediateProgram {
 
                 indent_dec!();
                 (instructions, dst)
-            }
+            },
 
 
             // Statements
@@ -150,9 +304,6 @@ impl IntermediateProgram {
             // Literals
             STree::LIT_INT { value } => (Vec::new(), Value::INT(value)),
             STree::ID { name } => (Vec::new(), Value::VAR(name)),
-
-
-
 
             _ => (Vec::new(), Value::INT(0)),
 

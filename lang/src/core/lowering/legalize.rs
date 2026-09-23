@@ -6,7 +6,7 @@ use crate::core::lowering::operator::MachineBinaryOperator;
 use crate::core::lowering::register::Register;
 
 impl MachineProgram {
-    pub(crate) fn allocate_stack(&mut self) {
+    pub fn allocate_stack(&mut self) {
         indent_reset!();
         info!("allocate_stack()");
         indent_inc!();
@@ -18,9 +18,9 @@ impl MachineProgram {
         indent_dec!();
     }
 
-    pub(crate) fn legalize_moves(&mut self) {
+    pub fn legalize_instructions(&mut self) {
         indent_reset!();
-        info!("legalize_moves()");
+        info!("legalize_instructions()");
 
         for function in &mut self.functions {
             let mut new_instructions: Vec<MachineInstruction> = Vec::new();
@@ -111,7 +111,35 @@ impl MachineProgram {
                         }
 
                     },
+                    MachineInstruction::COMPARE { operand1, operand2 } => {
+                        if operand1.is_memory() && operand2.is_memory() {
+                            new_instructions.push(
+                                MachineInstruction::MOVE {
+                                    src: operand1,
+                                    dst: Operand::REG(Register::R10),
+                                }
+                            );
 
+                            new_instructions.push(
+                                MachineInstruction::COMPARE {
+                                    operand1: Operand::REG(Register::R10),
+                                    operand2,
+                                }
+                            );
+                        } else if operand2.is_immediate() {
+                            new_instructions.push(
+                                MachineInstruction::MOVE { src: operand2, dst: Operand::REG(Register::R10) }
+                            );
+
+                            new_instructions.push(
+                                MachineInstruction::COMPARE { operand1, operand2: Operand::REG(Register::R10) }
+                            );
+                        } else {
+                            new_instructions.push(
+                                MachineInstruction::COMPARE { operand1, operand2 }
+                            );
+                        }
+                    }
 
                     instruction => new_instructions.push(instruction.clone())
                 }
