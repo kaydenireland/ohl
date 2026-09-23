@@ -1,5 +1,5 @@
 class Main {
     public fun main() -> int {
-        return ((44 * 3) / 2) + (5 - 1);
+        return (26/2) >> (7 - 6);
     }
 }

@@ -1,5 +1,5 @@
 use log::error;
-use crate::core::converter::operator::Operator::{ADD, COMPLEMENT, DIVIDE, MULTIPLY, NEGATE, POWER, RECIPRICOL, REMAINDER, SUBTRACT};
+use crate::core::converter::operator::Operator::{ADD, BIT_AND, BIT_OR, BIT_XOR, COMPLEMENT, DIVIDE, MULTIPLY, NEGATE, POWER, RECIPRICOL, REMAINDER, SHIFT_LEFT, SHIFT_RIGHT, SUBTRACT};
 use crate::core::lexer::token_type::TokenType;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -26,6 +26,11 @@ pub enum Operator {
 
     // Bitwise
     COMPLEMENT,
+    BIT_AND,
+    BIT_OR,
+    BIT_XOR,
+    SHIFT_LEFT,
+    SHIFT_RIGHT
 }
 
 
@@ -60,7 +65,12 @@ impl Operator {
             TokenType::XOR => Operator::XOR,
 
             // Bitwise
-            TokenType::TILDE => COMPLEMENT,
+            TokenType::BITWISE_COMPLEMENT => COMPLEMENT,
+            TokenType::BITWISE_AND => BIT_AND,
+            TokenType::BITWISE_OR => BIT_OR,
+            TokenType::BITWISE_XOR => BIT_XOR,
+            TokenType::BITWISE_SHIFT_LEFT => SHIFT_LEFT,
+            TokenType::BITWISE_SHIFT_RIGHT => SHIFT_RIGHT,
 
             _ => panic!("Unknown operator {:?}", typ),
         }

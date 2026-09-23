@@ -9,6 +9,8 @@ pub enum Platform {
 
 pub enum Syntax {
     Att,
+    Nasm,
+
     Intel,
     Masm
 }

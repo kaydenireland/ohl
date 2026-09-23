@@ -41,7 +41,12 @@ pub enum TokenType {
     XOR,
 
     // Bitwise Operators
-    TILDE,
+    BITWISE_COMPLEMENT,
+    BITWISE_AND,
+    BITWISE_OR,
+    BITWISE_XOR,
+    BITWISE_SHIFT_LEFT,
+    BITWISE_SHIFT_RIGHT,
 
     // Keywords
     PRINT,
@@ -155,7 +160,12 @@ impl TokenType {
 
     pub fn is_bitwise_operator(&self) -> bool {
         match self {
-            TokenType::TILDE => true,
+            TokenType::BITWISE_COMPLEMENT => true,
+            TokenType::BITWISE_AND => true,
+            TokenType::BITWISE_OR => true,
+            TokenType::BITWISE_XOR => true,
+            TokenType::BITWISE_SHIFT_LEFT => true,
+            TokenType::BITWISE_SHIFT_RIGHT => true,
             _ => false
         }
     }
@@ -185,7 +195,7 @@ impl TokenType {
             TokenType::SLASH => true,
             TokenType::NOT => true,
 
-            TokenType::TILDE => true,
+            TokenType::BITWISE_COMPLEMENT => true,
 
             _ => false
         }
@@ -194,6 +204,7 @@ impl TokenType {
     pub fn is_postfix_operator(&self) -> bool {
         false
     }
+    
 
     pub fn is_identifier(&self) -> bool {
         match self {
@@ -237,8 +248,13 @@ impl TokenType {
 
             TokenType::ASSIGN => BindingPower { left: 5, right: 4, unary: 0 },
 
+            TokenType::BITWISE_SHIFT_LEFT | TokenType::BITWISE_SHIFT_RIGHT => BindingPower { left: 10, right: 11, unary: 0 },
+            
             TokenType::OR | TokenType::XOR => BindingPower { left: 15, right: 16, unary: 0 },
             TokenType::AND => BindingPower { left: 20, right: 21, unary: 0 },
+
+            TokenType::BITWISE_OR | TokenType::BITWISE_XOR => BindingPower { left: 15, right: 16, unary: 0 },
+            TokenType::BITWISE_AND => BindingPower { left: 20, right: 21, unary: 0 },
 
             TokenType::EQUAL | TokenType::NOT_EQUAL => BindingPower { left: 30, right: 31, unary: 0 },
 
@@ -253,7 +269,7 @@ impl TokenType {
             TokenType::POWER | TokenType::ROOT => BindingPower { left: 90, right: 89, unary: 0 },
 
             TokenType::NOT => BindingPower { left: 0, right: 0, unary: 70 },
-            TokenType::TILDE => BindingPower { left: 0, right: 0, unary: 70 },
+            TokenType::BITWISE_COMPLEMENT => BindingPower { left: 0, right: 0, unary: 70 },
 
             TokenType::PAREN_L => BindingPower { left: 100, right: 0, unary: 0 },
             TokenType::PERIOD => BindingPower { left: 100, right: 99, unary: 0 },

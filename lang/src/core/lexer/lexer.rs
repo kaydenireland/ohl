@@ -22,6 +22,8 @@ enum LexerState {
     STRING,
     CHAR,
 
+    AMPERSAND,
+    LINE,
     CARAT,
     EXCLAIM,
     EQUAL,
@@ -214,10 +216,12 @@ impl Lexer {
                         break;
                     },
                     '~' => {
-                        self.current = self.create_token(TokenType::TILDE);
+                        self.current = self.create_token(TokenType::BITWISE_COMPLEMENT);
                         break;
                     },
                     '^' => self.state = LexerState::CARAT,
+                    '&' => self.state = LexerState::AMPERSAND,
+                    '|' => self.state = LexerState::LINE,
                     
                     // Assignment Operators
                     '=' => self.state = LexerState::EQUAL,
@@ -421,7 +425,55 @@ impl Lexer {
                         }
                     },
                     _ => self.buffer.push(char),
-                }
+                },
+                LexerState::AMPERSAND => match char {
+                    '&' => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token_with_location(
+                            TokenType::AND,
+                            self.line,
+                            self.col - 1
+                        );
+                        break;
+                    },
+
+                    _ => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token_with_location(
+                            TokenType::BITWISE_AND,
+                            self.line,
+                            self.col - 1
+                        );
+
+                        self.position -= 1;
+                        self.col -= 1;
+                        break;
+                    }
+                },
+                LexerState::LINE => match char {
+                    '|' => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token_with_location(
+                            TokenType::OR,
+                            self.line,
+                            self.col - 1
+                        );
+                        break;
+                    },
+
+                    _ => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token_with_location(
+                            TokenType::BITWISE_OR,
+                            self.line,
+                            self.col - 1
+                        );
+
+                        self.position -= 1;
+                        self.col -= 1;
+                        break;
+                    }
+                },
                 LexerState::CARAT => match char {
                     '/' => {
                         self.state = LexerState::START;
@@ -431,7 +483,17 @@ impl Lexer {
                             self.col - 1
                         );
                         break;
-                    }
+                    },
+                    
+                    '^' => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token_with_location(
+                            TokenType::BITWISE_XOR,
+                            self.line,
+                            self.col - 1
+                        );
+                        break;
+                    },
 
                     _ => {
                         self.state = LexerState::START;
@@ -501,6 +563,15 @@ impl Lexer {
                             self.col - 1);
                         break;
                     },
+                    
+                    '>' => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token_with_location(
+                            TokenType::BITWISE_SHIFT_RIGHT, 
+                            self.line, 
+                            self.col - 1);
+                        break;
+                    },
 
                     _ => {
                         self.state = LexerState::START;
@@ -520,6 +591,15 @@ impl Lexer {
                         self.state = LexerState::START;
                         self.current = self.create_token_with_location(
                             TokenType::LESS_EQUAL, 
+                            self.line, 
+                            self.col - 1);
+                        break;
+                    },
+                    
+                    '<' => {
+                        self.state = LexerState::START;
+                        self.current = self.create_token_with_location(
+                            TokenType::BITWISE_SHIFT_LEFT, 
                             self.line, 
                             self.col - 1);
                         break;

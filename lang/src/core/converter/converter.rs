@@ -318,12 +318,12 @@ impl Converter {
             }
 
             // Unary Prefix Only Operators 
-            TokenType::NOT | TokenType::TILDE => {
+            TokenType::NOT | TokenType::BITWISE_COMPLEMENT => {
                 info!("convert_unary_op()");
                 indent_inc!();
 
                 if node.children.len() != 1 {
-                    return Err("Unary Prefix NOT must have one child".into());
+                    return Err("Unary Prefix COMPLEMENT must have one child".into());
                 }
 
                 let operator = Operator::from_token_type(node.token.token_type.clone());
@@ -341,7 +341,9 @@ impl Converter {
             | TokenType::EQUAL | TokenType::NOT_EQUAL 
             | TokenType::LESS | TokenType::GREATER 
             | TokenType::LESS_EQUAL | TokenType::GREATER_EQUAL 
-            | TokenType::AND | TokenType::OR | TokenType::XOR => {
+            | TokenType::AND | TokenType::OR | TokenType::XOR
+            | TokenType::BITWISE_AND | TokenType::BITWISE_OR | TokenType::BITWISE_XOR
+            | TokenType::BITWISE_SHIFT_LEFT | TokenType::BITWISE_SHIFT_RIGHT => {
 
                 // Check for Unary
                 if node.children.len() == 1 {

@@ -4,7 +4,8 @@ use crate::core::codegen::codegen::AssemblyGenerator;
 use crate::core::lowering::program::MachineProgram;
 use crate::{indent_dec, indent_inc, indent_reset, info, log_debug};
 use crate::core::lowering::instruction::MachineInstruction;
-use crate::core::lowering::operand::{Operand, Register};
+use crate::core::lowering::operand::Operand;
+use crate::core::lowering::register::Register;
 use crate::core::lowering::operator::{MachineBinaryOperator, MachineUnaryOperator};
 
 pub struct X64CodeGenerator {
@@ -70,10 +71,11 @@ impl X64CodeGenerator {
         indent_inc!();
 
         let asm: String = match operand {
-            Operand::REG(Register::R10) => format!("%r10d"),
-            Operand::REG(Register::R11) => format!("%r11d"),
-            Operand::REG(Register::AX) => format!("%eax"),
-            Operand::REG(Register::DX) => format!("%edx"),
+            Operand::REG(Register::R10) => "%r10d".to_string(),
+            Operand::REG(Register::R11) => "%r11d".to_string(),
+            Operand::REG(Register::AX) => "%eax".to_string(),
+            Operand::REG(Register::DX) => "%edx".to_string(),
+            Operand::REG(Register::CX) => "%ecx".to_string(),
             Operand::STACK(v) => format!("{}(%rbp)", v),
             Operand::IMM(v) => format!("${}", v),
 
@@ -90,7 +92,7 @@ impl X64CodeGenerator {
 
         let asm: String = match operand {
             MachineUnaryOperator::NEGATE => "negl".to_string(),
-            MachineUnaryOperator::NOT => "notl".to_string(),
+            MachineUnaryOperator::COMPLEMENT => "notl".to_string(),
         };
 
 
@@ -106,6 +108,12 @@ impl X64CodeGenerator {
             MachineBinaryOperator::ADD => "addl".to_string(),
             MachineBinaryOperator::SUBTRACT => "subl".to_string(),
             MachineBinaryOperator::MULTIPLY => "imull".to_string(),
+
+            MachineBinaryOperator::BIT_AND => "andl".to_string(),
+            MachineBinaryOperator::BIT_OR => "orl".to_string(),
+            MachineBinaryOperator::BIT_XOR => "xorl".to_string(),
+            MachineBinaryOperator::SHIFT_LEFT => "sall".to_string(),
+            MachineBinaryOperator::SHIFT_RIGHT => "sarl".to_string(),
             _ => String::new()
         };
 
@@ -126,8 +134,24 @@ impl X64CodeGenerator {
                 println!("\tret");
             },
             MachineInstruction::UNARY { operator, operand } => println!("\t{}\t{}", self.generate_unary_operator(operator), self.generate_operand(operand)?),
-            MachineInstruction::BINARY { operator, operand1, operand2, } => {
-                println!("\t{}\t{}, {}", self.generate_binary_operator(operator), self.generate_operand(operand2)?, self.generate_operand(operand1)?);
+            MachineInstruction::BINARY { operator, operand1, operand2} => {
+                let src = match operator {
+                    MachineBinaryOperator::SHIFT_LEFT | MachineBinaryOperator::SHIFT_RIGHT => {
+                        match operand2 {
+                            Operand::REG(Register::CX) => "%cl".to_string(),
+                            _ => self.generate_operand(operand2)?,
+                        }
+                    }
+
+                    _ => self.generate_operand(operand2)?,
+                };
+
+                println!(
+                    "\t{}\t{}, {}",
+                    self.generate_binary_operator(operator),
+                    src,
+                    self.generate_operand(operand1)?
+                );
             },
             MachineInstruction::IDIV(operand) => println!("\tidivl\t{}", self.generate_operand(operand)?),
             MachineInstruction::CDQ => println!("\tcdq"),
