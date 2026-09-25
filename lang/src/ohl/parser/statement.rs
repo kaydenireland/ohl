@@ -1,6 +1,6 @@
 use crate::ohl::lexer::token::Token;
 use crate::ohl::lexer::token_type::TokenType;
-use crate::ohl::util::logger::LOGGER;
+use crate::util::logger::LOGGER;
 use crate::ohl::parser::parser::Parser;
 use crate::ohl::parser::mtree::MTree;
 use crate::{indent_dec, indent_inc, info};

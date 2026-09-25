@@ -5,7 +5,7 @@ edition = "2024"
 
 [[bin]]
 name = "oo"
-path = "src/oo/cli.rs"
+path = "src/bin/oo.rs"
 
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }

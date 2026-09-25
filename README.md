@@ -21,14 +21,14 @@ Prints the contents of a file.
 Use --numbered (-n) to number the lines in the print
 
 ```bash
-oo print "file/path" --numbered
+bin print "file/path" --numbered
 ```
 
 ### Size
 
 Prints the size of a file in bytes.
 ```bash
-oo size "file/path"
+bin size "file/path"
 ```
 
 ### Tokenize
@@ -36,7 +36,7 @@ oo size "file/path"
 Prints the tokens of a file.
 
 ```bash
-oo tokenize "file/path"
+bin tokenize "file/path"
 ```
 
 ### Parse
@@ -45,7 +45,7 @@ Prints the MTree of parsed tokens.
 Use --debug (-d) to see full log.
 
 ```bash
-oo parse "file/path" --debug
+bin parse "file/path" --debug
 ```
 
 ### Convert
@@ -54,7 +54,7 @@ Prints the converted semantic tree from the parse tree
 Use --debug (-d) to see full log.
 
 ```bash
-oo convert "file/path" --debug
+bin convert "file/path" --debug
 ```
 
 ### Analyze
@@ -63,7 +63,7 @@ Checks the input code for warnings and errors.
 Use --debug (-d) to see full log.
 
 ```bash
-oo analyze "file/path" --debug
+bin analyze "file/path" --debug
 ```
 
 

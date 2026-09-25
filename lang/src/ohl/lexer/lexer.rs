@@ -1,7 +1,7 @@
 use crate::ohl::lexer::token::Token;
 use crate::ohl::lexer::token_type::TokenType;
-use crate::ohl::util::error::OhlError;
-use crate::ohl::util::location::Location;
+use crate::util::error::error::OhlError;
+use crate::util::error::location::Location;
 
 #[derive(Clone)]
 enum LexerState {

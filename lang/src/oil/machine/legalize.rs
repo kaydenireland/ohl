@@ -1,9 +1,9 @@
-use crate::ohl::lowering::program::MachineProgram;
+use crate::oil::machine::program::MachineProgram;
 use crate::{indent_dec, indent_inc, indent_reset, info};
-use crate::ohl::lowering::instruction::MachineInstruction;
-use crate::ohl::lowering::operand::Operand;
-use crate::ohl::lowering::operator::MachineBinaryOperator;
-use crate::ohl::lowering::register::Register;
+use crate::oil::machine::instruction::MachineInstruction;
+use crate::oil::machine::operand::Operand;
+use crate::oil::machine::operator::MachineBinaryOperator;
+use crate::oil::machine::register::Register;
 
 impl MachineProgram {
     pub fn allocate_stack(&mut self) {

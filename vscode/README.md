@@ -22,7 +22,7 @@ The Ohl Cli (oo) must be installed and available on your system ```PATH```
 To verify:
 
 ```bash
-oo --version
+bin --version
 ```
 
 If the command is not found, install and add oo to your ```PATH``` before running files.

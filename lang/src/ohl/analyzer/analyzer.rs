@@ -5,9 +5,8 @@ use crate::ohl::analyzer::signature::{ClassSignature, FunctionSignature};
 use crate::ohl::analyzer::scope::Scope;
 use crate::ohl::analyzer::signature::VariableType;
 use crate::ohl::converter::stree::STree;
-use crate::ohl::util::logger::{Logger, LOGGER};
 use crate::{log_debug, indent_reset, indent_inc, indent_dec, info};
-use crate::ohl::util::diagnostics::Diagnostics;
+use crate::util::error::diagnostics::Diagnostics;
 
 #[derive(Debug, Clone)]
 pub struct Analyzer {

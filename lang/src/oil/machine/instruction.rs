@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
-use crate::ohl::lowering::condition::ConditionCode;
-use crate::ohl::lowering::operand::Operand;
-use crate::ohl::lowering::operator::{MachineBinaryOperator, MachineUnaryOperator};
+use crate::oil::machine::condition::ConditionCode;
+use crate::oil::machine::operand::Operand;
+use crate::oil::machine::operator::{MachineBinaryOperator, MachineUnaryOperator};
 
 #[derive(Debug, Clone)]
 pub enum MachineInstruction {

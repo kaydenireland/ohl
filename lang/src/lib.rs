@@ -1,23 +1,26 @@
 pub mod ohl;
+pub mod oil;
+pub mod util;
+
 
 use std::{fs, io};
 use std::io::Write;
 use colored::Colorize;
 use std::process::{Command as TerminalCommand, ExitStatus};
 
-pub use crate::ohl::util::logger::LOGGER;
+pub use util::logger::LOGGER;
 use crate::ohl::analyzer::analyzer::Analyzer;
-use crate::ohl::codegen::codegen::AssemblyGenerator;
-use crate::ohl::codegen::nasn::x64::X64CodeGenerator;
+use oil::codegen::codegen::AssemblyGenerator;
+use oil::codegen::nasn::x64::X64CodeGenerator;
 use crate::ohl::intermediate::program::IntermediateProgram;
 use crate::ohl::converter::converter::Converter;
 use crate::ohl::converter::stree::STree;
 use crate::ohl::parser::mtree::MTree;
 use crate::ohl::parser::parser::Parser;
 use crate::ohl::lexer::lexer::Lexer;
-use crate::ohl::lowering::program::MachineProgram;
-use crate::ohl::util::diagnostics::Diagnostics;
-use crate::ohl::util::error::OhlError;
+use oil::machine::program::MachineProgram;
+use util::error::error::OhlError;
+use util::error::diagnostics::Diagnostics;
 
 pub fn tokenize(src: String, _debug: bool) -> Lexer {
     // expect source input to already be validated

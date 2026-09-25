@@ -1,5 +1,4 @@
-
-use crate::ohl::util::location::Location;
+use crate::util::error::location::Location;
 
 pub struct OhlError {
     location: Location,

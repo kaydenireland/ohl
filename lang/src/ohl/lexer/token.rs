@@ -1,5 +1,5 @@
 use crate::ohl::lexer::token_type::TokenType;
-use crate::ohl::util::location::Location;
+use crate::util::error::location::Location;
 
 #[derive(Debug, Clone)]
 pub struct Token {

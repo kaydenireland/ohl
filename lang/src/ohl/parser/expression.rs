@@ -2,9 +2,9 @@ use crate::ohl::parser::mtree::MTree;
 use crate::ohl::parser::parser::Parser;
 use crate::ohl::lexer::token::Token;
 use crate::ohl::lexer::token_type::TokenType;
-use crate::ohl::util::logger::LOGGER;
-use crate::ohl::util::error::OhlError;
+use crate::util::error::error::OhlError;
 use crate::{indent_dec, indent_inc, info};
+
 // Pratt Expression Parser
 
 impl Parser {

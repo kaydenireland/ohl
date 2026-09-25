@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::ohl::lowering::register::Register;
+use crate::oil::machine::register::Register;
 
 #[derive(Debug, Clone)]
 pub enum Operand {

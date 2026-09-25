@@ -8,7 +8,7 @@ use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
 use ohl::ohl::converter::stree::STree;
 use ohl::ohl::intermediate::program::IntermediateProgram;
-use ohl::ohl::lowering::program::MachineProgram;
+use ohl::oil::machine::program::MachineProgram;
 
 fn main() {
     let args: Cli = Cli::parse();
@@ -17,7 +17,7 @@ fn main() {
 
 
 #[derive(ClapParser)]
-#[command(name = "oo", version)]
+#[command(name = "bin", version)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,

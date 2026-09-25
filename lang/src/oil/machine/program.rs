@@ -3,12 +3,12 @@ use crate::ohl::intermediate::program::IntermediateProgram;
 use crate::{indent_dec, indent_inc, info, log_debug};
 use crate::ohl::intermediate::instruction::IntermediateInstruction;
 use crate::ohl::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
-use crate::ohl::lowering::condition::ConditionCode;
-use crate::ohl::lowering::function::MachineFunction;
-use crate::ohl::lowering::instruction::MachineInstruction;
-use crate::ohl::lowering::operand::Operand;
-use crate::ohl::lowering::register::Register;
-use crate::ohl::lowering::operator::{MachineBinaryOperator, MachineUnaryOperator};
+use crate::oil::machine::condition::ConditionCode;
+use crate::oil::machine::function::MachineFunction;
+use crate::oil::machine::instruction::MachineInstruction;
+use crate::oil::machine::operand::Operand;
+use crate::oil::machine::register::Register;
+use crate::oil::machine::operator::{MachineBinaryOperator, MachineUnaryOperator};
 
 pub struct MachineProgram {
     pub functions: Vec<MachineFunction>

@@ -1,12 +1,12 @@
 use std::fmt::format;
 use std::io::Error;
-use crate::ohl::codegen::codegen::AssemblyGenerator;
-use crate::ohl::lowering::program::MachineProgram;
+use crate::oil::codegen::codegen::AssemblyGenerator;
+use crate::oil::machine::program::MachineProgram;
 use crate::{indent_dec, indent_inc, indent_reset, info, log_debug};
-use crate::ohl::lowering::instruction::MachineInstruction;
-use crate::ohl::lowering::operand::Operand;
-use crate::ohl::lowering::register::Register;
-use crate::ohl::lowering::operator::{MachineBinaryOperator, MachineUnaryOperator};
+use crate::oil::machine::instruction::MachineInstruction;
+use crate::oil::machine::operand::Operand;
+use crate::oil::machine::register::Register;
+use crate::oil::machine::operator::{MachineBinaryOperator, MachineUnaryOperator};
 
 pub struct X64CodeGenerator {
     output: String,
