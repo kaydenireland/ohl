@@ -66,6 +66,16 @@ Use --debug (-d) to see full log.
 bin analyze "file/path" --debug
 ```
 
+### Run
+
+Optimizes and runs the input file.
+Use --debug (-d) to see full log.
+Use --time (-t) to see length of execution
+Use --warnings (-w) to hide warnings
+
+```bash
+bin run "file/path" --debug
+```
 
 ## Alternative
 
@@ -126,3 +136,17 @@ Analysis completed with 14 error(s):
   13. Call to unknown function 'bar'
   14. Postfix INCREMENT requires a numeric variable
 ```
+
+## Execution Output
+
+```bash
+Running example.ohl
+
+120
+
+Completed execution in 0.0005s
+```
+
+---
+
+![Ohl Logo](assets/logos/full-1024x512.png)
