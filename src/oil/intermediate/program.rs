@@ -1,9 +1,9 @@
-use crate::ohl::intermediate::function::IntermediateFunction;
+use crate::oil::intermediate::function::IntermediateFunction;
 use crate::{indent_dec, indent_inc, indent_reset, info, log_debug};
 use crate::ohl::converter::operator::Operator;
-use crate::ohl::intermediate::instruction::IntermediateInstruction;
-use crate::ohl::intermediate::instruction::IntermediateInstruction::UNARY;
-use crate::ohl::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
+use crate::oil::intermediate::instruction::IntermediateInstruction;
+use crate::oil::intermediate::instruction::IntermediateInstruction::UNARY;
+use crate::oil::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
 use crate::ohl::converter::stree::STree;
 
 pub struct IntermediateProgram {

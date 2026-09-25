@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use crate::ohl::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator};
+use crate::oil::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator};
 
 #[derive(Debug, Clone)]
 pub enum MachineUnaryOperator {

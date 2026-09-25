@@ -7,7 +7,7 @@ use std::process::{Command as TerminalCommand, ExitStatus};
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
 use ohl::ohl::converter::stree::STree;
-use ohl::ohl::intermediate::program::IntermediateProgram;
+use ohl::oil::intermediate::program::IntermediateProgram;
 use ohl::oil::machine::program::MachineProgram;
 
 fn main() {
@@ -17,7 +17,7 @@ fn main() {
 
 
 #[derive(ClapParser)]
-#[command(name = "bin", version)]
+#[command(name = "oo", version)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
@@ -130,7 +130,7 @@ pub fn handle(cli: Cli) {
         Command::Machine { filepath, debug: _debug } => {
             let stree = analyze_and_print(filepath, _debug);
             let inter: IntermediateProgram = ohl::lower(stree, _debug);
-            let mut machine: MachineProgram = ohl::machine(inter, _debug);
+            let machine: MachineProgram = ohl::machine(inter, _debug);
             machine.dump();
         },
         Command::Generate { filepath, debug: _debug } => {

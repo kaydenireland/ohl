@@ -12,7 +12,7 @@ pub use util::logger::LOGGER;
 use crate::ohl::analyzer::analyzer::Analyzer;
 use oil::codegen::codegen::AssemblyGenerator;
 use oil::codegen::nasn::x64::X64CodeGenerator;
-use crate::ohl::intermediate::program::IntermediateProgram;
+use oil::intermediate::program::IntermediateProgram;
 use crate::ohl::converter::converter::Converter;
 use crate::ohl::converter::stree::STree;
 use crate::ohl::parser::mtree::MTree;

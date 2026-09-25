@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use crate::ohl::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
+use crate::oil::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
 
 #[derive(Debug, Clone)]
 pub enum IntermediateInstruction {
@@ -24,7 +24,7 @@ impl Display for IntermediateInstruction {
             IntermediateInstruction::JUMP { target } => write!(f, "jmp {}", target),
             IntermediateInstruction::JUMP_IF_ZERO { condition, target } => write!(f, "jmpi {} {}", condition, target),
             IntermediateInstruction::JUMP_IF_NOT_ZERO { condition, target } => write!(f, "jmpin {} {}", condition, target),
-            IntermediateInstruction::LABEL { label } => write!(f, "lbl {}", label),
+            IntermediateInstruction::LABEL { label } => write!(f, "labl {}", label),
         }
     }
 }

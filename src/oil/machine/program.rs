@@ -1,8 +1,8 @@
-use crate::ohl::intermediate::function::IntermediateFunction;
-use crate::ohl::intermediate::program::IntermediateProgram;
+use crate::oil::intermediate::function::IntermediateFunction;
+use crate::oil::intermediate::program::IntermediateProgram;
 use crate::{indent_dec, indent_inc, info, log_debug};
-use crate::ohl::intermediate::instruction::IntermediateInstruction;
-use crate::ohl::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
+use crate::oil::intermediate::instruction::IntermediateInstruction;
+use crate::oil::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
 use crate::oil::machine::condition::ConditionCode;
 use crate::oil::machine::function::MachineFunction;
 use crate::oil::machine::instruction::MachineInstruction;

@@ -32,7 +32,7 @@ impl Display for MachineInstruction {
             MachineInstruction::JUMP(label) => write!(f, "jmp {}", label),
             MachineInstruction::JUMP_CC { condition, identifier } => write!(f, "jmpcc {} {}", condition, identifier),
             MachineInstruction::SET_CC { condition, operand } => write!(f, "setcc {} {}", condition, operand),
-            MachineInstruction::LABEL(label) => write!(f, "lbl {}", label),
+            MachineInstruction::LABEL(label) => write!(f, "labl {}", label),
             MachineInstruction::ALLOCATE_STACK(v) => write!(f, "alloc {}", v),
             MachineInstruction::RETURN => write!(f, "ret"),
         }

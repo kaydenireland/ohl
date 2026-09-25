@@ -2,4 +2,3 @@ pub mod lexer;
 pub mod parser;
 pub mod converter;
 pub mod analyzer;
-pub mod intermediate;
