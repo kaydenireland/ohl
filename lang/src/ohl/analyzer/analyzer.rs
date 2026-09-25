@@ -1,0 +1,351 @@
+use std::collections::HashMap;
+use std::ops::Deref;
+use colored::Colorize;
+use crate::ohl::analyzer::signature::{ClassSignature, FunctionSignature};
+use crate::ohl::analyzer::scope::Scope;
+use crate::ohl::analyzer::signature::VariableType;
+use crate::ohl::converter::stree::STree;
+use crate::ohl::util::logger::{Logger, LOGGER};
+use crate::{log_debug, indent_reset, indent_inc, indent_dec, info};
+use crate::ohl::util::diagnostics::Diagnostics;
+
+#[derive(Debug, Clone)]
+pub struct Analyzer {
+    pub classes: HashMap<String, ClassSignature>,
+    pub functions: HashMap<String, FunctionSignature>,
+    pub errors: Vec<String>,
+    pub warnings: Vec<String>,
+    loop_depth: usize
+}
+
+impl Analyzer {
+    pub fn new(_debug: bool) -> Analyzer {
+        log_debug!(_debug);
+        Analyzer {
+            classes: HashMap::new(),
+            functions: HashMap::new(),
+            errors: Vec::new(),
+            warnings: Vec::new(),
+            loop_depth: 0
+        }
+    }
+
+    pub fn analyze(&mut self, tree: STree) -> Result<Vec<String>, Diagnostics> {
+
+        self.collect_signatures(&tree);
+        self.visit(&tree, &mut Scope::new());
+
+        self.print_class_table();
+        self.print_function_table();
+
+        // Detect Unused Classes
+        let class_map = self.classes.clone();
+        for class in class_map.values() {
+            if !class.used {
+                self.create_warning_message(
+                    format!(
+                        "Unused classes '{}'", class.name
+                    )
+                )
+            }
+        }
+
+        // Detect Unused Functions
+        let function_map = self.functions.clone();
+        for function in function_map.values() {
+            if !function.called {
+                self.create_warning_message(format!(
+                        "Unused functions '{}'", function.name
+                    )
+                )
+            }
+        }
+
+
+
+        indent_reset!();
+
+        if !self.errors.is_empty() {
+            Err(Diagnostics { warnings: self.warnings.clone(), errors: self.errors.clone() })
+        } else {
+            Ok(self.warnings.clone())
+        }
+    }
+
+    fn visit(&mut self, node: &STree, scope: &mut Scope) -> Option<VariableType> {
+        match node {
+
+            STree::START { classes } => {
+                info!("analyze()");
+                indent_inc!();
+
+                for class in classes {
+                    self.visit(class, scope);
+                }
+
+                indent_dec!();
+                None
+            }
+
+            STree::CLASS { scope, name, body } => {
+                info!("analyze()");
+                indent_inc!();
+
+                let mut local = Scope::new();
+
+                self.visit(body, &mut local);
+
+                indent_dec!();
+                None
+            }
+
+            STree::CLASS_BODY { variables, functions } => {
+                info!("analyze()");
+                indent_inc!();
+
+                let mut local = Scope::new();
+
+                for variable in variables {
+                    self.visit(variable, &mut local);
+                }
+
+                for function in functions {
+                    self.visit(function, &mut local);
+                }
+
+                indent_dec!();
+                None
+            }
+
+            STree::FUNCTION { scope, return_type, name, params, body } => {
+                info!("analyze_function()");
+                indent_inc!();
+
+                let mut local = Scope::new();
+                for (name, token_type) in params {
+                    let _ =local.declare_variable(name.clone(), token_type.clone(), false);
+                }
+
+                self.visit(body, &mut local);
+
+                if *return_type != VariableType::VOID {
+                    if !self.has_return(body) {
+                        self.create_error_message(format!(
+                            "IntermediateFunction '{}' declares return type {:?} but has no return statement",
+                            name, return_type
+                        ));
+                    }
+                }
+
+                indent_dec!();
+                Some(return_type.clone())
+            }
+
+            STree::BLOCK { statements } => {
+                info!("analyze_block()");
+                indent_inc!();
+
+                let mut local = Scope::new_child(scope);
+
+                for statement in statements {
+                    self.visit(statement, &mut local);
+                }
+
+                if statements.is_empty() {
+                    self.create_warning_message(
+                        "Empty Block".to_string()
+                    )
+                }
+
+                indent_dec!();
+                None
+            }
+
+            STree::VAR_DECL { id, var_type, mutable, expression} => {
+                info!("analyze_variable_declaration()");
+                indent_inc!();
+
+                match scope.declare_variable(id.clone(), var_type.clone(), mutable.clone()) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        _ =scope.mark_used(id.as_str(), false);
+                        _ = scope.mark_mutability(id.as_str(), mutable.clone());
+                    }
+                };
+
+                self.visit(expression, scope);
+
+                indent_dec!();
+                None
+            }
+
+            STree::WHILE_STMT { condition, body }
+            | STree::DO_WHILE_STMT { condition, body } => {
+                info!("analyze_while()");
+                indent_inc!();
+
+                self.visit(condition, scope);
+
+                self.loop_depth += 1;
+                let mut local = Scope::new();
+                self.visit(body, &mut local);
+                self.loop_depth -= 1;
+
+                indent_dec!();
+                None
+            },
+
+            STree::BREAK | STree::CONTINUE | STree::REPEAT => {
+                info!("analyze_jump()");
+                if self.loop_depth == 0 {
+                    self.create_error_message("JUMP statement used outside of loop".to_string())
+                }
+                None
+            },
+
+            STree::FUNCTION_CALL { callee, args } => {
+                info!("analyze_function_call()");
+                indent_inc!();
+
+                let name = match callee.deref() {
+                    STree::ID { name } => {
+                        name
+                    }
+                    _ => {
+                        self.create_error_message(format!("Callee '{:?}' is not a functions call", callee));
+                        indent_dec!();
+                        return None
+                    }
+                };
+
+                let called_function_option = self.functions.get(name).cloned();
+                let function = match called_function_option {
+                    Some(func) => {
+                        func
+                    },
+                    None => {
+                        self.create_error_message(format!("Called functions '{:?}' does not exist", name));
+                        indent_dec!();
+                        return None
+                    }
+                };
+
+                if let Some(f) = self.functions.get_mut(name) {
+                    f.call();
+                }
+
+                if function.parameters.len() != args.len() {
+                    self.create_error_message(format!(
+                        "IntermediateFunction '{}' expects {} arguments, got {}",
+                        name, function.parameters.len(), args.len()
+                    ));
+                }
+
+                for (param, arg) in function.parameters.iter().zip(args.iter()) {
+                    let arg_type = self.visit(arg, scope).unwrap_or(VariableType::VOID);
+                    if *param != arg_type {
+                        self.create_error_message(format!(
+                            "Argument type mismatch in '{}': expected {:?}, got {:?}",
+                            name, param, arg_type
+                        ))
+                    }
+                }
+
+                indent_dec!();
+                Some(function.return_type.clone())
+            },
+
+            STree::ID { name } => {
+                if name.chars().nth(0).unwrap().is_ascii_uppercase() {
+                    self.create_warning_message(format!("Variable name '{}' should not start with uppercase letter", name));
+                }
+
+                match scope.mark_used(name, true) {
+                    Ok(_) => {}
+                    Err(msg) => {
+                        self.create_error_message(msg);
+                    }
+                }
+
+                Some(scope.check_variable(name).unwrap_or(VariableType::VOID))
+            },
+
+            STree::LIT_INT { .. } => Some(VariableType::INT),
+            STree::LIT_FLOAT { .. } => Some(VariableType::FLOAT),
+            STree::LIT_CHAR { .. } => Some(VariableType::CHAR),
+            STree::LIT_STRING { .. } => Some(VariableType::STRING),
+            STree::LIT_BOOL { .. } => Some(VariableType::BOOLEAN),
+            STree::NULL => Some(VariableType::VOID),
+
+            STree::BLANK => {
+                self.create_warning_message("Unnecessary semicolons".to_string());
+                None
+            }
+
+            _ => None
+        }
+    }
+
+}
+
+// Helpers
+impl Analyzer {
+
+    pub fn create_warning_message(&mut self, msg: String) {
+        self.warnings.push(
+            format!(
+                "{}: {}",
+                "Warning".yellow(),
+                msg
+            )
+        );
+    }
+    pub fn create_error_message(&mut self, msg: String) {
+        self.errors.push(
+            format!(
+                "{}: {}",
+                "Error".red(),
+                msg
+            )
+        );
+    }
+
+    pub fn print_class_table(&mut self) {
+        info!("\nClass Table:");
+        indent_inc!();
+        for class in self.classes.values() {
+            let funcs = class.functions.clone();
+            let mut names: Vec<String> = Vec::new();
+            for func in funcs {
+                names.push(func.name.clone());
+            }
+            info!("{}: {:?}", class.name, names);
+        }
+        indent_dec!();
+    }
+
+    pub fn print_function_table(&mut self) {
+        info!("\nIntermediateFunction Table:");
+        indent_inc!();
+        for function in self.functions.values() {
+            let params = function.parameters.clone();
+            info!("{}: {:?}", function.key(), params);
+        }
+        indent_dec!();
+    }
+
+    fn has_return(&self, node: &STree) -> bool {
+        match node {
+            STree::RETURN_STMT { .. } => true,
+            STree::BLOCK { statements } => statements.iter().any(|s| self.has_return(s)),
+            STree::IF_STMT { then_block, else_block, .. } => {
+                let then_has = self.has_return(then_block);
+                let else_has = else_block.as_ref().map(|b| self.has_return(b)).unwrap_or(false);
+                then_has || else_has
+            }
+            STree::FUNCTION { body, .. } => self.has_return(body),
+            _ => false,
+        }
+    }
+
+}

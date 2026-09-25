@@ -1,22 +1,20 @@
 use std::fs;
 use std::fs::File;
-use std::io::{Write, Result};
+use std::io::Write;
 use std::path::Path;
 use std::process::{Command as TerminalCommand, ExitStatus};
 
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
-use crate::core::analyzer::analyzer::Analyzer;
-use crate::core::codegen::codegen::AssemblyGenerator;
-use crate::core::codegen::nasn::x64::X64CodeGenerator;
-use crate::core::intermediate::program::IntermediateProgram;
-use crate::core::converter::converter::Converter;
-use crate::core::converter::stree::STree;
-use crate::core::parser::mtree::MTree;
-use crate::core::parser::parser::Parser;
-use crate::core::util::error::Error;
-use crate::core::lexer::lexer::Lexer;
-use crate::core::lowering::program::MachineProgram;
+use ohl::ohl::converter::stree::STree;
+use ohl::ohl::intermediate::program::IntermediateProgram;
+use ohl::ohl::lowering::program::MachineProgram;
+
+fn main() {
+    let args: Cli = Cli::parse();
+    handle(args);
+}
+
 
 #[derive(ClapParser)]
 #[command(name = "oo", version)]
@@ -39,10 +37,6 @@ pub enum Command {
     },
     Size {
         filepath: String,
-    },
-    Repl {
-        #[arg(short, long)]
-        debug: bool,
     },
     Token {
         filepath: String,
@@ -97,23 +91,112 @@ pub enum Command {
 
 pub fn handle(cli: Cli) {
     match cli.command {
-        Command::Print { filepath, numbered } => print(filepath, numbered),
+        Command::Print { filepath, numbered } => print_file_contents(filepath, numbered),
         Command::Write { filepath, content, extension } => _ = write_to_file(filepath, extension, content),
         Command::Size { filepath } => size(filepath),
-        Command::Repl { debug: _debug } => repl(_debug),
-        Command::Token { filepath } => _ = tokenize(filepath, true),
-        Command::Parse { filepath, debug: _debug } => _ = parse(filepath, _debug, true),
-        Command::Convert { filepath, debug: _debug } => _ = convert(filepath, _debug, true),
-        Command::Analyze { filepath, debug: _debug } => _ = analyze(filepath, _debug),
-        Command::Lower { filepath, debug: _debug } => _ = lower(filepath, _debug, true),
-        Command::Machine { filepath, debug: _debug } => _ = machine(filepath, _debug, true),
-        Command::Generate { filepath, debug: _debug } => _ = generate(filepath, _debug, true),
-        Command::Build { filepath, debug: _debug, asm } => _ = build(filepath, _debug, asm),
-        Command::Run { filepath, debug: _debug, asm, exe } => _ = run(filepath, _debug, asm, exe)
+        Command::Token { filepath } => {
+            let contents = get_ohl_source(filepath);
+            ohl::tokenize(contents, true);
+        },
+        Command::Parse { filepath, debug: _debug } => {
+            let contents = get_ohl_source(filepath);
+            let tree = ohl::parse(contents, _debug);
+             {
+                println!("\n\nParse Tree:\n");
+                tree.print(_debug);
+                println!();
+            }
+        },
+        Command::Convert { filepath, debug: _debug } => {
+            let contents = get_ohl_source(filepath);
+            let stree = match ohl::convert(contents, _debug) {
+                Ok(stree) => stree,
+                Err(e) => {
+                    eprintln!("{}: Semantic Conversion Failed \n{}\n", "ERROR".red(), e.to_string());
+                    std::process::exit(1);
+                }
+            };
+            println!("\n\nSemantic Tree:\n{:#?}\n", stree);
+
+        },
+        Command::Analyze { filepath, debug: _debug } => {
+            let _ = analyze_and_print(filepath, _debug);
+        },
+        Command::Lower { filepath, debug: _debug } => {
+            let stree = analyze_and_print(filepath, _debug);
+            let mut inter: IntermediateProgram = ohl::lower(stree, _debug);
+            inter.dump();
+        },
+        Command::Machine { filepath, debug: _debug } => {
+            let stree = analyze_and_print(filepath, _debug);
+            let inter: IntermediateProgram = ohl::lower(stree, _debug);
+            let mut machine: MachineProgram = ohl::machine(inter, _debug);
+            machine.dump();
+        },
+        Command::Generate { filepath, debug: _debug } => {
+            let stree = analyze_and_print(filepath, _debug);
+            let inter: IntermediateProgram = ohl::lower(stree, _debug);
+            let machine: MachineProgram = ohl::machine(inter, _debug);
+            let asm: String = ohl::generate(machine, _debug).unwrap();
+            println!("\n{}", asm);
+        },
+        Command::Build { filepath, debug: _debug, asm } => {
+
+            let (filename, _ext) = split_filename(&filepath);
+
+            let asm_path = format!("{}.s", filename);
+            let executable_path = format!("{}.exe", filename);
+
+            let stree = analyze_and_print(filepath, _debug);
+            let inter: IntermediateProgram = ohl::lower(stree, _debug);
+            let machine: MachineProgram = ohl::machine(inter, _debug);
+            let assembly = ohl::generate(machine, _debug).unwrap();
+
+            fs::write(&asm_path, assembly).unwrap();
+
+
+            let status: ExitStatus = TerminalCommand::new("gcc")
+                .arg(&asm_path)
+                .arg("-o")
+                .arg(&executable_path)
+                .status().unwrap();
+
+
+            if !status.success() {
+                eprintln!("GCC failed to build the program.");
+                std::process::exit(1);
+            }
+
+            if !asm {
+                let _ = fs::remove_file(&asm_path);
+            }
+
+            println!("Built {}", executable_path);
+        },
+        Command::Run { filepath, debug: _debug, asm, exe } => {
+            let (filename, _ext) = split_filename(&filepath);
+
+            let stree = analyze_and_print(filepath, _debug);
+            let inter: IntermediateProgram = ohl::lower(stree, _debug);
+            let machine: MachineProgram = ohl::machine(inter, _debug);
+            let assembly = ohl::generate(machine, _debug).unwrap();
+
+            let status = ohl::run(filename, assembly, _debug, asm, exe).unwrap();
+
+            if !status.success() {
+                eprintln!("Program exited with status: {}", status.to_string().red());
+                std::process::exit(0);
+            } else {
+                println!("Program exited successfully.");
+            }
+        }
     }
 }
 
-pub fn print(path: String, numbered: bool) {
+
+// Utility Functions
+
+pub fn print_file_contents(path: String, numbered: bool) {
     let contents = std::fs::read_to_string(path).unwrap();
 
     if numbered {
@@ -131,7 +214,7 @@ pub fn print(path: String, numbered: bool) {
     }
 }
 
-pub fn write_to_file(filename: String, extension: String, content: String) -> Result<()> {
+pub fn write_to_file(filename: String, extension: String, content: String) -> std::io::Result<()> {
     let full_name = format!("{}.{}", filename, extension);
     let mut file = File::create(full_name)?;
     file.write_all(content.as_bytes())?;
@@ -165,139 +248,6 @@ pub fn size(path: String) {
     print!("{} bytes", data.len().to_string().cyan());
 }
 
-pub fn validate_ohl_file(path: String) {
-    use std::path::Path;
-
-    let p = Path::new(&path);
-
-    if p.is_dir() {
-        let mut e = Error::new(0, 0, "Expected file, got directory.".to_string());
-        e.disable_location();
-        e.report();
-    }
-
-
-    match p.extension().and_then(|e| e.to_str()) {
-        Some("ohl") => {}
-        _ => {
-            eprintln!(
-                "{}: expected an .ohl file, got '{}'",
-                "Error".red(),
-                path
-            );
-            std::process::exit(0);
-        }
-    }
-}
-
-pub fn repl(_debug: bool) {
-    let mut input: String = String::new();
-
-    let mut lexer: Lexer = Lexer::new(String::new());
-    let mut parser: Parser;
-    let mut tree: MTree;
-
-    loop {
-        print!("ohl >>> ");
-        let _ = std::io::stdout().flush();
-        std::io::stdin().read_line(&mut input).expect("Failed to read line.");
-
-        lexer.set_input(input.clone());
-
-        if _debug {
-            lexer.print_tokens();
-            lexer.reset();
-        }
-
-        parser = Parser::new(lexer.clone(), _debug);
-        tree = parser.analyze();
-        if _debug {
-            println!("\n\nParse Tree:\n");
-            tree.print(_debug);
-            println!();
-        }
-
-        if input.is_empty() {
-            break;
-        }
-
-        println!("{}", input);
-    }
-}
-
-pub fn tokenize(path: String, _debug: bool) -> Lexer {
-    validate_ohl_file(path.clone());
-    let contents = std::fs::read_to_string(path).unwrap();
-    let mut lexer = Lexer::new(contents);
-    if _debug {
-        lexer.print_tokens();
-        lexer.reset();
-    }
-
-    lexer
-}
-
-pub fn parse(path: String, _debug: bool, print_tree: bool) -> MTree {
-    let lexer = tokenize(path, _debug);
-    let mut parser = Parser::new(lexer, _debug);
-    let tree = parser.analyze();
-    if print_tree {
-        println!("\n\nParse Tree:\n");
-        tree.print(_debug);
-        println!();
-    }
-
-    tree
-}
-
-pub fn convert(path: String, _debug: bool, print_tree: bool) -> STree {
-    let mtree = parse(path, _debug, _debug);
-    
-    let mut converter: Converter = Converter::new(_debug);
-    let stree = match converter.convert_tree(&mtree) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("{}: Semantic Conversion Failed \n{}\n", "ERROR".red(), e.red());
-            std::process::exit(0)
-        }
-    };
-
-    if print_tree {
-        println!("\n\nSemantic Tree:\n{:#?}\n", stree);
-    }
-
-    stree
-}
-
-pub fn analyze(path: String, _debug: bool) -> STree {
-    let mut analyzer = Analyzer::new(_debug);
-    let stree = convert(path, _debug, _debug);
-
-    let result = analyzer.analyze(stree.clone());
-    match result {
-        Ok(warnings) => {
-            print_vec_string(warnings.clone());
-            println!(
-                "\nAnalysis complete with {} {}",
-                warnings.len(),
-                "warning(s)".yellow()
-            );
-        },
-        Err((warnings, errors)) => {
-            print_vec_string(warnings.clone());
-            print_vec_string(errors.clone());
-            println!(
-                "\nAnalysis complete with {} {} and {} {}",
-                warnings.len(),
-                "warning(s)".yellow(),
-                errors.len(),
-                "error(s)".red()
-            );
-        }
-    }
-    stree
-}
-
 fn print_vec_string(strings: Vec<String>) {
     println!();
     for msg in strings {
@@ -305,96 +255,34 @@ fn print_vec_string(strings: Vec<String>) {
     }
 }
 
-pub fn lower(path: String, _debug: bool, show_ir: bool) -> IntermediateProgram {
-    let stree: STree = analyze(path, _debug);
-
-    let mut inter: IntermediateProgram = IntermediateProgram::lower_tree(stree, _debug);
-    if show_ir {
-        inter.dump();
-    }
-
-    inter
+fn get_ohl_source(filepath: String) -> String {
+    ohl::validate_file_extension(filepath.clone(), "ohl".to_string());
+    fs::read_to_string(filepath).unwrap()
 }
 
-pub fn machine(path: String, _debug: bool, show_ir: bool) -> MachineProgram {
-
-    let inter: IntermediateProgram = lower(path, _debug, _debug);
-
-    let mut machine: MachineProgram = MachineProgram::lower(inter, _debug);
-    if show_ir {
-        machine.dump();
+fn analyze_and_print(filepath: String, _debug: bool) -> STree {
+    let contents = get_ohl_source(filepath);
+    match ohl::analyze(contents, _debug) {
+        Ok((stree, warnings)) => {
+            print_vec_string(warnings.clone());
+            println!(
+                "\nAnalysis complete with {} {}",
+                warnings.len(),
+                "warning(s)".yellow()
+            );
+            stree
+        },
+        Err(diagnostics) => {
+            print_vec_string(diagnostics.warnings.clone());
+            print_vec_string(diagnostics.errors.clone());
+            eprintln!(
+                "\nAnalysis complete with {} {} and {} {}",
+                diagnostics.warnings.len(),
+                "warning(s)".yellow(),
+                diagnostics.errors.len(),
+                "error(s)".red()
+            );
+            std::process::exit(0);
+        }
     }
-
-    machine
-}
-
-pub fn generate(path: String, _debug: bool, print_asm: bool) -> Result<String> {
-    let machine_ir = machine(path, _debug, _debug);
-
-    let mut codegen = X64CodeGenerator::new(_debug);
-    let asm: String =codegen.generate(machine_ir)?;
-
-    if print_asm {
-        println!("\n{}", asm);
-    }
-
-    Ok(asm)
-}
-pub fn build(path: String, _debug: bool, asm: bool) -> Result<String> {
-
-    let (filename, _ext) = split_filename(&path);
-
-    let asm_path = format!("{}.s", filename);
-    let executable_path = format!("{}.exe", filename);
-
-    let assembly = generate(path, _debug, false)?;
-
-    fs::write(&asm_path, assembly)?;
-
-
-    let status: ExitStatus = TerminalCommand::new("gcc")
-        .arg(&asm_path)
-        .arg("-o")
-        .arg(&executable_path)
-        .status()?;
-
-
-    if !status.success() {
-        eprintln!("GCC failed to build the program.");
-        std::process::exit(1);
-    }
-
-    if !asm {
-        fs::remove_file(&asm_path)?;
-    }
-
-    println!("Built {}", executable_path);
-
-    Ok(executable_path)
-}
-pub fn run(path: String, _debug: bool, asm: bool, exe: bool) -> Result<()> {
-    let (filename, _ext) = split_filename(&path);
-
-    let exe_path: String = build(path, _debug, asm)?;
-
-    let executable = if cfg!(target_os = "windows") {
-        format!(".\\{}.exe", filename)
-    } else {
-        format!("./{}", filename)
-    };
-
-    let status = TerminalCommand::new(&executable).status()?;
-
-    if !exe {
-        fs::remove_file(&exe_path)?;
-    }
-
-    if !status.success() {
-        eprintln!("Program exited with status: {}", status.to_string().red());
-        std::process::exit(0);
-    } else {
-        println!("Program exited successfully.");
-    }
-
-    Ok(())
 }
