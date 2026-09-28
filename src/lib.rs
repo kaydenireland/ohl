@@ -12,7 +12,7 @@ use std::process::{Command as TerminalCommand, ExitStatus};
 pub use util::logger::LOGGER;
 use crate::ohl::analyzer::analyzer::Analyzer;
 use oil::codegen::codegen::AssemblyGenerator;
-use oil::codegen::nasn::x64::X64CodeGenerator;
+use oil::codegen::nasm::x64::X64CodeGenerator;
 use oil::intermediate::program::IntermediateProgram;
 use crate::ohl::converter::converter::Converter;
 use crate::ohl::converter::stree::STree;
@@ -22,6 +22,7 @@ use crate::ohl::lexer::lexer::Lexer;
 use oil::machine::program::MachineProgram;
 use util::error::error::OhlError;
 use util::error::diagnostics::Diagnostics;
+use crate::util::target::{Target, OS};
 
 pub fn tokenize(src: String, _debug: bool) -> Lexer {
     // expect source input to already be validated
@@ -74,17 +75,17 @@ pub fn machine(inter: IntermediateProgram, _debug: bool) -> MachineProgram {
     MachineProgram::lower(inter, _debug)
 }
 
-pub fn generate(machine: MachineProgram, _debug: bool) -> io::Result<String> {
-    let mut codegen = X64CodeGenerator::new(_debug);
+pub fn generate(machine: MachineProgram, _debug: bool, target: Target) -> io::Result<String> {
+    let mut codegen = X64CodeGenerator::new(_debug, target);
     let asm: String =codegen.generate(machine)?;
 
     Ok(asm)
 }
 
-pub fn build(filename: String, assembly: String, _debug: bool, asm: bool) -> io::Result<String> {
+pub fn build(filename: String, assembly: String, _debug: bool, asm: bool, target: Target) -> io::Result<String> {
 
     let asm_path = format!("{}.s", filename);
-    let executable_path = format!("{}.exe", filename);
+    let executable_path = target.executable_extension();
 
     fs::write(&asm_path, assembly)?;
 
@@ -105,7 +106,7 @@ pub fn build(filename: String, assembly: String, _debug: bool, asm: bool) -> io:
 
 pub fn run(filename: String, assembly: String, _debug: bool, asm: bool, exe: bool) -> io::Result<ExitStatus> {
 
-    let exe_path = build(filename.clone(), assembly, _debug, asm)?;
+    let exe_path = build(filename.clone(), assembly, _debug, asm, Target::host())?;
 
     let executable = if cfg!(target_os = "windows") {
         format!(".\\{}.exe", filename)
@@ -165,4 +166,11 @@ pub fn split_filename(path: &str) -> (String, String) {
         .to_string();
 
     (filename, extension)
+}
+
+pub fn get_target(option: Option<String>) -> Target {
+    match option {
+        Some(val) => Target::parse(&val).unwrap(),
+        None => Target::host(),
+    }
 }

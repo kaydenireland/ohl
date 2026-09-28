@@ -1,4 +1,3 @@
-use std::fmt::format;
 use std::io::Error;
 use crate::oil::codegen::codegen::AssemblyGenerator;
 use crate::oil::machine::program::MachineProgram;
@@ -7,16 +6,19 @@ use crate::oil::machine::instruction::MachineInstruction;
 use crate::oil::machine::operand::Operand;
 use crate::oil::machine::register::Register;
 use crate::oil::machine::operator::{MachineBinaryOperator, MachineUnaryOperator};
+use crate::util::target::Target;
 
 pub struct X64CodeGenerator {
     output: String,
+    target: Target
 }
 
 impl X64CodeGenerator {
-    pub fn new(_debug: bool) -> X64CodeGenerator {
+    pub fn new(_debug: bool, target: Target) -> X64CodeGenerator {
         log_debug!(_debug);
         X64CodeGenerator {
             output: String::new(),
+            target
         }
     }
 }

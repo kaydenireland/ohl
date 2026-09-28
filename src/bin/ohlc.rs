@@ -6,6 +6,7 @@ use ohl::oil::intermediate::program::IntermediateProgram;
 use ohl::oil::lexer::lexer::Lexer;
 use ohl::oil::machine::program::MachineProgram;
 use ohl::oil::parser::parser::Parser;
+use ohl::util::target::Target;
 
 fn main() {
     let args: Cli = Cli::parse();
@@ -39,6 +40,8 @@ pub enum Command {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
+        #[arg(long)]
+        target: Option<String>
     },
     Build {
         filepath: String,
@@ -46,6 +49,8 @@ pub enum Command {
         debug: bool,
         #[arg(short('s'), long)]
         asm: bool,
+        #[arg(long)]
+        target: Option<String>
     },
     Run {
         filepath: String,
@@ -54,7 +59,7 @@ pub enum Command {
         #[arg(short('s'), long)]
         asm: bool,
         #[arg(short, long)]
-        exe: bool,
+        exe: bool
     },
 
 }
@@ -68,13 +73,14 @@ pub fn handle(cli: Cli) {
             let machine: MachineProgram = ohl::machine(inter, _debug);
             machine.dump();
         },
-        Command::Generate { filepath, debug: _debug } => {
+        Command::Generate { filepath, debug: _debug, target } => {
             let inter: IntermediateProgram = parse(filepath, _debug, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
-            let asm: String = ohl::generate(machine, _debug).unwrap();
+            let trgt = ohl::get_target(target);
+            let asm: String = ohl::generate(machine, _debug, trgt).unwrap();
             println!("\n{}", asm);
         },
-        Command::Build { filepath, debug: _debug, asm } => {
+        Command::Build { filepath, debug: _debug, asm, target } => {
 
             let (filename, _ext) = ohl::split_filename(&filepath);
 
@@ -83,7 +89,8 @@ pub fn handle(cli: Cli) {
 
             let inter: IntermediateProgram = parse(filepath, _debug, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
-            let assembly = ohl::generate(machine, _debug).unwrap();
+            let trgt = ohl::get_target(target);
+            let assembly = ohl::generate(machine, _debug, trgt).unwrap();
 
             fs::write(&asm_path, assembly).unwrap();
 
@@ -111,7 +118,7 @@ pub fn handle(cli: Cli) {
 
             let inter: IntermediateProgram = parse(filepath, _debug, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
-            let assembly = ohl::generate(machine, _debug).unwrap();
+            let assembly = ohl::generate(machine, _debug, Target::host()).unwrap();
 
             let status = ohl::run(filename, assembly, _debug, asm, exe).unwrap();
 
