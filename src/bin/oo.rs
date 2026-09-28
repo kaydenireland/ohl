@@ -1,7 +1,6 @@
 use std::fs;
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
 use std::process::{Command as TerminalCommand, ExitStatus};
 
 use clap::{Parser as ClapParser, Subcommand};
@@ -142,7 +141,7 @@ pub fn handle(cli: Cli) {
         },
         Command::Build { filepath, debug: _debug, asm } => {
 
-            let (filename, _ext) = split_filename(&filepath);
+            let (filename, _ext) = ohl::split_filename(&filepath);
 
             let asm_path = format!("{}.s", filename);
             let executable_path = format!("{}.exe", filename);
@@ -174,7 +173,7 @@ pub fn handle(cli: Cli) {
             println!("Built {}", executable_path);
         },
         Command::Run { filepath, debug: _debug, asm, exe } => {
-            let (filename, _ext) = split_filename(&filepath);
+            let (filename, _ext) = ohl::split_filename(&filepath);
 
             let stree = analyze_and_print(filepath, _debug);
             let inter: IntermediateProgram = ohl::lower(stree, _debug);
@@ -219,23 +218,6 @@ pub fn write_to_file(filename: String, extension: String, content: String) -> st
     let mut file = File::create(full_name)?;
     file.write_all(content.as_bytes())?;
     Ok(())
-}
-
-
-pub fn split_filename(path: &str) -> (String, String) {
-    let p = Path::new(path);
-
-    let filename = p.file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_string();
-
-    let extension = p.extension()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_string();
-
-    (filename, extension)
 }
 
 pub fn size(path: String) {

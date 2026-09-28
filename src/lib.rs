@@ -5,6 +5,7 @@ pub mod util;
 
 use std::{fs, io};
 use std::io::Write;
+use std::path::Path;
 use colored::Colorize;
 use std::process::{Command as TerminalCommand, ExitStatus};
 
@@ -148,4 +149,20 @@ pub fn validate_file_extension(path: String, ext: String) {
             std::process::exit(0);
         }
     }
+}
+
+pub fn split_filename(path: &str) -> (String, String) {
+    let p = Path::new(path);
+
+    let filename = p.file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_string();
+
+    let extension = p.extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_string();
+
+    (filename, extension)
 }

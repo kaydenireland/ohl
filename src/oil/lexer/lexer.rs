@@ -1,3 +1,4 @@
+use std::cmp::PartialEq;
 use crate::oil::lexer::token::{Token, TokenType};
 use crate::util::error::error::OhlError;
 use crate::util::error::location::Location;
@@ -27,6 +28,7 @@ pub struct Lexer {
     string_line: usize,
     string_col: usize
 }
+
 
 impl Lexer {
     pub fn new(input: String) -> Lexer {
@@ -89,10 +91,20 @@ impl Lexer {
         loop {
             if self.position >= self.input.len() {
                 if !self.buffer.is_empty() {
+                    let token_type = match self.state {
+                        LexerState::NUMBERS => TokenType::INT(self.buffer.parse().unwrap()),
+                        LexerState::WORDS => self.match_buffer(),
+                        _ => self.match_buffer()
+                    };
+
                     self.state = LexerState::END;
-                    let token_type: TokenType = self.match_buffer();
                     self.current = self.create_token_with_location(token_type, self.line, self.col - self.buffer.len());
                     self.buffer = String::new();
+                    break;
+                }
+
+                if self.current.token_type != TokenType::NEWLINE {
+                    self.current = self.create_token(TokenType::NEWLINE);
                     break;
                 }
 
@@ -125,6 +137,10 @@ impl Lexer {
                     '0'..='9' => {
                         self.state = LexerState::NUMBERS;
                         self.buffer.push(char);
+                    },
+                    '=' => {
+                        self.current = self.create_token(TokenType::ASSIGN);
+                        break;
                     },
                     '#' => {
                         self.state = LexerState::COMMENT;
@@ -194,7 +210,7 @@ impl Lexer {
             "copy" => TokenType::COPY,
             "jmp" => TokenType::JMP,
             "jmpi" => TokenType::JMPI,
-            "jmpin" => TokenType::JUMPIN,
+            "jmpin" => TokenType::JMPIN,
             "labl" => TokenType::LABL,
 
             "neg" => TokenType::NEG,

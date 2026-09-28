@@ -108,8 +108,15 @@ impl Lexer {
             if self.position >= self.input.len() {
                 
                 if !self.buffer.is_empty() {
+                    let token_type = match self.state {
+                        LexerState::NUMBERS => TokenType::LIT_INT{ value: self.buffer.parse().unwrap() },
+                        LexerState::NUMPOINT | LexerState::DECIMALS => TokenType::LIT_FLOAT{ value: self.buffer.parse().unwrap() },
+                        LexerState::WORDS => self.match_buffer(),
+
+                        _ => self.match_buffer()
+                        
+                    };
                     self.state = LexerState::END;
-                    let token_type: TokenType = self.match_buffer();
                     self.current = self.create_token_with_location(token_type, self.line, self.col - self.buffer.len());
                     self.buffer = String::new();
                     break;
