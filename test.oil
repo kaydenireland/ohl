@@ -1,0 +1,124 @@
+fn main
+   jmpi 1 bl.8
+   jmpi 0 bl.8
+   copy 1 tmp.4
+   jmp bl.9
+   labl bl.8
+   copy 0 tmp.4
+   labl bl.9
+   jmpin tmp.4 bl.6
+   jmpin 0 bl.10
+   jmpin 1 bl.10
+   copy 0 tmp.5
+   jmp bl.11
+   labl bl.10
+   copy 1 tmp.5
+   labl bl.11
+   jmpin tmp.5 bl.6
+   copy 0 tmp.3
+   jmp bl.7
+   labl bl.6
+   copy 1 tmp.3
+   labl bl.7
+   jmpi tmp.3 bl.4
+   jmpi 1 bl.14
+   jmpi 0 bl.14
+   copy 1 tmp.7
+   jmp bl.15
+   labl bl.14
+   copy 0 tmp.7
+   labl bl.15
+   jmpi tmp.7 bl.12
+   jmpin 0 bl.16
+   jmpin 1 bl.16
+   copy 0 tmp.8
+   jmp bl.17
+   labl bl.16
+   copy 1 tmp.8
+   labl bl.17
+   jmpi tmp.8 bl.12
+   copy 1 tmp.6
+   jmp bl.13
+   labl bl.12
+   copy 0 tmp.6
+   labl bl.13
+   tmp.9 = not tmp.6
+   jmpi tmp.9 bl.4
+   copy 1 tmp.2
+   jmp bl.5
+   labl bl.4
+   copy 0 tmp.2
+   labl bl.5
+   jmpin tmp.2 bl.2
+   jmpin 1 bl.2
+   copy 0 tmp.1
+   jmp bl.3
+   labl bl.2
+   copy 1 tmp.1
+   labl bl.3
+   jmpi tmp.1 bl.0
+   jmpi 1 bl.24
+   jmpi 0 bl.24
+   copy 1 tmp.13
+   jmp bl.25
+   labl bl.24
+   copy 0 tmp.13
+   labl bl.25
+   jmpin tmp.13 bl.22
+   jmpin 0 bl.26
+   jmpin 1 bl.26
+   copy 0 tmp.14
+   jmp bl.27
+   labl bl.26
+   copy 1 tmp.14
+   labl bl.27
+   jmpin tmp.14 bl.22
+   copy 0 tmp.12
+   jmp bl.23
+   labl bl.22
+   copy 1 tmp.12
+   labl bl.23
+   jmpi tmp.12 bl.20
+   jmpi 1 bl.30
+   jmpi 0 bl.30
+   copy 1 tmp.16
+   jmp bl.31
+   labl bl.30
+   copy 0 tmp.16
+   labl bl.31
+   jmpi tmp.16 bl.28
+   jmpin 0 bl.32
+   jmpin 1 bl.32
+   copy 0 tmp.17
+   jmp bl.33
+   labl bl.32
+   copy 1 tmp.17
+   labl bl.33
+   jmpi tmp.17 bl.28
+   copy 1 tmp.15
+   jmp bl.29
+   labl bl.28
+   copy 0 tmp.15
+   labl bl.29
+   tmp.18 = not tmp.15
+   jmpi tmp.18 bl.20
+   copy 1 tmp.11
+   jmp bl.21
+   labl bl.20
+   copy 0 tmp.11
+   labl bl.21
+   jmpi tmp.11 bl.18
+   jmpi 1 bl.18
+   copy 1 tmp.10
+   jmp bl.19
+   labl bl.18
+   copy 0 tmp.10
+   labl bl.19
+   tmp.19 = not tmp.10
+   jmpi tmp.19 bl.0
+   copy 1 tmp.0
+   jmp bl.1
+   labl bl.0
+   copy 0 tmp.0
+   labl bl.1
+   ret tmp.0

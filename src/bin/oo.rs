@@ -101,11 +101,11 @@ pub fn handle(cli: Cli) {
         Command::Parse { filepath, debug: _debug } => {
             let contents = get_ohl_source(filepath);
             let tree = ohl::parse(contents, _debug);
-             {
-                println!("\n\nParse Tree:\n");
-                tree.print(_debug);
-                println!();
-            }
+
+            println!("\n\nParse Tree:\n");
+            tree.print(_debug);
+            println!();
+
         },
         Command::Convert { filepath, debug: _debug } => {
             let contents = get_ohl_source(filepath);

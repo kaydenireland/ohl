@@ -71,7 +71,7 @@ impl Lexer {
         self.col = 1;
 
         self.string_line = 0;
-        self.string_line = 0;
+        self.string_col = 0;
     }
 
     pub fn reset(&mut self) {
@@ -83,7 +83,7 @@ impl Lexer {
         self.col = 1;
 
         self.string_line = 0;
-        self.string_line = 0;
+        self.string_col = 0;
     }
     
     pub fn current(&self) -> Token {
@@ -131,10 +131,10 @@ impl Lexer {
                 self.current = self.create_token(TokenType::EOI);
                 break;
             }
-            
             let char = self.input.chars().nth(self.position).unwrap();
             self.position += 1;
             self.col += 1;
+            
             
             // State Machine
             match self.state {
