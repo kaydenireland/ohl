@@ -670,6 +670,9 @@ impl Lexer {
             "continue" => TokenType::CONTINUE,
             "repeat" => TokenType::REPEAT,
 
+            "let" => TokenType::VARIABLE,
+            "const" => TokenType::VARIABLE,
+
             "print" => TokenType::PRINT,
             
             _ => {

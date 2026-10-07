@@ -8,8 +8,8 @@ pub enum TokenType {
     RET,
     COPY,
     JMP,
-    JMPI,
-    JMPIN,
+    JMPZ,
+    JMPN,
     LABL,
 
     // Unary operators

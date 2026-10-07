@@ -5,6 +5,7 @@ use crate::oil::intermediate::instruction::IntermediateInstruction;
 use crate::oil::intermediate::instruction::IntermediateInstruction::UNARY;
 use crate::oil::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
 use crate::ohl::converter::stree::STree;
+use crate::oil::intermediate::operator::Value::VAR;
 
 pub struct IntermediateProgram {
     pub functions: Vec<IntermediateFunction>,
@@ -300,6 +301,36 @@ impl IntermediateProgram {
                 indent_dec!();
                 (instructions, Value::INT(0))
             }
+
+            // Variables
+            STree::VAR_DECL { id, var_type, mutable, expression } => {
+                info!("intermediate_lower_variable_declaration()");
+                indent_inc!();
+
+                let (mut instructions, value) = self.lower(*expression);
+
+                instructions.push(
+                    IntermediateInstruction::COPY {
+                        src: value,
+                        dst: Value::VAR(id.clone()),
+                    }
+                );
+
+                indent_dec!();
+                (instructions, Value::VAR(id))
+            },
+
+            // Variables
+            STree::VAR_ASSIGN { id, expression } => {
+                info!("intermediate_lower_variable_assignment()");
+                indent_inc!();
+
+                let (mut instructions, value) = self.lower(*expression);
+                instructions.push(IntermediateInstruction::COPY { src: value, dst: VAR(id.clone())});
+
+                indent_dec!();
+                (instructions, Value::VAR(id))
+            },
 
             // Literals
             STree::LIT_INT { value } => (Vec::new(), Value::INT(value)),

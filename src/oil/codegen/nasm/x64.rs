@@ -6,7 +6,7 @@ use crate::oil::machine::instruction::MachineInstruction;
 use crate::oil::machine::operand::Operand;
 use crate::oil::machine::register::Register;
 use crate::oil::machine::operator::{MachineBinaryOperator, MachineUnaryOperator};
-use crate::util::target::Target;
+use crate::util::target::{Target, OS};
 
 pub struct X64CodeGenerator {
     output: String,
@@ -36,6 +36,11 @@ impl AssemblyGenerator for X64CodeGenerator {
             self.generate_function_definition(function.name)?;
             self.generate_instructions(function.instructions)?;
         }
+        
+        if(self.target.os == OS::LINUX) {
+            self.output.push_str(&".section .note.GNU-stack,\"\",@progbits\n".to_string());
+        }
+        
         self.output.push_str("\n");
 
 

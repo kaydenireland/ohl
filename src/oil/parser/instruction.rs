@@ -45,9 +45,9 @@ impl Parser {
         indent_inc!();
 
         if zero {
-            self.expect(TokenType::JMPI);
+            self.expect(TokenType::JMPZ);
         } else {
-            self.expect(TokenType::JMPIN);
+            self.expect(TokenType::JMPN);
         }
 
         let condition = self.parse_value()?;

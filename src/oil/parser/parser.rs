@@ -130,8 +130,8 @@ impl Parser {
             TokenType::RET => self.parse_return()?,
             TokenType::COPY => self.parse_copy()?,
             TokenType::JMP => self.parse_jump()?,
-            TokenType::JMPI => self.parse_jump_conditional(true)?,
-            TokenType::JMPIN => self.parse_jump_conditional(false)?,
+            TokenType::JMPZ => self.parse_jump_conditional(true)?,
+            TokenType::JMPN => self.parse_jump_conditional(false)?,
             TokenType::LABL => self.parse_label()?,
 
             TokenType::ID(_) => self.parse_assignment()?,

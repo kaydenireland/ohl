@@ -22,8 +22,8 @@ impl Display for IntermediateInstruction {
             
             IntermediateInstruction::COPY { src, dst } => write!(f, "copy {} {}", src, dst),
             IntermediateInstruction::JUMP { target } => write!(f, "jmp {}", target),
-            IntermediateInstruction::JUMP_IF_ZERO { condition, target } => write!(f, "jmpi {} {}", condition, target),
-            IntermediateInstruction::JUMP_IF_NOT_ZERO { condition, target } => write!(f, "jmpin {} {}", condition, target),
+            IntermediateInstruction::JUMP_IF_ZERO { condition, target } => write!(f, "jmpz {} {}", condition, target),
+            IntermediateInstruction::JUMP_IF_NOT_ZERO { condition, target } => write!(f, "jmpn {} {}", condition, target),
             IntermediateInstruction::LABEL { label } => write!(f, "labl {}", label),
         }
     }

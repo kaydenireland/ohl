@@ -5,7 +5,7 @@ use crate::ohl::converter::operator::Operator;
 use crate::ohl::lexer::token_type::TokenType;
 
 // Semantic AST
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum STree {
     START { classes: Vec<STree> },
     CLASS { scope: TokenType, name: String, body: Box<STree> },

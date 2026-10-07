@@ -1,5 +1,7 @@
 class Main {
-    public fun main() -> int {
-        return ((1 and 0) xor (0 or 1)) xor 1;
+    fun main() -> int {
+        let x: int = 5;
+        x = 10;
+        return x;
     }
 }

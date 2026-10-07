@@ -209,8 +209,8 @@ impl Lexer {
             "ret" => TokenType::RET,
             "copy" => TokenType::COPY,
             "jmp" => TokenType::JMP,
-            "jmpi" => TokenType::JMPI,
-            "jmpin" => TokenType::JMPIN,
+            "jmpz" => TokenType::JMPZ,
+            "jmpn" => TokenType::JMPN,
             "labl" => TokenType::LABL,
 
             "neg" => TokenType::NEG,
