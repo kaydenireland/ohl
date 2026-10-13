@@ -3,10 +3,10 @@ use std::process::{Command as TerminalCommand, ExitStatus};
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
 use ohl::oil::intermediate::program::IntermediateProgram;
-use ohl::oil::lexer::lexer::Lexer;
 use ohl::oil::machine::program::MachineProgram;
-use ohl::oil::parser::parser::Parser;
 use ohl::util::target::Target;
+
+static EXT: &str = "oil";
 
 fn main() {
     let args: Cli = Cli::parse();
@@ -66,15 +66,23 @@ pub enum Command {
 
 pub fn handle(cli: Cli) {
     match cli.command {
-        Command::Token { filepath } => _ = tokenize(filepath, true),
-        Command::Parse { filepath, debug: _debug  } => _ = parse(filepath, _debug, true),
+        Command::Token { filepath } => _ = {
+            let contents = ohl::get_validated_file_contents(filepath, EXT);
+            ohl::tokenize_oil(contents, true);
+        },
+        Command::Parse { filepath, debug: _debug  } => _ = {
+            let contents = ohl::get_validated_file_contents(filepath, EXT);
+            ohl::parse_oil(contents, _debug, true)
+        },
         Command::Machine { filepath, debug: _debug } => {
-            let inter: IntermediateProgram = parse(filepath, _debug, _debug);
+            let contents = ohl::get_validated_file_contents(filepath, EXT);
+            let inter: IntermediateProgram = ohl::parse_oil(contents, _debug, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
             machine.dump();
         },
         Command::Generate { filepath, debug: _debug, target } => {
-            let inter: IntermediateProgram = parse(filepath, _debug, _debug);
+            let contents = ohl::get_validated_file_contents(filepath, EXT);
+            let inter: IntermediateProgram = ohl::parse_oil(contents, _debug, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
             let trgt = ohl::get_target(target);
             let asm: String = ohl::generate(machine, _debug, trgt).unwrap();
@@ -87,7 +95,8 @@ pub fn handle(cli: Cli) {
             let asm_path = format!("{}.s", filename);
             let executable_path = format!("{}.exe", filename);
 
-            let inter: IntermediateProgram = parse(filepath, _debug, _debug);
+            let contents = ohl::get_validated_file_contents(filepath, EXT);
+            let inter: IntermediateProgram = ohl::parse_oil(contents, _debug, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
             let trgt = ohl::get_target(target);
             let assembly = ohl::generate(machine, _debug, trgt).unwrap();
@@ -116,7 +125,8 @@ pub fn handle(cli: Cli) {
         Command::Run { filepath, debug: _debug, asm, exe } => {
             let (filename, _ext) = ohl::split_filename(&filepath);
 
-            let inter: IntermediateProgram = parse(filepath, _debug, _debug);
+            let contents = ohl::get_validated_file_contents(filepath, EXT);
+            let inter: IntermediateProgram = ohl::parse_oil(contents, _debug, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
             let assembly = ohl::generate(machine, _debug, Target::host()).unwrap();
 
@@ -130,35 +140,4 @@ pub fn handle(cli: Cli) {
             }
         }
     }
-}
-
-pub fn tokenize(filepath: String, _debug: bool) -> Lexer {
-    let src = get_oil_source(filepath);
-    let mut lexer = Lexer::new(src);
-    if _debug {
-        lexer.print_tokens();
-        lexer.reset();
-    }
-
-    lexer
-}
-
-pub fn parse(filepath: String, _debug: bool, print_instructions: bool) -> IntermediateProgram {
-    // expect source input to already be validated
-    let lexer = tokenize(filepath, _debug);
-    let mut parser = Parser::new(lexer, _debug);
-
-    let program = parser.analyze().unwrap();
-
-    if print_instructions {
-        program.dump();
-    }
-
-    program
-}
-
-// Utility
-fn get_oil_source(filepath: String) -> String {
-    ohl::validate_file_extension(filepath.clone(), "oil".to_string());
-    fs::read_to_string(filepath).unwrap()
 }

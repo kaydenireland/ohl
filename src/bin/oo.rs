@@ -12,6 +12,8 @@ use ohl::oil::intermediate::program::IntermediateProgram;
 use ohl::oil::machine::program::MachineProgram;
 use ohl::util::target::Target;
 
+static EXT: &str = "ohl";
+
 fn main() {
     let args: Cli = Cli::parse();
     handle(args);
@@ -101,21 +103,21 @@ pub fn handle(cli: Cli) {
         Command::Write { filepath, content, extension } => _ = write_to_file(filepath, extension, content),
         Command::Size { filepath } => size(filepath),
         Command::Token { filepath } => {
-            let contents = get_ohl_source(filepath);
-            ohl::tokenize(contents, true);
+            let contents = ohl::get_validated_file_contents(filepath, EXT);
+            ohl::tokenize_ohl(contents, true);
         },
         Command::Parse { filepath, debug: _debug } => {
-            let contents = get_ohl_source(filepath);
-            let tree = ohl::parse(contents, _debug);
+            let contents = ohl::get_validated_file_contents(filepath, EXT);
+            let tree = ohl::parse_ohl(contents, _debug);
 
             println!("\n\nParse Tree:\n");
-            tree.print(_debug);
+            tree.print(true);
             println!();
 
         },
         Command::Convert { filepath, debug: _debug } => {
-            let contents = get_ohl_source(filepath);
-            let stree = match ohl::convert(contents, _debug) {
+            let contents = ohl::get_validated_file_contents(filepath, EXT);
+            let stree = match ohl::convert_ohl(contents, _debug) {
                 Ok(stree) => stree,
                 Err(e) => {
                     eprintln!("{}: Semantic Conversion Failed \n{}\n", "ERROR".red(), e.to_string());
@@ -130,18 +132,18 @@ pub fn handle(cli: Cli) {
         },
         Command::Lower { filepath, debug: _debug } => {
             let stree = analyze_and_print(filepath, _debug);
-            let mut inter: IntermediateProgram = ohl::lower(stree, _debug);
+            let inter: IntermediateProgram = ohl::lower_ohl(stree, _debug);
             inter.dump();
         },
         Command::Machine { filepath, debug: _debug } => {
             let stree = analyze_and_print(filepath, _debug);
-            let inter: IntermediateProgram = ohl::lower(stree, _debug);
+            let inter: IntermediateProgram = ohl::lower_ohl(stree, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
             machine.dump();
         },
         Command::Generate { filepath, debug: _debug, target } => {
             let stree = analyze_and_print(filepath, _debug);
-            let inter: IntermediateProgram = ohl::lower(stree, _debug);
+            let inter: IntermediateProgram = ohl::lower_ohl(stree, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
             let trgt = ohl::get_target(target);
             let asm: String = ohl::generate(machine, _debug, trgt).unwrap();
@@ -155,7 +157,7 @@ pub fn handle(cli: Cli) {
             let executable_path = format!("{}.exe", filename);
 
             let stree = analyze_and_print(filepath, _debug);
-            let inter: IntermediateProgram = ohl::lower(stree, _debug);
+            let inter: IntermediateProgram = ohl::lower_ohl(stree, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
             let trgt = ohl::get_target(target);
             let assembly = ohl::generate(machine, _debug, trgt).unwrap();
@@ -185,7 +187,7 @@ pub fn handle(cli: Cli) {
             let (filename, _ext) = ohl::split_filename(&filepath);
 
             let stree = analyze_and_print(filepath, _debug);
-            let inter: IntermediateProgram = ohl::lower(stree, _debug);
+            let inter: IntermediateProgram = ohl::lower_ohl(stree, _debug);
             let machine: MachineProgram = ohl::machine(inter, _debug);
             let assembly = ohl::generate(machine, _debug, Target::host()).unwrap();
 
@@ -260,14 +262,9 @@ fn print_vec_string(strings: Vec<String>) {
     }
 }
 
-fn get_ohl_source(filepath: String) -> String {
-    ohl::validate_file_extension(filepath.clone(), "ohl".to_string());
-    fs::read_to_string(filepath).unwrap()
-}
-
 fn analyze_and_print(filepath: String, _debug: bool) -> STree {
-    let contents = get_ohl_source(filepath);
-    match ohl::analyze(contents, _debug) {
+    let contents = ohl::get_validated_file_contents(filepath, EXT);
+    match ohl::analyze_ohl(contents, _debug) {
         Ok((stree, warnings)) => {
             print_vec_string(warnings.clone());
             println!(

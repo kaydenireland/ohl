@@ -19,12 +19,16 @@ use crate::ohl::converter::stree::STree;
 use crate::ohl::parser::mtree::MTree;
 use crate::ohl::parser::parser::Parser;
 use crate::ohl::lexer::lexer::Lexer;
+use crate::oil::lexer::lexer::Lexer as OilLexer;
+use crate::oil::parser::parser::Parser as OilParser;
 use oil::machine::program::MachineProgram;
 use util::error::error::OhlError;
 use util::error::diagnostics::Diagnostics;
-use crate::util::target::{Target, OS};
+use crate::util::target::Target;
 
-pub fn tokenize(src: String, _debug: bool) -> Lexer {
+// Ohl Specific
+
+pub fn tokenize_ohl(src: String, _debug: bool) -> Lexer {
     // expect source input to already be validated
     let mut lexer = Lexer::new(src);
     if _debug {
@@ -35,16 +39,16 @@ pub fn tokenize(src: String, _debug: bool) -> Lexer {
     lexer
 }
 
-pub fn parse(src: String, _debug: bool) -> MTree {
-    let lexer = tokenize(src, _debug);
+pub fn parse_ohl(src: String, _debug: bool) -> MTree {
+    let lexer = tokenize_ohl(src, _debug);
     let mut parser = Parser::new(lexer, _debug);
     let tree = parser.analyze();
 
     tree
 }
 
-pub fn convert(src: String, _debug: bool) -> Result<STree, OhlError> {
-    let mtree = parse(src, _debug);
+pub fn convert_ohl(src: String, _debug: bool) -> Result<STree, OhlError> {
+    let mtree = parse_ohl(src, _debug);
 
     let mut converter: Converter = Converter::new(_debug);
     match converter.convert_tree(&mtree) {
@@ -53,9 +57,9 @@ pub fn convert(src: String, _debug: bool) -> Result<STree, OhlError> {
     }
 }
 
-pub fn analyze(src: String, _debug: bool) -> Result<(STree, Vec<String>), Diagnostics> {
+pub fn analyze_ohl(src: String, _debug: bool) -> Result<(STree, Vec<String>), Diagnostics> {
     let mut analyzer = Analyzer::new(_debug);
-    let stree = match convert(src, _debug) {
+    let stree = match convert_ohl(src, _debug) {
         Ok(s) => s,
         Err(e) => return Err(Diagnostics { warnings: Vec::new(), errors: Vec::new() })
         // TODO: Temporary Error Handling, OhlError needs rewrite, maybe with ErrorType enum field
@@ -67,9 +71,39 @@ pub fn analyze(src: String, _debug: bool) -> Result<(STree, Vec<String>), Diagno
     }
 }
 
-pub fn lower(stree: STree, _debug: bool) -> IntermediateProgram {
+pub fn lower_ohl(stree: STree, _debug: bool) -> IntermediateProgram {
     IntermediateProgram::lower_tree(stree, _debug)
 }
+
+// Oil Specific
+
+pub fn tokenize_oil(src: String, _debug: bool) -> OilLexer {
+    // Assume source is already validated
+    let mut lexer = OilLexer::new(src);
+    if _debug {
+        lexer.print_tokens();
+        lexer.reset();
+    }
+
+    lexer
+}
+
+pub fn parse_oil(filepath: String, _debug: bool, print_instructions: bool) -> IntermediateProgram {
+    // expect source input to already be validated
+    let lexer = tokenize_oil(filepath, _debug);
+    let mut parser = OilParser::new(lexer, _debug);
+
+    let program = parser.analyze().unwrap();
+
+    if print_instructions {
+        program.dump();
+    }
+
+    program
+}
+
+
+// Generic Pipeline
 
 pub fn machine(inter: IntermediateProgram, _debug: bool) -> MachineProgram {
     MachineProgram::lower(inter, _debug)
@@ -125,7 +159,7 @@ pub fn run(filename: String, assembly: String, _debug: bool, asm: bool, exe: boo
 
 // Utility
 
-pub fn validate_file_extension(path: String, ext: String) {
+pub fn validate_file_extension(path: String, ext: &str) {
     // TODO: Propoer Error Handling
     use std::path::Path;
 
@@ -150,6 +184,11 @@ pub fn validate_file_extension(path: String, ext: String) {
             std::process::exit(0);
         }
     }
+}
+
+pub fn get_validated_file_contents(filepath: String, extension: &str) -> String {
+    validate_file_extension(filepath.clone(), extension);
+    fs::read_to_string(filepath).unwrap()
 }
 
 pub fn split_filename(path: &str) -> (String, String) {
