@@ -1,4 +1,4 @@
-use crate::oil::intermediate::instruction::IntermediateInstruction;
+use crate::eos::intermediate::instruction::IntermediateInstruction;
 
 #[derive(Debug, Clone)]
 pub struct IntermediateFunction {

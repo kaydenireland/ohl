@@ -1,11 +1,11 @@
-use crate::oil::intermediate::function::IntermediateFunction;
+use crate::eos::intermediate::function::IntermediateFunction;
 use crate::{indent_dec, indent_inc, indent_reset, info, log_debug};
 use crate::ohl::converter::operator::Operator;
-use crate::oil::intermediate::instruction::IntermediateInstruction;
-use crate::oil::intermediate::instruction::IntermediateInstruction::UNARY;
-use crate::oil::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
+use crate::eos::intermediate::instruction::IntermediateInstruction;
+use crate::eos::intermediate::instruction::IntermediateInstruction::UNARY;
+use crate::eos::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
 use crate::ohl::converter::stree::STree;
-use crate::oil::intermediate::operator::Value::VAR;
+use crate::eos::intermediate::operator::Value::VAR;
 
 pub struct IntermediateProgram {
     pub functions: Vec<IntermediateFunction>,
@@ -342,7 +342,7 @@ impl IntermediateProgram {
     }
 
     pub fn dump(&self) {
-        println!("\nDumping Ohl IR:");
+        println!("\nDumping Helios IR:");
         for function in &self.functions {
             println!("\nfn {}", function.name);
             for instruction in &function.instructions {

@@ -1,14 +1,14 @@
-use crate::oil::intermediate::function::IntermediateFunction;
-use crate::oil::intermediate::program::IntermediateProgram;
+use crate::eos::intermediate::function::IntermediateFunction;
+use crate::eos::intermediate::program::IntermediateProgram;
 use crate::{indent_dec, indent_inc, info, log_debug};
-use crate::oil::intermediate::instruction::IntermediateInstruction;
-use crate::oil::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
-use crate::oil::machine::condition::ConditionCode;
-use crate::oil::machine::function::MachineFunction;
-use crate::oil::machine::instruction::MachineInstruction;
-use crate::oil::machine::operand::Operand;
-use crate::oil::machine::register::Register;
-use crate::oil::machine::operator::{MachineBinaryOperator, MachineUnaryOperator};
+use crate::eos::intermediate::instruction::IntermediateInstruction;
+use crate::eos::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
+use crate::eos::machine::condition::ConditionCode;
+use crate::eos::machine::function::MachineFunction;
+use crate::eos::machine::instruction::MachineInstruction;
+use crate::eos::machine::operand::Operand;
+use crate::eos::machine::register::Register;
+use crate::eos::machine::operator::{MachineBinaryOperator, MachineUnaryOperator};
 
 pub struct MachineProgram {
     pub functions: Vec<MachineFunction>
@@ -174,7 +174,7 @@ impl MachineProgram {
     }
 
     pub fn dump(&self) {
-        println!("\nDumping Machine IR:");
+        println!("\nDumping Selene IR:");
         for function in &self.functions {
             println!("\nfn {}", function.name);
             for instruction in &function.instructions {

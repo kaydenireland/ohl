@@ -1,11 +1,11 @@
 use log::info;
 use crate::{indent_dec, indent_inc, indent_reset, log_debug};
-use crate::oil::intermediate::function::IntermediateFunction;
-use crate::oil::intermediate::instruction::IntermediateInstruction;
-use crate::oil::intermediate::operator::Value;
-use crate::oil::intermediate::program::IntermediateProgram;
-use crate::oil::lexer::lexer::Lexer;
-use crate::oil::lexer::token::{Token, TokenType};
+use crate::eos::intermediate::function::IntermediateFunction;
+use crate::eos::intermediate::instruction::IntermediateInstruction;
+use crate::eos::intermediate::operator::Value;
+use crate::eos::intermediate::program::IntermediateProgram;
+use crate::eos::lexer::lexer::Lexer;
+use crate::eos::lexer::token::{Token, TokenType};
 
 pub struct Parser {
     lexer: Lexer

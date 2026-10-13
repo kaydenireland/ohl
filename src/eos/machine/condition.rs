@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::oil::intermediate::operator::IntermediateBinaryOperator;
+use crate::eos::intermediate::operator::IntermediateBinaryOperator;
 
 #[derive(Clone, Debug)]
 pub enum ConditionCode {

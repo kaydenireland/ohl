@@ -1,11 +1,11 @@
 use std::io::Error;
-use crate::oil::codegen::codegen::AssemblyGenerator;
-use crate::oil::machine::program::MachineProgram;
+use crate::vertex::codegen::codegen::AssemblyGenerator;
+use crate::eos::machine::program::MachineProgram;
 use crate::{indent_dec, indent_inc, indent_reset, info, log_debug};
-use crate::oil::machine::instruction::MachineInstruction;
-use crate::oil::machine::operand::Operand;
-use crate::oil::machine::register::Register;
-use crate::oil::machine::operator::{MachineBinaryOperator, MachineUnaryOperator};
+use crate::eos::machine::instruction::MachineInstruction;
+use crate::eos::machine::operand::Operand;
+use crate::eos::machine::register::Register;
+use crate::eos::machine::operator::{MachineBinaryOperator, MachineUnaryOperator};
 use crate::util::target::{Target, OS};
 
 pub struct X64CodeGenerator {

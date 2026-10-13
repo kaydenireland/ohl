@@ -2,15 +2,19 @@
 name = "ohl"
 version = "0.1.0"
 edition = "2024"
-default-run = "oo"
+default-run = "ohlc"
+
+[[bin]]
+name = "ohlc"
+path = "src/bin/ohlc.rs"
 
 [[bin]]
 name = "oo"
 path = "src/bin/oo.rs"
 
 [[bin]]
-name = "oil"
-path = "src/bin/oil.rs"
+name = "eos"
+path = "src/bin/eos.rs"
 
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }

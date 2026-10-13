@@ -30,7 +30,8 @@ impl Display for OS {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Syntax {
     NASM,
-    MASM
+    MASM,
+    JVM
 }
 
 impl Syntax {
@@ -48,7 +49,17 @@ impl Syntax {
             "masm" => Syntax::MASM,
             "intel" => Syntax::MASM,
 
+            "jvm" => Syntax::JVM,
+
             _ => panic!("Unknown Syntax: {}", result)
+        }
+    }
+
+    pub fn extension(&self) -> &str {
+        match self {
+            Syntax::NASM => ".s",
+            Syntax::MASM => ".asm",
+            Syntax::JVM => ".class",
         }
     }
 }

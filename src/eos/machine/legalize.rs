@@ -1,9 +1,9 @@
-use crate::oil::machine::program::MachineProgram;
+use crate::eos::machine::program::MachineProgram;
 use crate::{indent_dec, indent_inc, indent_reset, info};
-use crate::oil::machine::instruction::MachineInstruction;
-use crate::oil::machine::operand::Operand;
-use crate::oil::machine::operator::MachineBinaryOperator;
-use crate::oil::machine::register::Register;
+use crate::eos::machine::instruction::MachineInstruction;
+use crate::eos::machine::operand::Operand;
+use crate::eos::machine::operator::MachineBinaryOperator;
+use crate::eos::machine::register::Register;
 
 impl MachineProgram {
     pub fn allocate_stack(&mut self) {

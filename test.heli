@@ -1,0 +1,4 @@
+fn main
+   copy 5 x
+   copy 10 x
+   ret x

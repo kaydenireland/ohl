@@ -2,11 +2,11 @@ use std::fs;
 use std::process::{Command as TerminalCommand, ExitStatus};
 use clap::{Parser as ClapParser, Subcommand};
 use colored::Colorize;
-use ohl::oil::intermediate::program::IntermediateProgram;
-use ohl::oil::machine::program::MachineProgram;
+use ohl::eos::intermediate::program::IntermediateProgram;
+use ohl::eos::machine::program::MachineProgram;
 use ohl::util::target::Target;
 
-static EXT: &str = "oil";
+static EXT: &str = "heli";
 
 fn main() {
     let args: Cli = Cli::parse();
@@ -15,7 +15,7 @@ fn main() {
 
 
 #[derive(ClapParser)]
-#[command(name = "ohlc", version)]
+#[command(name = "eos", version)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
@@ -31,7 +31,7 @@ pub enum Command {
         #[arg(short, long)]
         debug: bool,
     },
-    Machine {
+    Selene {
         filepath: String,
         #[arg(short, long)]
         debug: bool,
@@ -68,22 +68,22 @@ pub fn handle(cli: Cli) {
     match cli.command {
         Command::Token { filepath } => _ = {
             let contents = ohl::get_validated_file_contents(filepath, EXT);
-            ohl::tokenize_oil(contents, true);
+            ohl::tokenize_helios(contents, true);
         },
         Command::Parse { filepath, debug: _debug  } => _ = {
             let contents = ohl::get_validated_file_contents(filepath, EXT);
-            ohl::parse_oil(contents, _debug, true)
+            ohl::parse_helios(contents, _debug, true)
         },
-        Command::Machine { filepath, debug: _debug } => {
+        Command::Selene { filepath, debug: _debug } => {
             let contents = ohl::get_validated_file_contents(filepath, EXT);
-            let inter: IntermediateProgram = ohl::parse_oil(contents, _debug, _debug);
-            let machine: MachineProgram = ohl::machine(inter, _debug);
+            let inter: IntermediateProgram = ohl::parse_helios(contents, _debug, _debug);
+            let machine: MachineProgram = ohl::lower_to_selene(inter, _debug);
             machine.dump();
         },
         Command::Generate { filepath, debug: _debug, target } => {
             let contents = ohl::get_validated_file_contents(filepath, EXT);
-            let inter: IntermediateProgram = ohl::parse_oil(contents, _debug, _debug);
-            let machine: MachineProgram = ohl::machine(inter, _debug);
+            let inter: IntermediateProgram = ohl::parse_helios(contents, _debug, _debug);
+            let machine: MachineProgram = ohl::lower_to_selene(inter, _debug);
             let trgt = ohl::get_target(target);
             let asm: String = ohl::generate(machine, _debug, trgt).unwrap();
             println!("\n{}", asm);
@@ -96,8 +96,8 @@ pub fn handle(cli: Cli) {
             let executable_path = format!("{}.exe", filename);
 
             let contents = ohl::get_validated_file_contents(filepath, EXT);
-            let inter: IntermediateProgram = ohl::parse_oil(contents, _debug, _debug);
-            let machine: MachineProgram = ohl::machine(inter, _debug);
+            let inter: IntermediateProgram = ohl::parse_helios(contents, _debug, _debug);
+            let machine: MachineProgram = ohl::lower_to_selene(inter, _debug);
             let trgt = ohl::get_target(target);
             let assembly = ohl::generate(machine, _debug, trgt).unwrap();
 
@@ -126,8 +126,8 @@ pub fn handle(cli: Cli) {
             let (filename, _ext) = ohl::split_filename(&filepath);
 
             let contents = ohl::get_validated_file_contents(filepath, EXT);
-            let inter: IntermediateProgram = ohl::parse_oil(contents, _debug, _debug);
-            let machine: MachineProgram = ohl::machine(inter, _debug);
+            let inter: IntermediateProgram = ohl::parse_helios(contents, _debug, _debug);
+            let machine: MachineProgram = ohl::lower_to_selene(inter, _debug);
             let assembly = ohl::generate(machine, _debug, Target::host()).unwrap();
 
             let status = ohl::run(filename, assembly, _debug, asm, exe).unwrap();

@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use crate::oil::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
+use crate::eos::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
 
 #[derive(Debug, Clone)]
 pub enum IntermediateInstruction {

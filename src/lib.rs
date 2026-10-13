@@ -1,5 +1,6 @@
 pub mod ohl;
-pub mod oil;
+pub mod eos;
+pub mod vertex;
 pub mod util;
 
 
@@ -11,26 +12,26 @@ use std::process::{Command as TerminalCommand, ExitStatus};
 
 pub use util::logger::LOGGER;
 use crate::ohl::analyzer::analyzer::Analyzer;
-use oil::codegen::codegen::AssemblyGenerator;
-use oil::codegen::nasm::x64::X64CodeGenerator;
-use oil::intermediate::program::IntermediateProgram;
-use crate::ohl::converter::converter::Converter;
+use vertex::codegen::codegen::AssemblyGenerator;
+use vertex::codegen::nasm::x64::X64CodeGenerator;
+use eos::intermediate::program::IntermediateProgram;
+use crate::ohl::converter::converter::Converter as OhlConverter;
 use crate::ohl::converter::stree::STree;
 use crate::ohl::parser::mtree::MTree;
-use crate::ohl::parser::parser::Parser;
-use crate::ohl::lexer::lexer::Lexer;
-use crate::oil::lexer::lexer::Lexer as OilLexer;
-use crate::oil::parser::parser::Parser as OilParser;
-use oil::machine::program::MachineProgram;
+use crate::ohl::parser::parser::Parser as OhlParser;
+use crate::ohl::lexer::lexer::Lexer as OhlLexer;
+use crate::eos::lexer::lexer::Lexer as HeliosLexer;
+use crate::eos::parser::parser::Parser as HeliosParser;
+use eos::machine::program::MachineProgram;
 use util::error::error::OhlError;
 use util::error::diagnostics::Diagnostics;
 use crate::util::target::Target;
 
 // Ohl Specific
 
-pub fn tokenize_ohl(src: String, _debug: bool) -> Lexer {
+pub fn tokenize_ohl(src: String, _debug: bool) -> OhlLexer {
     // expect source input to already be validated
-    let mut lexer = Lexer::new(src);
+    let mut lexer = OhlLexer::new(src);
     if _debug {
         lexer.print_tokens();
         lexer.reset();
@@ -41,7 +42,7 @@ pub fn tokenize_ohl(src: String, _debug: bool) -> Lexer {
 
 pub fn parse_ohl(src: String, _debug: bool) -> MTree {
     let lexer = tokenize_ohl(src, _debug);
-    let mut parser = Parser::new(lexer, _debug);
+    let mut parser = OhlParser::new(lexer, _debug);
     let tree = parser.analyze();
 
     tree
@@ -50,7 +51,7 @@ pub fn parse_ohl(src: String, _debug: bool) -> MTree {
 pub fn convert_ohl(src: String, _debug: bool) -> Result<STree, OhlError> {
     let mtree = parse_ohl(src, _debug);
 
-    let mut converter: Converter = Converter::new(_debug);
+    let mut converter: OhlConverter = OhlConverter::new(_debug);
     match converter.convert_tree(&mtree) {
         Ok(s) => Ok(s),
         Err(e) => Err(OhlError::from(e))
@@ -71,15 +72,15 @@ pub fn analyze_ohl(src: String, _debug: bool) -> Result<(STree, Vec<String>), Di
     }
 }
 
-pub fn lower_ohl(stree: STree, _debug: bool) -> IntermediateProgram {
+pub fn lower_ohl_to_helios(stree: STree, _debug: bool) -> IntermediateProgram {
     IntermediateProgram::lower_tree(stree, _debug)
 }
 
 // Oil Specific
 
-pub fn tokenize_oil(src: String, _debug: bool) -> OilLexer {
+pub fn tokenize_helios(src: String, _debug: bool) -> HeliosLexer {
     // Assume source is already validated
-    let mut lexer = OilLexer::new(src);
+    let mut lexer = HeliosLexer::new(src);
     if _debug {
         lexer.print_tokens();
         lexer.reset();
@@ -88,10 +89,10 @@ pub fn tokenize_oil(src: String, _debug: bool) -> OilLexer {
     lexer
 }
 
-pub fn parse_oil(filepath: String, _debug: bool, print_instructions: bool) -> IntermediateProgram {
+pub fn parse_helios(filepath: String, _debug: bool, print_instructions: bool) -> IntermediateProgram {
     // expect source input to already be validated
-    let lexer = tokenize_oil(filepath, _debug);
-    let mut parser = OilParser::new(lexer, _debug);
+    let lexer = tokenize_helios(filepath, _debug);
+    let mut parser = HeliosParser::new(lexer, _debug);
 
     let program = parser.analyze().unwrap();
 
@@ -105,13 +106,13 @@ pub fn parse_oil(filepath: String, _debug: bool, print_instructions: bool) -> In
 
 // Generic Pipeline
 
-pub fn machine(inter: IntermediateProgram, _debug: bool) -> MachineProgram {
+pub fn lower_to_selene(inter: IntermediateProgram, _debug: bool) -> MachineProgram {
     MachineProgram::lower(inter, _debug)
 }
 
 pub fn generate(machine: MachineProgram, _debug: bool, target: Target) -> io::Result<String> {
     let mut codegen = X64CodeGenerator::new(_debug, target);
-    let asm: String =codegen.generate(machine)?;
+    let asm: String = codegen.generate(machine)?;
 
     Ok(asm)
 }
@@ -160,7 +161,7 @@ pub fn run(filename: String, assembly: String, _debug: bool, asm: bool, exe: boo
 // Utility
 
 pub fn validate_file_extension(path: String, ext: &str) {
-    // TODO: Propoer Error Handling
+    // TODO: Proper Error Handling
     use std::path::Path;
 
     let p = Path::new(&path);

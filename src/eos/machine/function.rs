@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use crate::oil::machine::instruction::MachineInstruction;
-use crate::oil::machine::operand::Operand;
+use crate::eos::machine::instruction::MachineInstruction;
+use crate::eos::machine::operand::Operand;
 
 #[derive(Debug, Clone)]
 pub struct MachineFunction {

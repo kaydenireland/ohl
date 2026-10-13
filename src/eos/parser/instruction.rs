@@ -1,8 +1,8 @@
 use crate::{indent_dec, indent_inc, info};
-use crate::oil::intermediate::instruction::IntermediateInstruction;
-use crate::oil::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
-use crate::oil::lexer::token::TokenType;
-use crate::oil::parser::parser::Parser;
+use crate::eos::intermediate::instruction::IntermediateInstruction;
+use crate::eos::intermediate::operator::{IntermediateBinaryOperator, IntermediateUnaryOperator, Value};
+use crate::eos::lexer::token::TokenType;
+use crate::eos::parser::parser::Parser;
 
 impl Parser {
 

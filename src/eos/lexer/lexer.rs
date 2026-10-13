@@ -1,5 +1,5 @@
 use std::cmp::PartialEq;
-use crate::oil::lexer::token::{Token, TokenType};
+use crate::eos::lexer::token::{Token, TokenType};
 use crate::util::error::error::OhlError;
 use crate::util::error::location::Location;
 
